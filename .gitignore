@@ -1,0 +1,8 @@
+.env
+/*/k3s/files/config.yaml
+/*/k3s/files/k3s.yaml
+/*/kube/*/secrets.yaml
+/*/kube/*/tls/
+/*/kube/lldap/users/
+/*/kube/rathole/client.toml
+/*/kube/rathole/server.toml
