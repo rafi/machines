@@ -1,0 +1,18 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rathole-server
+spec:
+  type: ClusterIP
+  ports:
+  # The address that the server listens for clients.
+  # See _remote_ nginx tcp configmap:  "23491": ingress/rathole-server:23491
+  - port: 23491
+    name: tcp
+    protocol: TCP
+    targetPort: tcp
+  - port: 32000
+    name: ingress
+    protocol: TCP
+    targetPort: ingress

@@ -1,0 +1,137 @@
+---
+# AUTHELIA config
+# https://www.authelia.com/configuration/
+
+# yaml-language-server: $schema=https://www.authelia.com/schemas/v4.38/json-schema/configuration.json
+
+theme: dark
+
+server:
+  address: 'tcp://0.0.0.0:9091/'
+  asset_path: ''
+  headers:
+    csp_template: ''
+  buffers:
+    read: 4096
+    write: 4096
+  timeouts:
+    read: 6s
+    write: 6s
+    idle: 30s
+  endpoints:
+    enable_pprof: false
+    enable_expvars: false
+
+log:
+  level: info
+  format: text
+  file_path: ''
+  keep_stdout: true
+
+totp:
+  disable: true
+  issuer: example.com
+  algorithm: SHA1
+  digits: 6
+  period: 30
+  skew: 1
+  secret_size: 32
+
+webauthn:
+  disable: false
+  display_name: Authelia
+  attestation_conveyance_preference: indirect
+  user_verification: preferred
+  timeout: 60s
+
+ntp:
+  address: time.cloudflare.com:123
+  version: 4
+  max_desync: 3s
+  disable_startup_check: false
+  disable_failure: false
+
+access_control:
+  default_policy: one_factor
+  # networks:
+  # - name: 'internal'
+  #   networks:
+  #   - '10.0.0.0/8'
+  #   - '172.16.0.0/12'
+  #   - '192.168.0.0/18'
+  # rules:
+  # - domain: 'arr.example.com'
+  #   policy: 'one_factor'
+
+authentication_backend:
+  password_reset:
+    disable: false
+    # custom_url: ''
+  ldap:
+    implementation: custom
+    address: ldap://lldap-ldap:3890
+    timeout: 5s
+    start_tls: false
+    tls:
+      server_name: ''
+      skip_verify: false
+      minimum_version: TLS1.2
+      maximum_version: TLS1.3
+    base_dn: ${LLDAP_LDAP_BASE_DN}
+    additional_users_dn: ou=people
+    users_filter: (&({username_attribute}={input})(objectClass=person))
+    additional_groups_dn: ou=groups
+    groups_filter: (member={dn})
+    permit_referrals: false
+    permit_unauthenticated_bind: false
+    permit_feature_detection_failure: false
+    user: uid=bind_user,ou=people,${LLDAP_LDAP_BASE_DN}
+    attributes:
+      username: uid
+      group_name: cn
+      mail: mail
+      display_name: displayName
+
+password_policy:
+  standard:
+    enabled: true
+    min_length: 8
+    max_length: 0
+    require_uppercase: true
+    require_lowercase: true
+    require_number: true
+    require_special: true
+  zxcvbn:
+    enabled: false
+    min_score: 0
+
+session:
+  same_site: 'lax'
+  expiration: 1h
+  inactivity: 5m
+  remember_me: 1M
+  cookies:
+  - domain: example.com
+    authelia_url: https://auth.example.com
+    default_redirection_url: https://example.com
+    # name: 'rafsesh'
+    same_site: 'lax'
+    inactivity: '5m'
+    expiration: '1h'
+    remember_me: '1d'
+
+regulation:
+  ban_time: 5m
+  find_time: 2m
+  max_retries: 3
+
+storage:
+  local:
+    path: /config/db.sqlite3
+
+notifier:
+  disable_startup_check: false
+  filesystem:
+    filename: /config/notification.txt
+
+...

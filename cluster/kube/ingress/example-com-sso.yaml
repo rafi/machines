@@ -1,0 +1,60 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-com-sso
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+
+    # Authelia
+    nginx.ingress.kubernetes.io/auth-url: http://authelia.auth.svc.cluster.local/api/verify
+    nginx.ingress.kubernetes.io/auth-signin: https://auth.example.com
+    nginx.ingress.kubernetes.io/auth-response-headers: Remote-User,Remote-Name,Remote-Groups,Remote-Email
+    nginx.ingress.kubernetes.io/auth-snippet: |
+      proxy_set_header X-Forwarded-Method $request_method;
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header X-Forwarded-Method $request_method;
+
+    # TODO: Figure out if this can help latency
+    # nginx.ingress.kubernetes.io/server-snippet: |
+    #   client_header_buffer_size   1024k;
+    #   large_client_header_buffers 8 2048k;
+spec:
+  ingressClassName: nginx
+  tls:
+  - hosts:
+    - arr.example.com
+    - echo.example.com
+    - home.example.com
+    secretName: example-com-tls
+  rules:
+  - host: arr.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rathole-server
+            port:
+              name: ingress
+  - host: echo.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rathole-server
+            port:
+              name: ingress
+  - host: home.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rathole-server
+            port:
+              name: ingress

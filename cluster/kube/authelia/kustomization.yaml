@@ -1,0 +1,36 @@
+---
+# AUTHELIA
+# https://github.com/authelia/authelia
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+generatorOptions:
+  disableNameSuffixHash: true
+
+namespace: auth
+
+resources:
+  - deployment.yaml
+  - ingress.yaml
+  - pvc.yaml
+  - service.yaml
+
+images:
+  - name: ghcr.io/authelia/authelia
+    newTag: "4.38.7"
+
+labels:
+  - includeSelectors: true
+    pairs:
+      app: authelia
+      instance: nester
+
+secretGenerator:
+  - name: authelia
+    envs:
+      - .env
+
+configMapGenerator:
+  - name: authelia-conf
+    files:
+      - configuration.yaml
