@@ -1,0 +1,34 @@
+---
+# Install:
+#
+#   helm install ingress -n ingress ingress-nginx/ingress-nginx -f helm/ingress-nginx.yaml
+#
+# https://github.com/kubernetes/ingress-nginx/blob/main/charts/ingress-nginx/values.yaml
+
+
+fullnameOverride: nginx
+
+namespaceOverride: ingress
+
+controller:
+  kind: Deployment
+
+  hostNetwork: false
+  # dnsPolicy: ClusterFirstWithHostNet
+
+  service:
+    type: ClusterIP
+
+  allowSnippetAnnotations: true
+  # proxySetHeaders:
+  #   X-Forwarded-Proto: https
+
+  config:
+    # As this ingress is a proxy to rathole, let's forward all headers.
+    use-forwarded-headers: true
+    server-tokens: false
+    # ssl-redirect: "false"
+    # proxy-add-original-uri-header: "true"
+
+defaultBackend:
+  enabled: false

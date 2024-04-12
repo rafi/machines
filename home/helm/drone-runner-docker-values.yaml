@@ -1,0 +1,47 @@
+---
+# Drone Runner: Docker
+# See https://github.com/drone/charts/blob/master/charts/drone-runner-docker/values.yaml
+
+fullnameOverride: runner-docker
+
+image:
+  tag: 1.8.3
+
+gc:
+  enabled: false
+  tag: 1.0.0
+
+env:
+  DRONE_DEBUG: "false"
+  DOCKER_HOST: "unix:///var/run/docker.sock"
+  DRONE_RPC_HOST: ci.nester.co.il
+  DRONE_RPC_PROTO: https
+  DRONE_RUNNER_NAME: cluster
+  DRONE_RUNNER_CAPACITY: "2"
+  DRONE_SECRET_PLUGIN_ENDPOINT: http://drone-kube-secrets.drone.svc.cluster.local:3000
+  DRONE_RUNNER_ENV_FILE: /run/env/runner.env
+  # DRONE_RUNNER_SECRETS:
+
+extraSecretNamesForEnvFrom:
+  - drone-secrets
+
+extraVolumes:
+  - name: socket
+    hostPath:
+      path: /run/docker.sock
+  - name: runner-env
+    configMap:
+      name: runner-env
+      items:
+        - key: env
+          path: runner.env
+
+extraVolumeMounts:
+  - name: socket
+    mountPath: /var/run/docker.sock
+  - name: runner-env
+    mountPath: /run/env
+
+dind:
+  tag: 24-dind
+  extraVolumeMounts: []

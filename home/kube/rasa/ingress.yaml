@@ -1,0 +1,18 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rasa
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: rasa.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rasa
+            port:
+              name: http

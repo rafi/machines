@@ -1,0 +1,16 @@
+# See https://github.com/rapiz1/rathole#configuration
+[client]
+remote_addr = "foo.bar.io:23491"
+default_token = ""
+retry_interval = 3
+
+[client.transport]
+type = "tls"
+[client.transport.tls]
+trusted_root = "/etc/rathole/certs/rootCA.crt"
+# The hostname that the client uses to validate the certificate.
+hostname = "localhost"
+
+# A service that needs forwarding. Must be identical in server.
+[client.services.desk]
+local_addr = "nginx-controller.ingress:80"

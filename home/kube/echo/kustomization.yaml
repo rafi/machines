@@ -1,0 +1,25 @@
+---
+# ECHOSERVER
+# https://github.com/cilium/echoserver
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+generatorOptions:
+  disableNameSuffixHash: true
+
+namespace: default
+
+resources:
+  - deployment.yaml
+  - ingress.yaml
+  - service.yaml
+
+images:
+  - name: cilium/echoserver
+    newTag: latest
+
+labels:
+  - includeSelectors: true
+    pairs:
+      app: echoserver
+      instance: dummy

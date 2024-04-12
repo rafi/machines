@@ -1,0 +1,18 @@
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: miniflux
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: home.example.com
+    http:
+      paths:
+      - path: /miniflux
+        pathType: Prefix
+        backend:
+          service:
+            name: miniflux
+            port:
+              number: 8080
