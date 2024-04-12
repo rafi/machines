@@ -1,0 +1,71 @@
+---
+
+repositories:
+# https://github.com/drone/charts
+- name: drone
+  url: https://charts.drone.io
+# https://github.com/RasaHQ/helm-charts
+- name: rasa
+  url: https://helm.rasa.com
+# https://github.com/kubernetes/ingress-nginx/tree/main/charts/ingress-nginx
+- name: ingress-nginx
+  url: https://kubernetes.github.io/ingress-nginx
+# https://helm.releases.hashicorp.com
+# - name: hashicorp
+#   url: https://helm.releases.hashicorp.com
+
+releases:
+
+- name: kube-secrets
+  namespace: drone
+  chart: drone/drone-kubernetes-secrets
+  version: 0.1.4
+  labels: { app: drone, component: kube-secrets }
+  values:
+  - home/helm/drone-kube-secrets.yaml
+
+- name: runner-docker
+  namespace: drone
+  chart: drone/drone-runner-docker
+  version: 0.6.1
+  labels: { app: drone, component: runner-docker }
+  values:
+  - home/helm/drone-runner-docker-values.yaml
+
+- name: ingress
+  namespace: ingress
+  chart: ingress-nginx/ingress-nginx
+  labels:
+    app: nginx
+  values:
+  - home/helm/ingress-nginx.yaml
+
+- name: postgres
+  namespace: db
+  chart: oci://registry-1.docker.io/bitnamicharts/postgresql
+  labels:
+    app: postgres
+  values:
+  - home/helm/postgres.yaml
+
+# - name: vault
+#   namespace: vault
+#   chart: hashicorp/vault
+#   labels:
+#     app: vault
+#   values:
+#   - home/helm/vault.yaml
+
+- name: rasa
+  namespace: nester
+  chart: rasa/rasa
+  labels: { app: rasa, component: oss }
+  values:
+  - /Users/rafi/code/nester/infra/helm/rasa-values.yaml
+
+- name: rasa-actions
+  namespace: nester
+  chart: rasa/rasa-action-server
+  labels: { app: rasa, component: actions }
+  values:
+  - /Users/rafi/code/nester/infra/helm/rasa-action-server.yaml
