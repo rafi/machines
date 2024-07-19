@@ -7,12 +7,12 @@ spec:
   type: ClusterIP
   ports:
   # The address that the server listens for clients.
-  # See _remote_ nginx tcp configmap:  "23491": ingress/rathole-server:23491
-  - port: 23491
+  # If using nginx, see _remote_ nginx tcp configmap:  "23123": ingress/rathole-server:23123
+  - port: 23123
     name: tcp
     protocol: TCP
     targetPort: tcp
-  - port: 32000
+  - port: 12000
     name: ingress
     protocol: TCP
     targetPort: ingress

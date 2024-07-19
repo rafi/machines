@@ -1,0 +1,30 @@
+---
+# POSTGRES
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+generatorOptions:
+  disableNameSuffixHash: true
+
+namespace: db
+
+configMapGenerator:
+  - name: postgres-scripts
+    files:
+      - scripts/create-dbs.sh
+
+secretGenerator:
+  - name: postgres-env
+    envs:
+      - .env
+
+helmGlobals:
+  chartHome: ../../.helm
+
+helmCharts:
+  - name: postgresql
+    repo: oci://registry-1.docker.io/bitnamicharts
+    version: "15.2.5"
+    releaseName: postgres
+    namespace: db
+    valuesFile: values.yaml

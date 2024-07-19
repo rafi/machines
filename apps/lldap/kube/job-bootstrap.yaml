@@ -24,7 +24,10 @@ spec:
             - ./bootstrap.sh
           env:
             - name: LLDAP_URL
-              value: "http://lldap-http:17170"
+              valueFrom:
+                secretKeyRef:
+                  name: lldap-env
+                  key: LLDAP_URL
             - name: DO_CLEANUP
               valueFrom:
                 secretKeyRef:

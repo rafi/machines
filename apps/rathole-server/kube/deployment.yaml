@@ -22,9 +22,9 @@ spec:
         - --server
         - /etc/rathole/rathole.toml
         ports:
-        - containerPort: 23491
+        - containerPort: 23123
           name: tcp
-        - containerPort: 32000
+        - containerPort: 12000
           name: ingress
         resources:
           requests:
@@ -35,7 +35,7 @@ spec:
             memory: 100Mi
         readinessProbe:
           tcpSocket:
-            port: 23491
+            port: 23123
           initialDelaySeconds: 2
           timeoutSeconds: 2
           successThreshold: 1
@@ -45,7 +45,7 @@ spec:
         #       Find out how to do ot properly.
         # livenessProbe:
         #   tcpSocket:
-        #     port: 23491
+        #     port: 23123
         #   initialDelaySeconds: 2
         #   timeoutSeconds: 5
         #   successThreshold: 1
