@@ -23,32 +23,12 @@ spec:
   ingressClassName: nginx
   tls:
   - hosts:
-    - arr.example.com
-    - echo.example.com
-    - home.example.com
+    - c.example.com
+    - d.example.com
+    - e.example.com
     secretName: example-com-tls
   rules:
-  - host: arr.example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: rathole-server
-            port:
-              name: ingress
-  - host: echo.example.com
-    http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: rathole-server
-            port:
-              name: ingress
-  - host: home.example.com
+  - host: "*.example.com"
     http:
       paths:
       - path: /
