@@ -1,5 +1,5 @@
 ---
-# RATHOLE server
+# RATHOLE server kubernetes deployment
 # See: https://github.com/rapiz1/rathole
 
 apiVersion: apps/v1
@@ -56,7 +56,7 @@ spec:
           mountPath: /etc/localtime
         - name: conf
           mountPath: /etc/rathole
-        - name: tls
+        - name: certs
           mountPath: /etc/rathole/certs
 
       volumes:
@@ -66,6 +66,6 @@ spec:
         - name: conf
           configMap:
             name: rathole-conf
-        - name: tls
+        - name: certs
           secret:
             secretName: rathole

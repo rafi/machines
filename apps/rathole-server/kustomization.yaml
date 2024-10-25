@@ -10,8 +10,8 @@ generatorOptions:
 namespace: ingress
 
 resources:
-  - deployment.yaml
-  - service.yaml
+  - kube/deployment.yaml
+  - kube/service.yaml
 
 images:
   - name: rapiz1/rathole
@@ -26,9 +26,9 @@ labels:
 configMapGenerator:
   - name: rathole-conf
     files:
-      - server.toml
+      - files/server.toml
 
-# See: create-self-signed-cert.sh
+# See: bin/create-self-signed-cert.sh
 secretGenerator:
   - name: rathole
     files:

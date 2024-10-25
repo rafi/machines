@@ -1,0 +1,19 @@
+[Unit]
+Description=Rathole Server Service
+After=network.target
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=1048576
+
+# with root
+ExecStart=/usr/local/bin/rathole -s /etc/rathole/server.toml
+# without root
+# ExecStart=%h/.local/bin/rathole -s %h/.local/etc/rathole/rathole.toml
+
+[Install]
+WantedBy=multi-user.target
+
+# vim: set ft=systemd ts=2 sw=2 tw=80 noet :

@@ -28,7 +28,7 @@ configMapGenerator:
     files:
       - client.toml
 
-# See: create-self-signed-cert.sh
+# See: bin/create-self-signed-cert.sh
 secretGenerator:
   - name: rathole
     files:

@@ -1,0 +1,21 @@
+# RAFI RATHOLE-SERVER
+
+import '../../lib/util.just'
+
+_default: list
+
+# Deploy rathole-server to a Kubernetes cluster.
+kube:
+	kubectl apply -k .
+
+# Run rathole-server locally with docker compose.
+compose:
+	docker compose up
+
+# Install rathole-server on a remote host as systemd service via SSH.
+systemd host: (_sync host) (installer host)
+
+# Install rathole-server on a remote host with package-manager via SSH.
+pkg host: (_sync host) (installer-pkg host)
+
+_sync host: (rsync host '/var/local/rathole' '.env' 'tls/identity.pfx')

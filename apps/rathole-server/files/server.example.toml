@@ -1,0 +1,19 @@
+# See https://github.com/rapiz1/rathole#configuration
+[server]
+bind_addr = "0.0.0.0:${RATHOLE_SERVER_BIND_PORT}"
+default_token = "${RATHOLE_DEFAULT_TOKEN}"
+
+[server.transport]
+type = "tls"
+[server.transport.tls]
+pkcs12 = "/etc/rathole/certs/identity.pfx"
+pkcs12_password = ""
+
+# The service name must be identical to the client side.
+[server.services.ingress]
+type = "tcp"
+bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_INGRESS_PORT}"
+nodelay = true
+
+[server.services.ssh]
+bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_SSH_PORT}"

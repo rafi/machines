@@ -18,6 +18,11 @@ spec:
       - name: client
         image: rapiz1/rathole
         imagePullPolicy: IfNotPresent
+        env:
+          - name: NODE_IP
+            valueFrom:
+              fieldRef:
+                status.hostIP
         args:
         - --client
         - /etc/rathole/rathole.toml
