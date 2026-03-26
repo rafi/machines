@@ -1,0 +1,8 @@
+{
+	"live-restore": true,
+	"log-driver": "json-file",
+	"log-opts": {
+		"max-size": "8m",
+		"max-file": "10"
+	}
+}

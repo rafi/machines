@@ -71,7 +71,7 @@ function main() {
 	for host
 	do
 		echo ":: [${host}] copy etc files to remote…"
-		if ! rsync -rlt "$SCRIPT_DIR"/../etc "$host":./.setup/
+		if ! rsync -rlt "$SCRIPT_DIR"/etc "$host":./.setup/
 		then
 			die "[ERROR] failed to copy files to '${host}'"
 		fi
@@ -104,6 +104,12 @@ function _setup() {
 
 	# Update and upgrade
 	export DEBIAN_FRONTEND=noninteractive
+
+	# Add the stable version of NeoVim PPA (recommended)
+	add-apt-repository ppa:neovim-ppa/stable -y
+	# Add the unstable version of NeoVim PPA
+	# add-apt-repository ppa:neovim-ppa/unstable -y
+
 	apt-get -y update
 	apt-get -y upgrade
 	apt-get -y autoremove
@@ -112,30 +118,11 @@ function _setup() {
 	apt-get -y install sudo apt-transport-https software-properties-common wget \
 		dnsutils openssl locales tzdata iptables iproute2 gawk grep sed net-tools \
 		cron curl rsync ufw bash bash-completion netcat-openbsd nmap ccze grc \
-		wget colordiff htop iotop dstat tree tcpdump unattended-upgrades \
-		ca-certificates git ripgrep btop fzf jq just lsd zoxide
+		colordiff htop iotop dstat tree tcpdump unattended-upgrades unzip \
+		ca-certificates git
 
-	# Install Docker, but first uninstall all conflicting packages.
-	if ! dpkg -l | grep -q docker-ce; then
-		for pkg in docker.io docker-doc docker-compose docker-compose-v2 podman-docker containerd runc; do
-			apt-get -y remove "$pkg"
-		done
-		curl -fsSL https://download.docker.com/linux/ubuntu/gpg \
-			-o /etc/apt/keyrings/docker.asc
-		chmod a+r /etc/apt/keyrings/docker.asc
-		echo \
-			"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-			$(grep '^VERSION_CODENAME=' /etc/os-release | head -1 | cut -d'=' -f2) stable" | \
-			tee /etc/apt/sources.list.d/docker.list > /dev/null
-		apt-get -y update
-		sync
-		apt-get -y install docker-ce docker-ce-cli containerd.io \
-			docker-buildx-plugin docker-compose-plugin
-		safecopy .setup/etc/docker/daemon.json /etc/docker/daemon.json
-		systemctl restart docker.service
-		systemctl enable docker.service
-		systemctl enable containerd.service
-	fi
+	# Extra utilities
+	apt-get -y install neovim ripgrep btop fzf jq jo just lsd zoxide
 
 	# Timezone and locale
 	echo "Etc/UTC" > /etc/timezone
@@ -244,7 +231,7 @@ EOF
 	# UFW
 	sed -ri 's/^IPV6=.*/IPV6=yes/' /etc/default/ufw
 	ufw allow "$SSH_PORT"/tcp
-	ufw default deny incoming	
+	ufw default deny incoming
 	ufw default allow outgoing
 	ufw show added
 	ufw status verbose
@@ -254,7 +241,10 @@ EOF
 	echo "	Port $SSH_PORT"
 	echo "	User $ADMIN_USER"
 
-	yes y | ufw enable || true
+	echo
+	echo "When you're ready, run: ufw enable"
+	# could be dangerous, can lock you out.
+	# yes y | ufw enable || true
 }
 
 main "$@"

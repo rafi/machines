@@ -23,7 +23,7 @@ get_ssh_keys() {
 }
 
 die() {
-	echo "$1" >&2
+	echo "$@" >&2
 	exit 1
 }
 
@@ -33,13 +33,13 @@ fzf() {
 }
 
 main() {
-	local MACHINE_NAME="$1"
+	local MACHINE_NAME="${1:-}"
 	[ -z "$MACHINE_NAME" ] && read -rp "Enter droplet name: " MACHINE_NAME
 	[ -z "$MACHINE_NAME" ] && die "Machine name is required."
 
 	VPC_ID="$(get_vpcs | fzf --prompt 'Select VPC> ' | awk '{print $1}')"
 	[ -z "$VPC_ID" ] && die "Failed to get VPC ID."
-		
+
 	REGION_ID="$(get_regions | fzf --prompt 'Select Region> ' | awk '{print $1}')"
 	[ -z "$REGION_ID" ] && die "Failed to get region ID."
 
@@ -78,6 +78,7 @@ main() {
 
 	IP="$(awk '{print $3}' <<< "$result")"
 
+	echo 'Droplet created. To provision the server, run:'
 	echo "bin/setup-server.sh --ssh-port <port> root@${IP}"
 }
 

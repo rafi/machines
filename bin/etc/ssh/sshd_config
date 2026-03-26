@@ -1,0 +1,112 @@
+# SSH Configuration
+
+# Omit ListenAddress so SSHD listens on all interfaces, both IPv4 and IPv6.
+#ListenAddress 0.0.0.0
+#ListenAddress ::
+
+# Change default port.
+Port 22
+
+# LogLevel VERBOSE logs user's key fingerprint on login. Needed to have a clear
+# audit track of which key was using to log in.
+LogLevel VERBOSE
+
+# Don't let users set environment variables.
+PermitUserEnvironment no
+
+# Allow client to pass locale environment variables
+# AcceptEnv LANG LC_*
+
+# Only use the newer more secure protocol.
+Protocol 2
+
+# Forwarding to X11 is considered insecure.
+X11Forwarding no
+
+# Disable port forwarding.
+AllowTcpForwarding no
+AllowStreamLocalForwarding no
+GatewayPorts no
+PermitTunnel no
+
+# Don't allow login if the account has an empty password.
+PermitEmptyPasswords no
+
+# Ignore .rhosts and .shosts.
+IgnoreRhosts yes
+
+# Verify hostname matches IP.
+UseDNS yes
+
+# TCPKeepAlive is not encrypted.
+TCPKeepAlive no
+
+AllowAgentForwarding no
+Compression no
+
+# Forbid root sessions.
+PermitRootLogin no
+
+# Don't allow .rhosts or /etc/hosts.equiv.
+HostbasedAuthentication no
+
+# Password are insecure.
+PasswordAuthentication no
+
+# Allow users in 'remote' group to connect.
+# To add and remove users from the group, respectively:
+# - usermod -aG remote <username>
+# - gpasswd -d <username> remote
+AllowGroups remote
+
+# Drop clients that idle longer than 10 minutes.
+ClientAliveInterval 60
+ClientAliveCountMax 10
+
+# Drop if a client take too long to authenticate.
+LoginGraceTime 10
+
+# Log additional failures. (default is 6)
+MaxAuthTries 6
+
+# Limit connections from the same network. (default is 10)
+MaxSessions 2
+
+# Allow only one authentication at a time. (default is 10)
+MaxStartups 2
+
+# Silence is golden.
+DebianBanner no
+PrintMotd no
+
+# Supported HostKey algorithms by order of preference.
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+
+# Select the host key algorithms that the server is willing to use for
+# authentication.
+HostKeyAlgorithms sk-ssh-ed25519-cert-v01@openssh.com,ssh-ed25519-cert-v01@openssh.com,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-256-cert-v01@openssh.com,sk-ssh-ed25519@openssh.com,ssh-ed25519,rsa-sha2-512,rsa-sha2-256
+
+# Select the signature algorithms that the server is willing to use for
+# certificate authority (CA) signatures.
+CASignatureAlgorithms sk-ssh-ed25519@openssh.com,ssh-ed25519,rsa-sha2-512,rsa-sha2-256
+
+# Select the key exchange algorithms that the server is willing to use for
+# GSSAPI (Generic Security Services Application Program Interface)
+# authentication.
+GSSAPIKexAlgorithms gss-curve25519-sha256-,gss-group16-sha512-
+
+# Select the public key algorithms that the server is willing to accept for
+# authentication.
+PubkeyAcceptedAlgorithms sk-ssh-ed25519-cert-v01@openssh.com,ssh-ed25519-cert-v01@openssh.com,sk-ssh-ed25519@openssh.com,ssh-ed25519,rsa-sha2-512-cert-v01@openssh.com,rsa-sha2-512,rsa-sha2-256-cert-v01@openssh.com,rsa-sha2-256
+
+# Choose stronger Key Exchange algorithms.
+KexAlgorithms sntrup761x25519-sha512@openssh.com,curve25519-sha256,curve25519-sha256@libssh.org,gss-curve25519-sha256-,diffie-hellman-group16-sha512,gss-group16-sha512-,diffie-hellman-group18-sha512,diffie-hellman-group-exchange-sha256
+
+# Use modern ciphers for encryption.
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+
+# Use MACs with larger tag sizes.
+MACs hmac-sha2-256-etm@openssh.com,hmac-sha2-512-etm@openssh.com,umac-128-etm@openssh.com
+
+# vim: set ts=2 sw=2 tw=80 noet :

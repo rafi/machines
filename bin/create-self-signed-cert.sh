@@ -11,7 +11,7 @@ set -eu
 # C: CountryName
 
 PASSWORD="$1"
-test -z "$PASSWORD" && echo "Password is required" && exit 1
+test -z "$PASSWORD" && echo >&2 "Password is required" && exit 1
 
 COMMON_NAME="MyCA"
 ORGANIZATION_UNIT="Someone"
