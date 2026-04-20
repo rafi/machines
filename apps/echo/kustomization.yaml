@@ -10,9 +10,9 @@ generatorOptions:
 namespace: default
 
 resources:
-  - deployment.yaml
-  - ingress.yaml
-  - service.yaml
+  - kube/deployment.yaml
+  - kube/ingress.yaml
+  - kube/service.yaml
 
 images:
   - name: cilium/echoserver
