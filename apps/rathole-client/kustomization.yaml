@@ -7,11 +7,10 @@ kind: Kustomization
 generatorOptions:
   disableNameSuffixHash: true
 
-namespace: ingress
+namespace: rathole
 
 resources:
-  - deployment.yaml
-  - service.yaml
+  - kube/deployment.yaml
 
 images:
   - name: rapiz1/rathole
@@ -23,13 +22,13 @@ labels:
       app: rathole
       instance: client
 
-configMapGenerator:
-  - name: rathole-conf
-    files:
-      - client.toml
+# configMapGenerator:
+#   - name: rathole-conf
+#     files:
+#       - files/client.toml
 
 # See: bin/create-self-signed-cert.sh
-secretGenerator:
-  - name: rathole
-    files:
-      - tls/rootCA.crt
+# secretGenerator:
+#   - name: rathole
+#     files:
+#       - tls/rootCA.crt
