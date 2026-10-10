@@ -1,0 +1,86 @@
+---
+# TRAEFIK Helm chart values
+# https://github.com/traefik/traefik-helm-chart/blob/master/traefik/values.yaml
+# https://doc.traefik.io/traefik/reference/install-configuration/providers/kubernetes/kubernetes-gateway/
+#
+# Gateway API only: the Ingress provider and IngressClass are disabled.
+# Requires the Gateway API CRDs (apps/gateway-api).
+
+fullnameOverride: traefik
+
+deployment:
+  kind: Deployment
+  replicas: 1
+
+# In-cluster ClusterIP only, as this is a proxy target for rathole.
+# k3s servicelb/ports are not touched.
+service:
+  type: ClusterIP
+
+ingressClass:
+  enabled: false
+
+providers:
+  kubernetesIngress:
+    enabled: false
+  # Needed for Traefik Middleware CRs referenced from HTTPRoute ExtensionRef filters.
+  kubernetesCRD:
+    enabled: true
+    safeNaming: true
+  kubernetesGateway:
+    enabled: true
+
+ports:
+  web:
+    port: 8000
+    exposedPort: 80
+    # As this ingress is a proxy to rathole, trust forwarded headers.
+    forwardedHeaders:
+      insecure: true
+    http:
+      # Drop X_Auth_User / X.Auth.User style aliases so clients can't spoof the
+      # Authelia Remote-* headers for backends that normalize header names.
+      aliasHeadersStrategy: delete
+  websecure:
+    port: 8443
+    exposedPort: 443
+    forwardedHeaders:
+      insecure: true
+    http:
+      aliasHeadersStrategy: delete
+  # Internal entrypoints (not exposed); set only to silence the warning.
+  traefik:
+    http:
+      aliasHeadersStrategy: delete
+  metrics:
+    http:
+      aliasHeadersStrategy: delete
+
+# Dashboard and API are off; enable and expose via an IngressRoute if needed.
+ingressRoute:
+  dashboard:
+    enabled: false
+
+api:
+  dashboard: false
+
+# Default Gateway "traefik-gateway" (namespace traefik) with an HTTP listener
+# "web" on entrypoint port 8000. HTTPRoutes in all namespaces may attach to it:
+#   parentRefs: [{name: traefik-gateway, namespace: traefik, sectionName: web}]
+gateway:
+  enabled: true
+  listeners:
+    web:
+      port: 8000
+      protocol: HTTP
+      namespacePolicy:
+        from: All
+
+log:
+  level: INFO
+
+accessLog:
+  enabled: true
+
+metrics:
+  prometheus: null

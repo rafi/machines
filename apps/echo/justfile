@@ -1,0 +1,21 @@
+# RAFI ECHOSERVER
+
+APP_NAME := "echo"
+
+import '../../lib/util.just'
+
+_default: list
+
+# Apply echoserver to a Kubernetes cluster.
+kube:
+	kubectl apply -k .
+
+# Run echoserver locally with docker compose.
+# compose:
+# 	docker compose up
+
+# Install echoserver as systemd service on host via SSH.
+ssh-binary host: (with-binary host)
+
+# Install echoserver with package-manager on host via SSH.
+ssh-package host: (with-package-manager host)
