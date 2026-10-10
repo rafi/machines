@@ -1,0 +1,35 @@
+---
+# PAPERLESS-NGX
+# https://github.com/paperless-ngx/paperless-ngx
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+generatorOptions:
+  disableNameSuffixHash: true
+
+namespace: apps
+
+resources:
+  - kube/deployment.yaml
+  - kube/httproute.yaml
+  - kube/pvc.yaml
+  - kube/service.yaml
+
+images:
+  - name: ghcr.io/paperless-ngx/paperless-ngx
+    newTag: "2.12.1"
+  - name: gotenberg/gotenberg
+    newTag: "8.9-cloudrun"
+  - name: apache/tika
+    newTag: "2.9.2.1"
+
+labels:
+  - includeSelectors: true
+    pairs:
+      app: paperless
+      instance: home
+
+secretGenerator:
+  - name: paperless-env
+    envs:
+      - .env

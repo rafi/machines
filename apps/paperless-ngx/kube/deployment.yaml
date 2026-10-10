@@ -1,0 +1,111 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: paperless-ngx
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      serviceAccountName: default
+      automountServiceAccountToken: true
+      dnsPolicy: ClusterFirst
+      enableServiceLinks: true
+      containers:
+        - name: paperless-ngx
+          image: ghcr.io/paperless-ngx/paperless-ngx
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - secretRef:
+                name: paperless-env
+          env:
+            - name: PAPERLESS_PORT
+              value: "8000"
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            tcpSocket:
+              port: 8000
+            timeoutSeconds: 1
+          readinessProbe:
+            failureThreshold: 3
+            initialDelaySeconds: 0
+            periodSeconds: 10
+            tcpSocket:
+              port: 8000
+            timeoutSeconds: 1
+          startupProbe:
+            failureThreshold: 30
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            tcpSocket:
+              port: 8000
+            timeoutSeconds: 1
+          volumeMounts:
+            - name: consume
+              mountPath: /usr/src/paperless/consume
+            - name: data
+              mountPath: /usr/src/paperless/data
+            - name: export
+              mountPath: /usr/src/paperless/export
+            - name: media
+              mountPath: /usr/src/paperless/media
+        - name: gotenberg
+          image: gotenberg/gotenberg
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: false
+            runAsUser: 1001
+          command: ["gotenberg"]
+          args:
+          - "--chromium-disable-javascript=true"
+          - "--chromium-allow-list=file:///tmp/.*"
+          - "--webhook-disable"
+          - "--libreoffice-auto-start"
+          - "--chromium-auto-start"
+          - "--prometheus-collect-interval"
+          - 30s
+          - "--gotenberg-graceful-shutdown-duration"
+          - 60s
+          ports:
+            - name: gotenberg
+              containerPort: 3000
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 0.3m
+              memory: 748Mi
+        - name: tika
+          image: apache/tika
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: tika
+              containerPort: 9998
+              protocol: TCP
+      volumes:
+        # This is where paperless stores all its data (search index, SQLite
+        # database, classification model, etc).
+        - name: data
+          persistentVolumeClaim:
+            claimName: paperless-ngx-data
+        # This is where your documents and thumbnails are stored.
+        - name: media
+          persistentVolumeClaim:
+            claimName: paperless-ngx-media
+        # This is where your documents should go to be consumed.
+        - name: consume
+          hostPath:
+            path: /home/rafi/docs/consume
+            type: DirectoryOrCreate
+        - name: export
+          hostPath:
+            path: /home/rafi/docs/export
+            type: DirectoryOrCreate

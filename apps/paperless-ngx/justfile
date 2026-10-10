@@ -1,0 +1,10 @@
+# RAFI PAPERLESS-NGX
+
+APP_NAME := "paperless-ngx"
+
+_default:
+	@just --list --unsorted
+
+# Deploy paperless-ngx to a Kubernetes cluster.
+kube:
+	kubectl apply -k .
