@@ -11,9 +11,7 @@ namespace: apps
 # HTTPRoute host: ${SLSKD_HOST_NAME}, substituted by Flux postBuild.
 
 resources:
-  - kube/deployment.yaml
-  - kube/httproute.yaml
-  - kube/service.yaml
+  - ../base
 
 images:
   - name: slskd/slskd
