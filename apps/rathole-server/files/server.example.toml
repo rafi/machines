@@ -1,4 +1,6 @@
 # See https://github.com/rapiz1/rathole#configuration
+# FIXME: https://github.com/rapiz1/rathole/issues/218
+# Currently uses secretspec (see ../justfile)
 [server]
 bind_addr = "0.0.0.0:${RATHOLE_SERVER_BIND_PORT}"
 default_token = "${RATHOLE_DEFAULT_TOKEN}"
@@ -6,14 +8,14 @@ default_token = "${RATHOLE_DEFAULT_TOKEN}"
 [server.transport]
 type = "tls"
 [server.transport.tls]
-pkcs12 = "/etc/rathole/certs/identity.pfx"
-pkcs12_password = ""
+pkcs12 = "${RATHOLE_SERVER_PKCS12}"
+pkcs12_password = "${RATHOLE_SERVER_PKCS12_PASSWORD}"
 
 # The service name must be identical to the client side.
 [server.services.ingress]
-type = "tcp"
+# type = "tcp"
 bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_INGRESS_PORT}"
-nodelay = true
+# nodelay = true
 
 [server.services.ssh]
 bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_SSH_PORT}"

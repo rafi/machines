@@ -6,8 +6,16 @@ import '../../lib/util.just'
 
 _default: list
 
+generate-secrets:
+	secretspec get RATHOLE_ROOT_CA_CRT > tls/rootCA.crt
+	secretspec run --scope rathole-client -- \
+		envsubst < files/client.example.toml > files/client.toml
+
+clean-secrets:
+	rm -f files/client.toml tls/rootCA.crt
+
 # Deploy rathole-client to a Kubernetes cluster.
-kube:
+kube: generate-secrets && clean-secrets
 	kubectl apply -k .
 
 # Run rathole-client locally with docker compose.

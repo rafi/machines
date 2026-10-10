@@ -7,7 +7,7 @@ kind: Kustomization
 generatorOptions:
   disableNameSuffixHash: true
 
-namespace: ingress
+namespace: rathole
 
 resources:
   - kube/deployment.yaml
@@ -23,13 +23,80 @@ labels:
       app: rathole
       instance: server
 
-configMapGenerator:
-  - name: rathole-conf
-    files:
-      - files/server.toml
+# configMapGenerator:
+#   - name: rathole-conf
+#     files:
+#       - files/server.toml
 
-# See: bin/create-self-signed-cert.sh
-secretGenerator:
-  - name: rathole
-    files:
-      - tls/identity.pfx
+# # See: bin/create-self-signed-cert.sh
+# secretGenerator:
+#   - name: rathole
+#     files:
+#       - tls/identity.pfx
+
+replacements:
+- source:
+    kind: ConfigMap
+    name: rathole-conf
+    fieldPath: data.RATHOLE_SERVER_BIND_PORT
+  targets:
+  - select:
+      kind: Deployment
+      name: rathole-server
+    fieldPaths:
+    - spec:template:spec:containers.[name=server]:ports.[containerPort=23123]:containerPort
+    - spec:template:spec:containers.[name=server]:readinessProbe:tcpSocket:port
+    # - spec:template:spec:containers.[name=server]:livenessProbe:tcpSocket:port
+    options:
+      delimiter: ""
+- source:
+    kind: ConfigMap
+    name: rathole-conf
+    fieldPath: data.RATHOLE_SERVER_BIND_PORT
+  targets:
+  - select:
+      kind: Service
+      name: rathole-server
+    fieldPaths:
+    - spec:ports.[port=23123]:port
+    options:
+      delimiter: ""
+- source:
+    kind: ConfigMap
+    name: rathole-conf
+    fieldPath: data.RATHOLE_SERVER_SERVICES_INGRESS_PORT
+  targets:
+  - select:
+      kind: Deployment
+      name: rathole-server
+    fieldPaths:
+    - spec:template:spec:containers.[name=server]:ports.[containerPort=12000]:containerPort
+    options:
+      delimiter: ""
+- source:
+    kind: ConfigMap
+    name: rathole-conf
+    fieldPath: data.RATHOLE_SERVER_SERVICES_INGRESS_PORT
+  targets:
+  - select:
+      kind: Service
+      name: rathole-server
+    fieldPaths:
+    - spec:ports.[port=12000]:port
+    options:
+      delimiter: ""
+- source:
+    fieldPath: spec.template.spec.containers.[name=server].image
+    kind: Deployment
+    options:
+      delimiter: ':'
+      index: 1
+  targets:
+  - fieldPaths:
+    - metadata.labels.[app.kubernetes.io/version]
+    - spec.template.metadata.labels.[app.kubernetes.io/version]
+    options:
+      create: true
+    select:
+      kind: Deployment
+      name: rathole-server

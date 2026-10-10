@@ -19,8 +19,11 @@ images:
 labels:
   - includeSelectors: true
     pairs:
-      app: rathole
-      instance: client
+      app.kubernetes.io/component: server
+      app.kubernetes.io/managed-by: rafi-machines
+      app.kubernetes.io/name: rathole-client
+      critical: "true"
+      env: home
 
 # configMapGenerator:
 #   - name: rathole-conf
@@ -32,3 +35,20 @@ labels:
 #   - name: rathole
 #     files:
 #       - tls/rootCA.crt
+
+replacements:
+- source:
+    fieldPath: spec.template.spec.containers.[name=client].image
+    kind: Deployment
+    options:
+      delimiter: ':'
+      index: 1
+  targets:
+  - fieldPaths:
+    - metadata.labels.[app.kubernetes.io/version]
+    - spec.template.metadata.labels.[app.kubernetes.io/version]
+    options:
+      create: true
+    select:
+      kind: Deployment
+      name: rathole
