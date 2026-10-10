@@ -1,40 +1,75 @@
 # Generic deploy recipes, imported by the root justfile.
 #
 # A target is a directory inside apps/<app>/: kube/kubectl, compose, systemd.
-# `.env` lives at the app root and is never committed.
+#
+# Values come from apps/<app>/secretspec.toml (when present). Files that
+# belong to the deployment, not to this repo (keys, certificates, nginx
+# configs), come from the directory in $FILES_DIR (systemd only).
 
 # Deploy: `just deploy kube|compose|systemd <app> [host] [VAR=val...]`
 deploy target app host='' *vars:
 	#!/usr/bin/env bash
 	set -euo pipefail
-	dir="apps/{{ app }}"
 	# Extra VAR=val args go to the remote installer (systemd), e.g.
 	# USE_PACKAGE_MANAGER=1.
+	dir="apps/{{ app }}"
+	spec="$dir/secretspec.toml"
 	fail() { echo "{{ app }}: $1" >&2; exit 1; }
+	# Run a command with the app's secretspec values in its environment.
+	with_secrets() {
+		if test -f "$spec"; then secretspec -f "$spec" run -- "$@"; else "$@"; fi
+	}
+	# Print the app's secretspec values as KEY=value lines (a .env file).
+	dotenv() { secretspec -f "$spec" export --format dotenv; }
+	# Build envsubst's variable list from KEY=value lines, so `$` in
+	# manifests and templates is only touched for known names.
+	subst_vars() { grep -oE '^[A-Za-z_][A-Za-z0-9_]*' | sed 's/.*/${&}/' | tr '\n' ' '; }
 	case "{{ target }}" in
 	kube)
 		# --load-restrictor lets the secretGenerator read ../../.env.
 		entry="$dir/kube/kubectl"
 		test -f "$entry/kustomization.yaml" || fail "no kube/kubectl target"
-		kustomize build --enable-helm --load-restrictor LoadRestrictionsNone "$entry" \
-			| kubectl apply -f -
+		build() {
+			kustomize build --enable-helm --load-restrictor LoadRestrictionsNone "$entry"
+		}
+		if test -f "$spec"; then
+			# .env exists only while applying. Never overwrite one you made.
+			test ! -e "$dir/.env" || fail "$dir/.env exists; values come from secretspec.toml, move it away"
+			trap 'rm -f "$dir/.env"' EXIT
+			dotenv > "$dir/.env"
+			vars="$(subst_vars < "$dir/.env")"
+			build | with_secrets envsubst "$vars" | kubectl apply -f -
+		else
+			build | kubectl apply -f -
+		fi
 		;;
 	compose)
 		test -f "$dir/compose/compose.yaml" || fail "no compose target"
-		docker compose -f "$dir/compose/compose.yaml" up
+		with_secrets docker compose -f "$dir/compose/compose.yaml" up
 		;;
 	systemd)
 		test -f "$dir/systemd/installer.sh" || fail "no systemd target"
 		test -n "{{ host }}" || fail "systemd needs a host"
-		# Flat copy of systemd/files, systemd/tls and .env into /tmp/<app>.
-		srcs=()
-		for d in "$dir/systemd/files/" "$dir/systemd/tls/"; do
-			test -d "$d" && srcs+=("$d")
-		done
-		for s in "${srcs[@]}"; do
-			rsync -hlrtWxz --exclude .gitignore "$s" "{{ host }}:/tmp/{{ app }}/"
-		done
-		rsync -hlrtWxz --ignore-missing-args "$dir/.env" "{{ host }}:/tmp/{{ app }}/"
+		# Everything the installer needs is staged in a temp dir, so rendered
+		# secrets never touch the repo, and sent flat to /tmp/<app>.
+		stage="$(mktemp -d)"
+		trap 'rm -rf "$stage"' EXIT
+		test ! -d "$dir/systemd/files" || cp -R "$dir/systemd/files/." "$stage/"
+		test -z "${FILES_DIR:-}" || cp -R "$FILES_DIR/." "$stage/"
+		rm -f "$stage/.gitignore"
+		if test -f "$spec"; then
+			dotenv > "$stage/.env"
+			vars="$(subst_vars < "$stage/.env")"
+			# Render *.example.* templates to their real names.
+			for t in "$stage"/*.example.*; do
+				test -e "$t" || continue
+				with_secrets envsubst "$vars" < "$t" > "${t/.example./.}"
+				rm "$t"
+			done
+		elif test -f "$dir/.env"; then
+			cp "$dir/.env" "$stage/.env"
+		fi
+		rsync -hlrtWxz "$stage/" "{{ host }}:/tmp/{{ app }}/"
 		cat lib/functions.sh "$dir/systemd/installer.sh" \
 			| ssh "{{ host }}" '{{ vars }}' sh -s
 		;;
