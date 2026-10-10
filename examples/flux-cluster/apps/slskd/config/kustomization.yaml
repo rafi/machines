@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Applies only to the objects below, never to the Flux Kustomization.
+namespace: apps
+
+# Flux only decrypts `kind: Secret` manifests, so keep secrets as Secrets.
+resources:
+  - namespace.yaml
+  - secret-env.yaml
+
+# Stable name (no hash suffix): the app manifests, which live in another
+# repo, reference it by name.
+generatorOptions:
+  disableNameSuffixHash: true
+
+configMapGenerator:
+  - name: slskd
+    files:
+      - slskd.yml

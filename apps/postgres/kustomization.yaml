@@ -1,7 +1,7 @@
 ---
 # POSTGRES (CloudNativePG cluster)
 # Requires the operator from apps/cloudnative-pg.
-# Namespace `db` and per-database Secrets come from the presets repo.
+# Namespace `db` and per-database Secrets come from the consuming repo.
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization

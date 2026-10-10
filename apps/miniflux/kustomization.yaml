@@ -5,7 +5,7 @@ kind: Kustomization
 namespace: apps
 
 # Secret `miniflux-env` (envFrom in the Deployment) is provided by the
-# presets repo, sops-encrypted. Keys: see .env.example.
+# consuming repo, sops-encrypted. Keys: see .env.example.
 
 resources:
   - kube/deployment.yaml

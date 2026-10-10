@@ -4,7 +4,7 @@ kind: Kustomization
 
 namespace: apps
 
-# Provided by the presets repo:
+# Provided by the consuming repo:
 #   Secret `slskd-env` (envFrom in the Deployment), sops-encrypted.
 #     Keys: see .env.example.
 #   ConfigMap `slskd` (slskd.yml, mounted in the Deployment).

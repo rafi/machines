@@ -1,0 +1,5 @@
+web:
+  url_base: /slsk
+soulseek:
+  # Keep equal to SLSKD_SLSK_LISTEN_PORT in ../slskd.yaml
+  listen_port: 50300

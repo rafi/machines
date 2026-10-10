@@ -3,7 +3,7 @@
 #
 # Generic only. Which databases exist (cluster.roles, databases and
 # cluster.initdb) is selected per cluster by patching the HelmRelease from
-# the presets repo; passwords live there as sops-encrypted Secrets.
+# the consuming repo; passwords live there as sops-encrypted Secrets.
 
 # Service: postgres-rw.db.svc.cluster.local
 fullnameOverride: postgres

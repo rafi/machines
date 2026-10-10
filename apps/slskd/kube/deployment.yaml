@@ -21,7 +21,7 @@ spec:
               containerPort: 5030
             - name: https
               containerPort: 5031
-            # Soulseek peer port; ${SLSKD_SLSK_LISTEN_PORT} is set in the presets repo
+            # Soulseek peer port; ${SLSKD_SLSK_LISTEN_PORT} is set in the consuming repo
             - name: listen
               containerPort: ${SLSKD_SLSK_LISTEN_PORT}
           env:

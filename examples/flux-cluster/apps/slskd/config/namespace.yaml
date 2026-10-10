@@ -1,0 +1,5 @@
+# Declare a shared namespace once only; a second declaration is a build error.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: apps
