@@ -4,7 +4,7 @@ set -eu
 # Copyright (c) 2024 Rafael Bodill.
 
 # Variables
-APP_NAME=rafi-test-app
+APP_NAME=test
 # CONFIG_DIR=/etc/$APP_NAME
 # DATA_DIR=/var/lib/$APP_NAME
 # TEMP_DIR=/tmp/$APP_NAME
@@ -14,7 +14,9 @@ intro || . /Users/rafaelb/code/rafi/machines/lib/functions.sh && intro
 
 # DEBUG -------
 install_github devmatteini/dra -C /tmp
-# ls -alF
+# echo "Current directory: $(pwd)"
+# ls -alF "$CONFIG_DIR"/
+# ls -alF "$DATA_DIR"/
 # ls -alF "$TEMP_DIR"/
 # cat "$TEMP_DIR"/test-foo.txt
 # -------------

@@ -9,7 +9,7 @@ generatorOptions:
 namespace: db
 
 helmGlobals:
-  chartHome: ../../.helm
+  chartHome: ../../../../.helm
 
 helmCharts:
   - name: redis

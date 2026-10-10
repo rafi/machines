@@ -8,17 +8,10 @@ generatorOptions:
 namespace: ingress
 
 resources:
-- kube/namespace.yaml
-  # - kube/example-com-https.yaml
-  # - kube/example-com-sso.yaml
-
-# labels:
-# - includeSelectors: true
-#   pairs:
-#     app: ingress
+  - ../base
 
 helmGlobals:
-  chartHome: ../../.helm
+  chartHome: ../../../../.helm
 
 helmCharts:
 - name: ingress-nginx

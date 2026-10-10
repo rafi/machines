@@ -7,7 +7,7 @@ set -eu
 APP_NAME=nginx
 CONFIG_DIR=/etc/$APP_NAME
 DATA_DIR=/var/lib/$APP_NAME
-TEMP_DIR=/tmp/$APP_NAME
+TEMP_DIR=/tmp/ingress
 
 # pre-install
 intro

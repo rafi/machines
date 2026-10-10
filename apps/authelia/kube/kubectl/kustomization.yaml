@@ -9,10 +9,7 @@ generatorOptions:
 namespace: auth
 
 resources:
-- kube/deployment.yaml
-- kube/httproute.yaml
-- kube/pvc.yaml
-- kube/service.yaml
+  - ../base
 
 images:
 - name: ghcr.io/authelia/authelia
@@ -29,12 +26,12 @@ labels:
 
 secretGenerator:
 - envs:
-  - .env
+  - ../../.env
   name: authelia
 
 configMapGenerator:
 - files:
-  - files/configuration.yml
+  - ../../systemd/files/configuration.yml
   name: authelia-conf
 
 replacements:

@@ -10,8 +10,7 @@ generatorOptions:
 namespace: rathole
 
 resources:
-  - kube/deployment.yaml
-  - kube/service.yaml
+  - ../base
 
 images:
   - name: rapiz1/rathole

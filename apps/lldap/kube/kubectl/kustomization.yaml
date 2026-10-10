@@ -10,11 +10,7 @@ generatorOptions:
 namespace: auth
 
 resources:
-  - kube/deployment.yaml
-  - kube/httproute.yaml
-  - kube/job-bootstrap.yaml
-  - kube/service.yaml
-  - kube/pvc.yaml
+  - ../base
 
 images:
   - name: lldap/lldap
@@ -35,15 +31,15 @@ labels:
 secretGenerator:
   - name: lldap-env
     envs:
-      - .env
+      - ../../.env
   - name: lldap-users
     files:
-      - files/bind_user.json
+      - ../../systemd/files/bind_user.json
       # Add more users...
-      # - files/foo.json
+      # - ../../systemd/files/foo.json
   - name: lldap-groups
     files:
-      - files/groups.json
+      - ../../systemd/files/groups.json
 
 # Instruct Kustomize to copy that value into the container port and route
 replacements:

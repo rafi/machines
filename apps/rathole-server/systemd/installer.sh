@@ -8,7 +8,7 @@ set -eu
 # variables
 APP_NAME=rathole
 CONFIG_DIR=/etc/$APP_NAME
-TEMP_DIR=/tmp/$APP_NAME
+TEMP_DIR=/tmp/rathole-server
 
 # user variables
 . "$TEMP_DIR"/.env  # for APP_VERSION and RATHOLE_SERVER_BIND_PORT
