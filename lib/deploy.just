@@ -4,7 +4,8 @@
 #
 # Values come from apps/<app>/secretspec.toml (when present). Files that
 # belong to the deployment, not to this repo (keys, certificates, nginx
-# configs), come from the directory in $FILES_DIR (systemd only).
+# configs), come from the paths in $EXTRA_FILES (systemd only): a
+# colon-separated list of directories (copied flat) and files.
 
 # Deploy: `just deploy kube|compose|systemd <app> [host] [VAR=val...]`
 deploy target app host='' *vars:
@@ -55,7 +56,12 @@ deploy target app host='' *vars:
 		stage="$(mktemp -d)"
 		trap 'rm -rf "$stage"' EXIT
 		test ! -d "$dir/systemd/files" || cp -R "$dir/systemd/files/." "$stage/"
-		test -z "${FILES_DIR:-}" || cp -R "$FILES_DIR/." "$stage/"
+		if test -n "${EXTRA_FILES:-}"; then
+			IFS=: read -ra extra <<< "$EXTRA_FILES"
+			for p in "${extra[@]}"; do
+				if test -d "$p"; then cp -R "$p/." "$stage/"; else cp "$p" "$stage/"; fi
+			done
+		fi
 		rm -f "$stage/.gitignore"
 		if test -f "$spec"; then
 			dotenv > "$stage/.env"
