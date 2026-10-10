@@ -20,3 +20,6 @@ local_addr = "traefik.traefik:80"
 
 [client.services.ssh]
 local_addr = "${RATHOLE_CLIENT_SERVICES_SSH_LOCAL_ADDR}"
+
+[client.services.slskd]
+local_addr = "${RATHOLE_CLIENT_SERVICES_SLSK_LOCAL_ADDR}"

@@ -19,3 +19,6 @@ bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_INGRESS_PORT}"
 
 [server.services.ssh]
 bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_SSH_PORT}"
+
+[server.services.slskd]
+bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_SLSKD_PORT}"

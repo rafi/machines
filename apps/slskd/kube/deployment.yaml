@@ -1,0 +1,58 @@
+---
+# SLSKD
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: slskd
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: Recreate
+  template:
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: slskd
+          image: slskd/slskd
+          ports:
+            - name: http
+              containerPort: 5030
+            - name: https
+              containerPort: 5031
+            # Soulseek peer port; ${SLSKD_SLSK_LISTEN_PORT} is set in the presets repo
+            - name: listen
+              containerPort: ${SLSKD_SLSK_LISTEN_PORT}
+          env:
+            - name: SLSKD_SHARED_DIR
+              value: "/music;/ebooks"
+          envFrom:
+            - secretRef:
+                name: slskd-env
+          volumeMounts:
+            - name: data
+              mountPath: /app
+            - name: config
+              mountPath: /app/slskd.yml
+              subPath: slskd.yml
+            - name: music
+              mountPath: /music
+            - name: ebooks
+              mountPath: /ebooks
+      volumes:
+        - name: data
+          hostPath:
+            path: /opt/slskd
+            type: DirectoryOrCreate
+        - name: config
+          configMap:
+            name: slskd
+        - name: music
+          hostPath:
+            path: /home/rafi/media/music
+            type: Directory
+        - name: ebooks
+          hostPath:
+            path: /home/rafi/media/ebooks
+            type: Directory

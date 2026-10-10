@@ -39,6 +39,7 @@ fi
 
 # post-install
 sudo ufw allow "$RATHOLE_SERVER_BIND_PORT"/tcp
+sudo ufw allow "$RATHOLE_SERVER_SERVICES_SLSKD_PORT"/tcp
 sudo ufw show added
 
 sudo mkdir -p "$CONFIG_DIR"/certs
