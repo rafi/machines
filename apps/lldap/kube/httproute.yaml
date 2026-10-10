@@ -1,0 +1,47 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: lldap
+spec:
+  parentRefs:
+    - name: traefik-gateway
+      namespace: traefik
+      sectionName: web
+  hostnames:
+    - ldap.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      filters:
+        # Authelia SSO (Traefik Middleware, same namespace).
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: authelia
+      backendRefs:
+        - name: lldap-http
+          port: 12234
+
+---
+# Authelia forward-auth, the Traefik equivalent of the former nginx auth-*
+# annotations. Reference it from any HTTPRoute in this namespace with an
+# ExtensionRef filter (group: traefik.io, kind: Middleware, name: authelia).
+# ExtensionRef must be in the same namespace as the HTTPRoute.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: authelia
+spec:
+  forwardAuth:
+    # Authelia >= 4.38 endpoint. Legacy nginx-style endpoint was /api/verify.
+    address: http://authelia.auth.svc.cluster.local/api/authz/forward-auth
+    trustForwardHeader: true
+    authResponseHeaders:
+      - Remote-User
+      - Remote-Name
+      - Remote-Groups
+      - Remote-Email

@@ -32,17 +32,17 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: lldap-env
-                  key: LLDAP_BOOTSTRAP_DO_CLEANUP
+                  key: DO_CLEANUP
             - name: LLDAP_ADMIN_USERNAME
               valueFrom:
                 secretKeyRef:
                   name: lldap-env
-                  key: LLDAP_LDAP_USER_DN
+                  key: LLDAP_ADMIN_USERNAME
             - name: LLDAP_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: lldap-env
-                  key: LLDAP_LDAP_USER_PASS
+                  key: LLDAP_ADMIN_PASSWORD
           volumeMounts:
             - name: user-configs
               mountPath: /user-configs

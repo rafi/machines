@@ -10,11 +10,11 @@ generatorOptions:
 namespace: auth
 
 resources:
-  - deployment.yaml
-  - ingress.yaml
-  - job-bootstrap.yaml
-  - service.yaml
-  - pvc.yaml
+  - kube/deployment.yaml
+  - kube/httproute.yaml
+  - kube/job-bootstrap.yaml
+  - kube/service.yaml
+  - kube/pvc.yaml
 
 images:
   - name: lldap/lldap
@@ -26,8 +26,11 @@ images:
 labels:
   - includeSelectors: true
     pairs:
-      app: lldap
-      instance: nester
+      app.kubernetes.io/component: server
+      app.kubernetes.io/managed-by: rafi-machines
+      app.kubernetes.io/name: lldap
+      critical: "true"
+      env: home
 
 secretGenerator:
   - name: lldap-env
@@ -35,8 +38,46 @@ secretGenerator:
       - .env
   - name: lldap-users
     files:
-      - users/bind_user.json
-      - users/amit.json
+      - files/bind_user.json
+      # Add more users...
+      # - files/foo.json
   - name: lldap-groups
     files:
-      - users/groups.json
+      - files/groups.json
+
+# Instruct Kustomize to copy that value into the container port and route
+replacements:
+- source:
+    kind: Secret
+    name: lldap-env
+    fieldPath: data.LLDAP_HTTP_PORT
+  targets:
+  - select:
+      kind: Deployment
+      name: lldap
+    fieldPaths:
+    - spec:template:spec:containers.[name=lldap]:ports.[containerPort=12234]:containerPort
+    options:
+      delimiter: ""
+  - select:
+      kind: HTTPRoute
+      name: lldap
+    fieldPaths:
+    - spec.rules.0.backendRefs.[name=lldap-http].port
+    options:
+      delimiter: ""
+- source:
+    fieldPath: spec.template.spec.containers.[name=lldap].image
+    kind: Deployment
+    options:
+      delimiter: ':'
+      index: 1
+  targets:
+  - fieldPaths:
+    - metadata.labels.[app.kubernetes.io/version]
+    - spec.template.metadata.labels.[app.kubernetes.io/version]
+    options:
+      create: true
+    select:
+      kind: Deployment
+      name: lldap

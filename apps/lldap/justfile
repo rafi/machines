@@ -1,0 +1,15 @@
+# RAFI LLDAP
+#
+APP_NAME := "lldap"
+
+import '../../lib/util.just'
+
+_default:
+	@just --list --unsorted
+
+# Deploy lldap to a Kubernetes cluster.
+kube:
+	kubectl apply -k .
+
+# Install lldap on a remote host as systemd service via SSH.
+ssh-binary host: (sync-files host invocation_dir() + '/files') (with-binary host)
