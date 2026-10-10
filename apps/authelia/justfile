@@ -1,0 +1,22 @@
+# RAFI AUTHELIA
+
+APP_NAME := "authelia"
+
+import '../../lib/util.just'
+
+_default: list
+
+# Deploy authelia to a Kubernetes cluster.
+kube:
+	kubectl apply -k .
+
+# Run authelia locally with docker compose.
+# compose:
+# 	docker compose up
+
+# Install authelia on a remote host as systemd service via SSH.
+ssh-binary host: (sync-files host) (with-binary host)
+
+# Install authelia on a remote host with package-manager via SSH.
+[no-cd]
+ssh-package host: (sync-files host) (with-package-manager host)

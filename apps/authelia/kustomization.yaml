@@ -1,4 +1,3 @@
----
 # AUTHELIA
 # https://github.com/authelia/authelia
 
@@ -10,27 +9,47 @@ generatorOptions:
 namespace: auth
 
 resources:
-  - deployment.yaml
-  - ingress.yaml
-  - pvc.yaml
-  - service.yaml
+- kube/deployment.yaml
+- kube/httproute.yaml
+- kube/pvc.yaml
+- kube/service.yaml
 
 images:
-  - name: ghcr.io/authelia/authelia
-    newTag: "4.38.7"
+- name: ghcr.io/authelia/authelia
+  newTag: 4.38.7
 
 labels:
-  - includeSelectors: true
-    pairs:
-      app: authelia
-      instance: nester
+- includeSelectors: true
+  pairs:
+    app.kubernetes.io/component: server
+    app.kubernetes.io/managed-by: rafi-machines
+    app.kubernetes.io/name: authelia
+    critical: "true"
+    env: home
 
 secretGenerator:
-  - name: authelia
-    envs:
-      - .env
+- envs:
+  - .env
+  name: authelia
 
 configMapGenerator:
-  - name: authelia-conf
-    files:
-      - configuration.yaml
+- files:
+  - files/configuration.yml
+  name: authelia-conf
+
+replacements:
+- source:
+    fieldPath: spec.template.spec.containers.[name=authelia].image
+    kind: Deployment
+    options:
+      delimiter: ':'
+      index: 1
+  targets:
+  - fieldPaths:
+    - metadata.labels.[app.kubernetes.io/version]
+    - spec.template.metadata.labels.[app.kubernetes.io/version]
+    options:
+      create: true
+    select:
+      kind: Deployment
+      name: authelia
