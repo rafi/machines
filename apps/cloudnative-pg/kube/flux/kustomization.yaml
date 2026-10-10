@@ -8,5 +8,4 @@ kind: Kustomization
 namespace: cnpg-system
 
 resources:
-- kube/namespace.yaml
-- kube/helm.yaml
+  - ../base

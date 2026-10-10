@@ -11,7 +11,7 @@ generatorOptions:
 namespace: db
 
 resources:
-  - kube/helm.yaml
+  - ../base
 
 configMapGenerator:
   - name: postgres-values

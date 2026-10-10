@@ -8,9 +8,7 @@ namespace: apps
 # consuming repo, sops-encrypted. Keys: see .env.example.
 
 resources:
-  - kube/deployment.yaml
-  - kube/httproute.yaml
-  - kube/service.yaml
+  - ../base
 
 images:
   - name: ghcr.io/miniflux/miniflux

@@ -9,8 +9,7 @@ generatorOptions:
 namespace: traefik
 
 resources:
-- kube/namespace.yaml
-- kube/helm.yaml
+  - ../base
 
 configMapGenerator:
 - name: traefik-values

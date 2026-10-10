@@ -10,10 +10,7 @@ generatorOptions:
 namespace: apps
 
 resources:
-  - kube/deployment.yaml
-  - kube/httproute.yaml
-  - kube/pvc.yaml
-  - kube/service.yaml
+  - ../base
 
 images:
   - name: ghcr.io/paperless-ngx/paperless-ngx
@@ -32,4 +29,4 @@ labels:
 secretGenerator:
   - name: paperless-env
     envs:
-      - .env
+      - ../../.env
