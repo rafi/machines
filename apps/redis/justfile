@@ -1,0 +1,10 @@
+# RAFI REDIS
+
+APP_NAME := "redis"
+
+_default:
+	@just --list --unsorted
+
+# Deploy redis to a Kubernetes cluster.
+kube:
+	kubectl apply -k .

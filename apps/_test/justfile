@@ -1,0 +1,21 @@
+# RAFI TEST-APP
+
+APP_NAME := "rafi-test-app"
+
+import '../../lib/util.just'
+
+_default: list
+
+# Apply APP to a Kubernetes cluster.
+# kube:
+# 	kubectl apply -k .
+
+# Run APP locally with docker compose.
+# compose:
+# 	docker compose up
+
+# Install APP from upstream via SSH.
+ssh-binary host: (sync-files host) (with-binary host)
+
+# Install APP with package-manager on host via SSH.
+ssh-package host: (sync-files host) (with-package-manager host)
