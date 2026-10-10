@@ -1,5 +1,7 @@
 ---
-# POSTGRES
+# POSTGRES (CloudNativePG cluster)
+# Requires the operator from apps/cloudnative-pg.
+# Namespace `db` and per-database Secrets come from the presets repo.
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -8,23 +10,10 @@ generatorOptions:
 
 namespace: db
 
+resources:
+  - kube/helm.yaml
+
 configMapGenerator:
-  - name: postgres-scripts
+  - name: postgres-values
     files:
-      - scripts/create-dbs.sh
-
-secretGenerator:
-  - name: postgres-env
-    envs:
-      - .env
-
-helmGlobals:
-  chartHome: ../../.helm
-
-helmCharts:
-  - name: postgresql
-    repo: oci://registry-1.docker.io/bitnamicharts
-    version: "15.2.5"
-    releaseName: postgres
-    namespace: db
-    valuesFile: values.yaml
+      - values.yaml
