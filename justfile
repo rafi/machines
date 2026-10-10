@@ -1,5 +1,7 @@
 # RAFI MACHINES
 
+import 'lib/deploy.just'
+
 [private]
 default:
 	@just --list --unsorted
