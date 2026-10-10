@@ -13,7 +13,7 @@ spec:
     kind: GitRepository
     name: machines
     namespace: flux-system
-  path: apps/slskd
+  path: apps/slskd/kube/flux
   prune: true
   wait: true
   # Values for the ${VAR} placeholders in the app manifests.
