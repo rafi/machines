@@ -20,4 +20,4 @@ rsync host host-dir *extra-src-files:
 		files/ {{ extra-src-files }} {{ host }}:{{ host-dir }}
 
 [private]
-sync-files host *extra: (rsync host '/tmp/' + APP_NAME '.env' extra)
+sync-files host *extra: (rsync host '/tmp/' + APP_NAME invocation_dir() + '/.env' extra)
