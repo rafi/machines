@@ -5,7 +5,9 @@
 # Values come from apps/<app>/secretspec.toml (when present). Files that
 # belong to the deployment, not to this repo (keys, certificates, nginx
 # configs), come from the paths in $EXTRA_FILES (systemd only): a
-# colon-separated list of directories (copied flat) and files.
+# colon-separated list of directories (copied flat) and files. An app
+# without secretspec.toml can get its .env this way too; it takes
+# precedence over apps/<app>/.env.
 
 # Deploy: `just deploy kube|compose|systemd <app> [host] [VAR=val...]`
 deploy target app host='' *vars:
@@ -72,7 +74,7 @@ deploy target app host='' *vars:
 				with_secrets envsubst "$vars" < "$t" > "${t/.example./.}"
 				rm "$t"
 			done
-		elif test -f "$dir/.env"; then
+		elif test -f "$dir/.env" && test ! -e "$stage/.env"; then
 			cp "$dir/.env" "$stage/.env"
 		fi
 		rsync -hlrtWxz "$stage/" "{{ host }}:/tmp/{{ app }}/"

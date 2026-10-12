@@ -1,0 +1,25 @@
+[Unit]
+Description=microsocks SOCKS5 proxy
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=5s
+EnvironmentFile=/etc/microsocks/microsocks.env
+
+# A bare name is looked up in /usr/local/bin (source build) before /usr/bin
+# (package). microsocks wipes -u/-P from its argv, so they don't show in ps.
+ExecStart=microsocks -i 0.0.0.0 -p ${MICROSOCKS_PORT} -u ${MICROSOCKS_USER} -P ${MICROSOCKS_PASSWORD}
+
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
+
+# vim: set ft=systemd ts=2 sw=2 tw=80 noet :
