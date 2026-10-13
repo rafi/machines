@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-set -eu
+set -eux
 # microsocks SOCKS5 proxy installer.
 # Copyright (c) 2026 Rafael Bodill.
 
@@ -11,7 +11,7 @@ CONFIG_DIR=/etc/$APP_NAME
 TEMP_DIR=/tmp/microsocks
 
 # user variables
-. "$TEMP_DIR"/.env  # for MICROSOCKS_PORT and APP_VERSION
+load_env "$TEMP_DIR"/.env  # for MICROSOCKS_PORT and APP_VERSION
 APP_VERSION=${APP_VERSION:-1.0.5}
 
 # pre-install

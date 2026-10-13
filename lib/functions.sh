@@ -28,6 +28,17 @@ reload_service() {
 	sudo systemctl restart "$@"
 }
 
+# Exports the KEY=value lines of a .env file with tracing paused, so installers
+# can run with `set -x` without printing secrets.
+# Usage: load_env "$TEMP_DIR"/.env
+load_env() {
+	case $- in *x*) set +x; _load_env_trace=1 ;; *) _load_env_trace= ;; esac
+	set -a
+	. "$1"
+	set +a
+	if [ -n "$_load_env_trace" ]; then set -x; fi
+}
+
 # Get latest tag
 # Usage: get_latest_tag 'user/repo'
 get_latest_tag() {

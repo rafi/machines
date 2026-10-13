@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-set -eu
+set -eux
 # Authelia installer.
 # Copyright (c) 2024 Rafael Bodill.
 

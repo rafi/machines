@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-set -eu
+set -eux
 # LLDAP installer.
 # Copyright (c) 2026 Rafael Bodill.
 
@@ -8,6 +8,9 @@ APP_NAME=lldap
 LLDAP_VERSION="0.5.0"
 LLDAP_DEB_URL="https://download.opensuse.org/repositories/home:/Masgalor:/LLDAP/xUbuntu_23.04/amd64/lldap_${LLDAP_VERSION}-1+3.1_amd64.deb"
 LLDAP_IMAGE="lldap/lldap:2024-08-08-debian"
+# bootstrap.sh isn't in the 0.5.0 release; this is the last version before
+# the image above. Newer ones expect newer lldap servers.
+LLDAP_BOOTSTRAP_REF=b33d56a4594e
 
 CONFIG_DIR=/etc/$APP_NAME
 DATA_DIR=/var/lib/$APP_NAME
@@ -16,9 +19,12 @@ TEMP_DIR=/tmp/$APP_NAME
 # Pre-install
 intro
 
-# Install (the package creates the lldap user and $CONFIG_DIR)
-wget -qO /tmp/lldap.deb "${LLDAP_DEB_URL}"
-sudo dpkg -i /tmp/lldap.deb
+# Install (the package creates the lldap user and $CONFIG_DIR). The package
+# repository is gone (404), so only a host without lldap downloads it.
+if ! dpkg-query -W lldap >/dev/null 2>&1; then
+	wget --no-verbose -O /tmp/lldap.deb "${LLDAP_DEB_URL}"
+	sudo dpkg -i /tmp/lldap.deb
+fi
 
 # Files and directories. groups.json is the group; every other *.json is a
 # user (bind_user.json and any more). The cleanup below removes these dirs.
@@ -31,9 +37,7 @@ done
 sudo chown -R lldap:lldap "$CONFIG_DIR" "$DATA_DIR"
 # sudo chmod -R o-rwx "$CONFIG_DIR" "$DATA_DIR"
 
-# TODO: Once a new release is made, this should be removed.
-# https://github.com/lldap/lldap/releases
-curl -fsSL https://github.com/lldap/lldap/raw/main/scripts/bootstrap.sh \
+curl -fsSL "https://github.com/lldap/lldap/raw/${LLDAP_BOOTSTRAP_REF}/scripts/bootstrap.sh" \
 	| sudo tee "$DATA_DIR"/bootstrap.sh >/dev/null
 
 # Copy lldap_set_password out of the image without running it (no TTY here).
@@ -47,7 +51,7 @@ sudo docker rm -f lldap-tmp >/dev/null
 
 # Service
 sudo chown -R lldap:lldap "$DATA_DIR"
-sudo chmod og+x "$DATA_DIR"/bootstrap.sh "$DATA_DIR"/lldap_set_password
+sudo chmod 755 "$DATA_DIR"/bootstrap.sh "$DATA_DIR"/lldap_set_password
 [ -f "$CONFIG_DIR"/lldap_config.toml ] && \
 	sudo mv "$CONFIG_DIR"/lldap_config.toml \
 		"$CONFIG_DIR"/lldap_config.docker_template.toml
@@ -56,8 +60,7 @@ sudo mv "$TEMP_DIR"/lldap.service /usr/lib/systemd/system/
 sudo systemctl daemon-reload
 sudo systemctl enable lldap
 
-# shellcheck disable=SC2046
-export $(grep -v '^#' "$TEMP_DIR"/.env | xargs)
+load_env "$TEMP_DIR"/.env
 export LLDAP_URL=http://127.0.0.1:${LLDAP_HTTP_PORT}
 export LLDAP_HTTP_URL=http://127.0.0.1:${LLDAP_HTTP_PORT}
 export LLDAP_SET_PASSWORD_PATH="$DATA_DIR"/lldap_set_password

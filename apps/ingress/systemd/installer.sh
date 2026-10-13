@@ -1,5 +1,5 @@
 #!/usr/bin/env sh
-set -eu
+set -eux
 # Ingress-nginx installer.
 # Copyright (c) 2026 Rafael Bodill.
 
