@@ -33,3 +33,34 @@ apply host *apps:
 setup host:
 	"{{ root }}/bin/setup-server.sh" --etc "{{ dir }}/etc" \
 		--ssh-port "$(pass show secretspec/machines/default/SERVER_SSH_PORT)" {{ host }}
+
+# Replace lldap's key_seed. Stored passwords depend on the key, so lldap runs
+# once with the new seed to re-key and reset the admin password (to
+# LLDAP_ADMIN_PASSWORD); the deploy that follows re-sets bind_user's. Users
+# not in apps/lldap/files/*.json would have to set new passwords.
+[doc('Rotate lldap key_seed: re-key on the host, then redeploy lldap')]
+lldap-rekey host:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	seed="$(openssl rand -base64 48 | tr -d '\n/+=' | head -c 40)"
+	# Runs on the host under bash (whatever the login shell). The script,
+	# seed included, goes over ssh's stdin, never into a command line.
+	remote='set -euo pipefail
+		sudo systemctl stop lldap
+		sudo install -d -m 700 /var/backups/lldap
+		sudo cp -a /var/lib/lldap/users.db "/var/backups/lldap/users.db-$(date +%Y%m%d%H%M%S)-rekey"
+		export LLDAP_KEY_SEED="$seed" LLDAP_FORCE_UPDATE_PRIVATE_KEY=true LLDAP_FORCE_LDAP_USER_PASS_RESET=true
+		cd /var/lib/lldap
+		out="$(sudo --preserve-env=LLDAP_KEY_SEED,LLDAP_FORCE_UPDATE_PRIVATE_KEY,LLDAP_FORCE_LDAP_USER_PASS_RESET \
+			-u lldap /opt/lldap/lldap run --config-file /etc/lldap/config.toml 2>&1 || true)"
+		printf "%s\n" "$out" | grep -iE "private key|admin password|error|restart" || true
+		# lldap exits with this message once the key and admin password are updated.
+		grep -q "Restart the server without" <<< "$out"'
+	{
+		printf "seed=\$(cat <<'SEED'\n%s\nSEED\n)\n" "$seed"
+		printf '%s\n' "$remote"
+	} | ssh {{ host }} bash -s
+	# The host has the new key now: keep pass in step before deploying.
+	printf '%s' "$seed" | pass insert -m -f secretspec/machines/default/LLDAP_KEY_SEED >/dev/null
+	echo "LLDAP_KEY_SEED updated in pass; deploying lldap with it"
+	just --justfile "{{ root }}/justfile" --working-directory "{{ root }}" server apply {{ host }} lldap
