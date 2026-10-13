@@ -25,10 +25,12 @@ kubeconfig out="~/.kube/cluster.yaml":
 	umask 077; pass show secretspec/machines/default/K3S_KUBECONFIG > {{ out }}
 	@echo "export KUBECONFIG={{ out }}"
 
-# Install Flux from flux/flux-system; it then syncs this repo. Run `secrets` after.
+# --force-conflicts: on a running cluster these objects are owned by Flux's
+# kustomize-controller; this takes them over until Flux syncs them again.
+[doc('Install or re-point Flux from flux/flux-system; it then syncs this repo')]
 [group('bootstrap')]
 bootstrap:
-	kubectl apply --server-side -k {{ dir }}/flux/flux-system
+	kubectl apply --server-side --force-conflicts -k {{ dir }}/flux/flux-system
 
 # Creates cluster-settings in every app namespace, plus the secrets/*.yaml of
 # the named apps (all apps when none are named).
