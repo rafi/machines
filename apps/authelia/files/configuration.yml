@@ -2,7 +2,7 @@
 # AUTHELIA config
 # https://www.authelia.com/configuration/
 
-# yaml-language-server: $schema=https://www.authelia.com/schemas/v4.38/json-schema/configuration.json
+# yaml-language-server: $schema=https://www.authelia.com/schemas/v4.39/json-schema/configuration.json
 
 theme: dark
 
@@ -44,8 +44,9 @@ webauthn:
   disable: false
   display_name: Authelia
   attestation_conveyance_preference: indirect
-  user_verification: preferred
   timeout: 60s
+  selection_criteria:
+    user_verification: preferred
 
 ntp:
   address: time.cloudflare.com:123
@@ -92,7 +93,6 @@ authentication_backend:
     groups_filter: (member={dn})
     permit_referrals: false
     permit_unauthenticated_bind: false
-    permit_feature_detection_failure: false
     user: uid=bind_user,ou=people,${LLDAP_LDAP_BASE_DN}
     attributes:
       username: uid
