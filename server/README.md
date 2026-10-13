@@ -14,8 +14,8 @@ just server setup root@<ip>   # etc/ files; ssh port from pass (SERVER_SSH_PORT)
 ## Apps
 
 ```sh
-just server apply              # every app (SSH host: $SERVER_HOST)
-just server apply microsocks   # only the named apps
+just server apply <host>              # every app; <host> is the server's SSH destination
+just server apply <host> microsocks   # only the named apps
 ```
 
 Each app is `apps/<app>/`: its config in `files/` (rendered with

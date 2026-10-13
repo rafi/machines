@@ -7,15 +7,14 @@ set shell := ['bash', '-euo', 'pipefail', '-c']
 
 dir := source_directory()
 root := dir / '..'
-# SSH destination; override with SERVER_HOST.
-host := env('SERVER_HOST', '')
 
 _default:
 	@just --list server --unsorted
 
-# Deploy apps to the server; all of them when none are named.
-[doc('Deploy apps to the server: just server apply [app...]')]
-apply *apps:
+# Deploy apps to the server; all of them when none are named. `host` is its
+# SSH destination, e.g. an ssh config alias (the repo doesn't name it).
+[doc('Deploy apps to the server: just server apply <host> [app...]')]
+apply host *apps:
 	#!/usr/bin/env bash
 	set -euo pipefail
 	# deploy <app> [VAR=val...], unless apps were named and it isn't one.
@@ -42,7 +41,7 @@ setup target:
 # LLDAP_ADMIN_PASSWORD); the deploy that follows re-sets bind_user's. Users
 # not in apps/lldap/files/*.json would have to set new passwords.
 [doc('Rotate lldap key_seed: re-key on the server, then redeploy lldap')]
-lldap-rekey:
+lldap-rekey host:
 	#!/usr/bin/env bash
 	set -euo pipefail
 	seed="$(openssl rand -base64 48 | tr -d '\n/+=' | head -c 40)"
@@ -66,4 +65,4 @@ lldap-rekey:
 	# The server has the new key now: keep pass in step before deploying.
 	printf '%s' "$seed" | pass insert -m -f secretspec/machines/default/LLDAP_KEY_SEED >/dev/null
 	echo "LLDAP_KEY_SEED updated in pass; deploying lldap with it"
-	SERVER_HOST={{ host }} just --justfile "{{ root }}/justfile" --working-directory "{{ root }}" server apply lldap
+	just --justfile "{{ root }}/justfile" --working-directory "{{ root }}" server apply {{ host }} lldap
