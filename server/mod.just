@@ -23,7 +23,7 @@ apply host *apps:
 			deploy systemd "$1" {{ host }} "${@:2}"
 	}
 	deploy rathole-server
-	deploy ingress
+	deploy ingress    USE_PACKAGE_MANAGER=1
 	deploy lldap
 	deploy authelia
 	deploy microsocks USE_PACKAGE_MANAGER=1
