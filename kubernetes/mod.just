@@ -52,7 +52,9 @@ secrets *apps:
 			exec "$yq" "(.. | select(tag == \"!!str\")) |= envsubst(nu, ne)" "$@"
 		' _ "$keys" "$1"/*.yaml
 	}
-	apply() { kubectl apply -n "$1" -f -; }
+	# Server-side, under its own field manager: no last-applied annotation, and
+	# it takes over Secrets first created by something else (e.g. old Flux).
+	apply() { kubectl apply --server-side --field-manager=just-kube-secrets --force-conflicts -n "$1" -f -; }
 	cd "{{ dir }}"
 	settings=$(render secrets)
 	for d in apps/*/; do
