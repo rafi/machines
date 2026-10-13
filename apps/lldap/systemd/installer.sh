@@ -69,10 +69,6 @@ export DO_CLEANUP=true
 sudo systemctl restart lldap
 sudo -E -u lldap "$DATA_DIR"/bootstrap.sh
 
-# Nginx site
-sudo mv -vf "$TEMP_DIR"/*.nginx "$CONFIG_DIR"/
-sudo systemctl reload nginx.service
-
 # Cleanup
 sudo rm -rf \
 	/tmp/lldap.deb \

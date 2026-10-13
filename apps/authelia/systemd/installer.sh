@@ -51,8 +51,4 @@ sudo systemctl daemon-reload
 sudo systemctl enable authelia
 sudo systemctl restart authelia
 
-# Nginx site
-sudo mv -vf "$TEMP_DIR"/*.nginx "$CONFIG_DIR"/
-sudo systemctl reload nginx.service
-
 # vim: set ts=2 sw=2 tw=80 noet :

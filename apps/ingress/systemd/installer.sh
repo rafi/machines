@@ -34,11 +34,14 @@ echo ':: Post install'
 
 sudo mv -vf "$TEMP_DIR"/certbot.sh /usr/local/bin/
 sudo mv -vf "$TEMP_DIR"/nginx.conf "$CONFIG_DIR"/
-sudo mv -vf "$TEMP_DIR"/snippets "$CONFIG_DIR"/
+sudo mkdir -p "$CONFIG_DIR"/snippets
+sudo mv -vf "$TEMP_DIR"/snippets/* "$CONFIG_DIR"/snippets/
 sudo mv -vf "$TEMP_DIR"/sites-enabled/* "$CONFIG_DIR"/sites-enabled/
 sudo rm -rf "$TEMP_DIR"
 
 sudo chmod -R 740 /usr/local/bin/certbot.sh
 sudo chmod -R o-rwx "$CONFIG_DIR" "$DATA_DIR"
 
+# Refuse to restart into a broken config (set -e stops here).
+sudo nginx -t
 reload_service $APP_NAME
