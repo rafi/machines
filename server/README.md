@@ -8,14 +8,14 @@ Authelia, LLDAP, the rathole server and a SOCKS5 proxy. Values come from
 
 ```sh
 bin/create-server.sh <server-name>
-just server setup root@<ip>    # etc/ files; ssh port from pass (SERVER_SSH_PORT)
+just server setup root@<ip>   # etc/ files; ssh port from pass (SERVER_SSH_PORT)
 ```
 
 ## Apps
 
 ```sh
-just server apply <host>              # every app
-just server apply <host> microsocks   # only the named apps
+just server apply              # every app (SSH host: $SERVER_HOST)
+just server apply microsocks   # only the named apps
 ```
 
 Each app is `apps/<app>/`: its config in `files/` (rendered with
