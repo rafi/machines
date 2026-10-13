@@ -126,7 +126,8 @@ function _setup() {
 	# Timezone and locale
 	echo "Etc/UTC" > /etc/timezone
 	dpkg-reconfigure -f noninteractive tzdata
-	sed -e 's/^# \(C.UTF-8 UTF-8\)/\1/' -i /etc/locale.gen
+	# en_US.UTF-8 is the system locale below, and what macOS ssh sends (LC_*).
+	sed -e 's/^# \(C.UTF-8 UTF-8\)/\1/' -e 's/^# \(en_US.UTF-8 UTF-8\)/\1/' -i /etc/locale.gen
 	export LANG="en_US.UTF-8"
 	export LC_ALL="en_US.UTF-8"
 	dpkg-reconfigure --frontend=noninteractive locales
