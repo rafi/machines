@@ -1,6 +1,10 @@
 ---
 # LLDAP
 # https://github.com/lldap/lldap
+#
+# `just deploy kube lldap` with EXTRA_FILES holding bind_user.json and
+# groups.json (bootstrap users and groups). ${LLDAP_HTTP_PORT} in ../base is
+# substituted from secretspec.toml.
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -22,11 +26,9 @@ images:
 labels:
   - includeSelectors: true
     pairs:
-      app.kubernetes.io/component: server
       app.kubernetes.io/managed-by: rafi-machines
       app.kubernetes.io/name: lldap
       critical: "true"
-      env: home
 
 secretGenerator:
   - name: lldap-env
@@ -41,27 +43,7 @@ secretGenerator:
     files:
       - ../../systemd/files/groups.json
 
-# Instruct Kustomize to copy that value into the container port and route
 replacements:
-- source:
-    kind: Secret
-    name: lldap-env
-    fieldPath: data.LLDAP_HTTP_PORT
-  targets:
-  - select:
-      kind: Deployment
-      name: lldap
-    fieldPaths:
-    - spec:template:spec:containers.[name=lldap]:ports.[containerPort=12234]:containerPort
-    options:
-      delimiter: ""
-  - select:
-      kind: HTTPRoute
-      name: lldap
-    fieldPaths:
-    - spec.rules.0.backendRefs.[name=lldap-http].port
-    options:
-      delimiter: ""
 - source:
     fieldPath: spec.template.spec.containers.[name=lldap].image
     kind: Deployment

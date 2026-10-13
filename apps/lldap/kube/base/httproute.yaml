@@ -24,7 +24,7 @@ spec:
             name: authelia
       backendRefs:
         - name: lldap-http
-          port: 12234
+          port: 17170
 
 ---
 # Authelia forward-auth, the Traefik equivalent of the former nginx auth-*

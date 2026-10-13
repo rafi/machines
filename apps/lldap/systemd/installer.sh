@@ -1,9 +1,10 @@
 #!/usr/bin/env sh
-set -xeu
+set -eu
 # LLDAP installer.
 # Copyright (c) 2026 Rafael Bodill.
 
 # Variables
+APP_NAME=lldap
 LLDAP_VERSION="0.5.0"
 LLDAP_DEB_URL="https://download.opensuse.org/repositories/home:/Masgalor:/LLDAP/xUbuntu_23.04/amd64/lldap_${LLDAP_VERSION}-1+3.1_amd64.deb"
 LLDAP_IMAGE="lldap/lldap:2024-08-08-debian"
@@ -15,28 +16,32 @@ TEMP_DIR=/tmp/$APP_NAME
 # Pre-install
 intro
 
-# Files and directories
-mv "$TEMP_DIR"/config.toml /etc/lldap/
-mv "$TEMP_DIR"/bind_user.json /var/lib/lldap/user-configs/
-mv "$TEMP_DIR"/groups.json /var/lib/lldap/group-configs/
-mv "$TEMP_DIR"/*.json /var/lib/lldap/user-configs/
-sudo chown -R lldap:lldap "$CONFIG_DIR" "$DATA_DIR"
-# sudo chmod -R o-rwx "$CONFIG_DIR" "$DATA_DIR"
-
-# Install
+# Install (the package creates the lldap user and $CONFIG_DIR)
 wget -qO /tmp/lldap.deb "${LLDAP_DEB_URL}"
 sudo dpkg -i /tmp/lldap.deb
 
+# Files and directories. groups.json is the group; every other *.json is a
+# user (bind_user.json and any more). The cleanup below removes these dirs.
+sudo install -d "$CONFIG_DIR" "$DATA_DIR"/user-configs "$DATA_DIR"/group-configs
+sudo mv -f "$TEMP_DIR"/config.toml "$CONFIG_DIR"/
+sudo mv -f "$TEMP_DIR"/groups.json "$DATA_DIR"/group-configs/
+for f in "$TEMP_DIR"/*.json; do
+	if test -e "$f"; then sudo mv -f "$f" "$DATA_DIR"/user-configs/; fi
+done
+sudo chown -R lldap:lldap "$CONFIG_DIR" "$DATA_DIR"
+# sudo chmod -R o-rwx "$CONFIG_DIR" "$DATA_DIR"
+
 # TODO: Once a new release is made, this should be removed.
 # https://github.com/lldap/lldap/releases
-curl -Lo "$DATA_DIR"/bootstrap.sh \
-	https://github.com/lldap/lldap/raw/main/scripts/bootstrap.sh
+curl -fsSL https://github.com/lldap/lldap/raw/main/scripts/bootstrap.sh \
+	| sudo tee "$DATA_DIR"/bootstrap.sh >/dev/null
 
-docker pull "${LLDAP_IMAGE}"
-trap "docker rm -f lldap" EXIT
-docker run --name lldap --rm -d --entrypoint cat -it "${LLDAP_IMAGE}"
-sudo docker cp lldap:/app/lldap_set_password "$DATA_DIR"/lldap_set_password
-docker rm -f lldap
+# Copy lldap_set_password out of the image without running it (no TTY here).
+sudo docker pull "${LLDAP_IMAGE}"
+sudo docker rm -f lldap-tmp >/dev/null 2>&1 || true
+sudo docker create --name lldap-tmp "${LLDAP_IMAGE}" >/dev/null
+sudo docker cp lldap-tmp:/app/lldap_set_password "$DATA_DIR"/lldap_set_password
+sudo docker rm -f lldap-tmp >/dev/null
 
 # Post-install
 
@@ -66,12 +71,12 @@ sudo -E -u lldap "$DATA_DIR"/bootstrap.sh
 
 # Nginx site
 sudo mv -vf "$TEMP_DIR"/*.nginx "$CONFIG_DIR"/
-systemctl reload nginx.service
+sudo systemctl reload nginx.service
 
 # Cleanup
 sudo rm -rf \
 	/tmp/lldap.deb \
-	"$TEMP_DIR"/.env \
+	"$TEMP_DIR" \
 	"$DATA_DIR"/bootstrap.sh \
 	"$DATA_DIR"/lldap_set_password \
 	"$DATA_DIR"/user-configs/ \

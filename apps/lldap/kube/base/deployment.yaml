@@ -34,7 +34,7 @@ spec:
               value: "3890"
           ports:
             - name: http
-              containerPort: 12234
+              containerPort: ${LLDAP_HTTP_PORT}
               protocol: TCP
             - name: ldap
               containerPort: 3890

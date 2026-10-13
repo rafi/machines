@@ -21,11 +21,17 @@ spec:
         args:
         - --server
         - /etc/rathole/rathole.toml
+        # Ports are ${VAR}s substituted at deploy time; keep them equal to
+        # the bind_addr ports in rathole.toml.
         ports:
-        - containerPort: 23123
+        - containerPort: ${RATHOLE_SERVER_BIND_PORT}
           name: tcp
-        - containerPort: 12000
+        - containerPort: ${RATHOLE_SERVER_SERVICES_INGRESS_PORT}
           name: ingress
+        - containerPort: ${RATHOLE_SERVER_SERVICES_SSH_PORT}
+          name: ssh
+        - containerPort: ${RATHOLE_SERVER_SERVICES_SLSKD_PORT}
+          name: slskd
         resources:
           requests:
             cpu: 100m
@@ -35,7 +41,7 @@ spec:
             memory: 100Mi
         readinessProbe:
           tcpSocket:
-            port: 23123
+            port: tcp
           initialDelaySeconds: 2
           timeoutSeconds: 2
           successThreshold: 1
@@ -45,7 +51,7 @@ spec:
         #       Find out how to do ot properly.
         # livenessProbe:
         #   tcpSocket:
-        #     port: 23123
+        #     port: tcp
         #   initialDelaySeconds: 2
         #   timeoutSeconds: 5
         #   successThreshold: 1
@@ -54,8 +60,10 @@ spec:
         volumeMounts:
         - name: localtime
           mountPath: /etc/localtime
+        # A single file, so the certs mount isn't nested in a read-only volume.
         - name: conf
-          mountPath: /etc/rathole
+          mountPath: /etc/rathole/rathole.toml
+          subPath: rathole.toml
         - name: certs
           mountPath: /etc/rathole/certs
 
@@ -64,8 +72,8 @@ spec:
           hostPath:
             path: /usr/share/zoneinfo/UTC
         - name: conf
-          configMap:
-            name: rathole-conf
+          secret:
+            secretName: rathole-conf
         - name: certs
           secret:
             secretName: rathole
