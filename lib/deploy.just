@@ -23,8 +23,20 @@ deploy target app host='' *vars:
 	with_secrets() {
 		if test -f "$spec"; then secretspec -f "$spec" run -- "$@"; else "$@"; fi
 	}
+	# gpg-agent intermittently fails decryptions that run concurrently, and
+	# secretspec decrypts a spec's keys in parallel: retry a failed call.
+	# Only for idempotent commands (they may run again).
+	retry() {
+		local i
+		for i in 1 2 3; do
+			if "$@"; then return 0; fi
+			echo "{{ app }}: reading secrets failed, retrying ($i/3)" >&2
+			sleep 2
+		done
+		return 1
+	}
 	# Print the app's secretspec values as KEY=value lines (a .env file).
-	dotenv() { secretspec -f "$spec" export --format dotenv; }
+	dotenv() { retry secretspec -f "$spec" export --format dotenv; }
 	# Build envsubst's variable list from KEY=value lines, so `$` in
 	# manifests and templates is only touched for known names.
 	subst_vars() { grep -oE '^[A-Za-z_][A-Za-z0-9_]*' | sed 's/.*/${&}/' | tr '\n' ' '; }
@@ -38,14 +50,16 @@ deploy target app host='' *vars:
 			dotenv > "$2"
 			vars="$(subst_vars < "$2")"
 			# Substitute the spec's keys in every staged file, in subdirectories
-			# too. Written back through the same file, so modes stay; the .env
-			# is the values themselves.
-			local files=() f
+			# too, all in one secretspec call. Written back through the same
+			# file, so modes stay; the .env is the values themselves.
+			local files=()
 			mapfile -d '' files < <(find "$1" -type f ! -name .env -print0)
-			for f in "${files[@]}"; do
-				with_secrets envsubst "$vars" < "$f" > "$f.render"
-				cat "$f.render" > "$f"; rm "$f.render"
-			done
+			if ((${#files[@]})); then
+				retry with_secrets bash -c '
+					set -e; vars=$1; shift
+					for f; do envsubst "$vars" < "$f" > "$f.render"; cat "$f.render" > "$f"; rm "$f.render"; done
+				' _ "$vars" "${files[@]}"
+			fi
 		elif test -f "$dir/.env"; then
 			cp "$dir/.env" "$2"
 		fi

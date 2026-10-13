@@ -43,14 +43,25 @@ secrets *apps:
 	# pass. yq substitutes after parsing, so any value stays a valid string.
 	# Only the keys of secretspec.toml are in yq's environment: any other
 	# $VAR, or an empty value, fails instead of being filled in.
+	# gpg-agent intermittently fails concurrent decryptions (secretspec runs
+	# them in parallel), so a failed render is retried; output is only printed
+	# once it succeeded.
 	render() {
-		local keys
+		local keys out i
 		keys=$(grep -oE '^[A-Z][A-Z0-9_]* =' "$1/secretspec.toml" | tr -d ' =' | tr '\n' ' ')
-		secretspec run -f "$1/secretspec.toml" -- bash -c '
-			yq=$(command -v yq); keep=" $1 "; shift
-			for v in $(compgen -e); do [[ $keep == *" $v "* ]] || unset "$v" 2>/dev/null || true; done
-			exec "$yq" "(.. | select(tag == \"!!str\")) |= envsubst(nu, ne)" "$@"
-		' _ "$keys" "$1"/*.yaml
+		for i in 1 2 3; do
+			if out=$(secretspec run -f "$1/secretspec.toml" -- bash -c '
+				yq=$(command -v yq); keep=" $1 "; shift
+				for v in $(compgen -e); do [[ $keep == *" $v "* ]] || unset "$v" 2>/dev/null || true; done
+				exec "$yq" "(.. | select(tag == \"!!str\")) |= envsubst(nu, ne)" "$@"
+			' _ "$keys" "$1"/*.yaml); then
+				printf '%s\n' "$out"
+				return 0
+			fi
+			echo "$1: reading secrets failed, retrying ($i/3)" >&2
+			sleep 2
+		done
+		return 1
 	}
 	# Server-side, under its own field manager: no last-applied annotation, and
 	# it takes over Secrets first created by something else (e.g. old Flux).
