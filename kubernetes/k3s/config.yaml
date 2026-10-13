@@ -1,0 +1,15 @@
+# k3s server config, rendered from pass into /etc/rancher/k3s/config.yaml by
+# `just kube k3s-install`. https://docs.k3s.io/cli/server
+bind-address: ${CLUSTER_NODE_IP}
+write-kubeconfig-mode: "0644"
+tls-san:
+  - ${CLUSTER_NODE_NAME}
+  - ${CLUSTER_NODE_IP}
+node-label:
+  - node.${SECRET_DOMAIN}/name=${CLUSTER_NODE_NAME}
+# Flux installs Traefik and runs Helm charts itself (kubernetes/apps).
+disable: traefik
+disable-helm-controller: true
+disable-cloud-controller: true
+# Joining more nodes later needs the same token.
+token: ${K3S_TOKEN}

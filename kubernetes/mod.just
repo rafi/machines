@@ -11,13 +11,20 @@ dir := source_directory()
 _default:
 	@just --list kube --unsorted
 
-# Install k3s on this node; its config holds the cluster token from pass.
+# Install k3s on this node, with its config rendered from k3s/config.yaml
+# and pass. `version` pins a release (e.g. v1.33.4+k3s1); empty takes stable.
+# Reinstalling on the same host: run /usr/local/bin/k3s-uninstall.sh first.
+[doc('Install k3s on this node, config from pass: just kube k3s-install [version]')]
 [group('bootstrap')]
-k3s-install:
+k3s-install version='':
+	#!/usr/bin/env bash
+	set -euo pipefail
+	spec="{{ dir }}/k3s/secretspec.toml"
+	vars=$(grep -oE '^[A-Z][A-Z0-9_]* =' "$spec" | tr -d ' =' | sed 's/.*/${&}/' | tr '\n' ' ')
 	sudo mkdir -p /etc/rancher/k3s
-	printf 'token: %s\n' "$(pass show secretspec/machines/default/K3S_TOKEN)" \
+	secretspec run -f "$spec" -- envsubst "$vars" < "{{ dir }}/k3s/config.yaml" \
 		| sudo install -m 600 /dev/stdin /etc/rancher/k3s/config.yaml
-	curl -sfL https://get.k3s.io | sh -
+	curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='{{ version }}' sh -
 
 # Write the kubeconfig from pass to a file.
 [group('bootstrap')]
@@ -25,11 +32,31 @@ kubeconfig out="~/.kube/cluster.yaml":
 	umask 077; pass show secretspec/machines/default/K3S_KUBECONFIG > {{ out }}
 	@echo "export KUBECONFIG={{ out }}"
 
+# Store a (re)installed node's kubeconfig in pass, pointed at the node's
+# address instead of 127.0.0.1. `host` is the node's SSH destination.
+[doc("Store a node's kubeconfig in pass: just kube kubeconfig-save <host>")]
+[group('bootstrap')]
+kubeconfig-save host:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	ip="$(pass show secretspec/machines/default/CLUSTER_NODE_IP)"
+	ssh {{ host }} sudo cat /etc/rancher/k3s/k3s.yaml \
+		| sed "s#https://127.0.0.1:6443#https://$ip:6443#" \
+		| pass insert -m -f secretspec/machines/default/K3S_KUBECONFIG >/dev/null
+	echo "K3S_KUBECONFIG updated in pass; run: just kube kubeconfig"
+
+# Install (or re-point) Flux. The repo is private, so the github-token Secret
+# (a read-only GitHub token from pass) is created first.
 # --force-conflicts: on a running cluster these objects are owned by Flux's
 # kustomize-controller; this takes them over until Flux syncs them again.
 [doc('Install or re-point Flux from flux/flux-system; it then syncs this repo')]
 [group('bootstrap')]
 bootstrap:
+	kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
+	pass show secretspec/machines/default/FLUX_GITHUB_TOKEN | tr -d '\n' \
+		| kubectl create secret generic github-token -n flux-system \
+			--from-literal=username=git --from-file=password=/dev/stdin --dry-run=client -o yaml \
+		| kubectl apply --server-side --field-manager=just-kube-bootstrap --force-conflicts -f -
 	kubectl apply --server-side --force-conflicts -k {{ dir }}/flux/flux-system
 
 # Creates cluster-settings in every app namespace, plus the secrets/*.yaml of
