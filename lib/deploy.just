@@ -127,7 +127,7 @@ list:
 	set -euo pipefail
 	for d in apps/*/; do
 		t=()
-		for n in kube/flux kube/kubectl compose systemd; do
+		for n in kube/kubectl compose systemd; do
 			test -d "$d/$n" && t+=("$n")
 		done
 		printf '%-16s %s\n' "$(basename "$d")" "${t[*]:-}"
@@ -136,7 +136,8 @@ list:
 # kube/kubectl reads files that only exist at deploy time, so it's built from
 # a temp copy of the app with stand-ins: an empty .env, and an empty file for
 # each rendered files/<name> the kustomization references.
-[doc('Build every kube/flux and kube/kubectl entrypoint')]
+# The Flux cluster is checked by `just kube check`.
+[doc('Build every apps/*/kube/kubectl entrypoint')]
 check:
 	#!/usr/bin/env bash
 	set -uo pipefail
@@ -157,12 +158,10 @@ check:
 		done
 		echo "$app/kube/kubectl"
 	}
-	for e in apps/*/kube/flux apps/*/kube/kubectl; do
+	for e in apps/*/kube/kubectl; do
 		test -f "$e/kustomization.yaml" || continue
-		b="$e"
-		case "$e" in
-			*/kube/kubectl) a="${e#apps/}"; b="$(stand_in "${a%%/*}")" ;;
-		esac
+		a="${e#apps/}"
+		b="$(stand_in "${a%%/*}")"
 		if kustomize build --enable-helm --load-restrictor LoadRestrictionsNone "$b" >/dev/null 2>&1; then
 			echo "ok    $e"
 		else

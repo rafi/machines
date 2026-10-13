@@ -1,8 +1,0 @@
-# Aggregator: one line in ../kustomization.yaml enables the whole app.
-# The Flux Kustomization stays in flux-system; config/ is scoped to the app
-# namespace (see config/kustomization.yaml).
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-resources:
-  - slskd.yaml
-  - config/
