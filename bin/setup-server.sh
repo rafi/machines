@@ -118,7 +118,7 @@ function _setup() {
 		dnsutils openssl locales tzdata iptables iproute2 gawk grep sed net-tools \
 		cron curl rsync ufw bash bash-completion netcat-openbsd nmap ccze grc \
 		colordiff htop iotop dstat tree tcpdump unattended-upgrades unzip \
-		ca-certificates git
+		ca-certificates git sqlite3
 
 	# Extra utilities
 	apt-get -y install neovim ripgrep btop fzf jq jo just lsd zoxide
