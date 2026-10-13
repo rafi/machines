@@ -1,18 +1,19 @@
 [Unit]
-Description=Nitnelave LLDAP
-Documentation=https://github.com/nitnelave/lldap
+Description=LLDAP
+Documentation=https://github.com/lldap/lldap
 After=network.target
 
 [Service]
 Type=simple
 User=lldap
 Group=lldap
-ExecStart=/usr/bin/lldap run --config-file /etc/lldap/config.toml
+ExecStart=/opt/lldap/lldap run --config-file /etc/lldap/config.toml
+Restart=on-failure
 PrivateTmp=true
 PrivateDevices=true
 ProtectHome=true
 ProtectSystem=full
-WorkingDirectory=/etc/lldap
+WorkingDirectory=/var/lib/lldap
 ReadWriteDirectories=/var/lib/lldap
 
 [Install]

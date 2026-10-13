@@ -14,6 +14,12 @@ ldap_user_email = "${LLDAP_LDAP_USER_EMAIL}"
 
 jwt_secret = "${LLDAP_JWT_SECRET}"
 key_seed = "${LLDAP_KEY_SEED}"
+# The key comes from key_seed only; an empty key_file stops lldap from also
+# looking for a key file (both present aborts startup).
+key_file = ""
+
+# Web UI shipped with the release tarball (apps/lldap/systemd/installer.sh).
+assets_path = "/opt/lldap/app"
 
 database_url = "sqlite:///var/lib/lldap/users.db?mode=rwc"
 smtp_password = "${LLDAP_SMTP_PASSWORD}"
