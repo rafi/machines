@@ -28,14 +28,19 @@ reload_service() {
 	sudo systemctl restart "$@"
 }
 
-# Exports the KEY=value lines of a .env file with tracing paused, so installers
-# can run with `set -x` without printing secrets.
+# Exports the KEY=value lines of a .env file, literally: values are never
+# evaluated, so `$`, quotes and spaces in secrets survive. Tracing is paused,
+# so installers can run with `set -x` without printing secrets.
 # Usage: load_env "$TEMP_DIR"/.env
 load_env() {
 	case $- in *x*) set +x; _load_env_trace=1 ;; *) _load_env_trace= ;; esac
-	set -a
-	. "$1"
-	set +a
+	while IFS= read -r _load_env_line || [ -n "$_load_env_line" ]; do
+		case $_load_env_line in
+			''|'#'*) continue ;;
+			*=*) export "${_load_env_line%%=*}=${_load_env_line#*=}" ;;
+		esac
+	done < "$1"
+	unset _load_env_line
 	if [ -n "$_load_env_trace" ]; then set -x; fi
 }
 
