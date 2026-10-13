@@ -94,7 +94,7 @@ export DO_CLEANUP=true
 
 # Wait for the server (and a database migration) before bootstrapping.
 i=0
-until curl -fsS -o /dev/null "$LLDAP_URL"/health; do
+until curl -fs -o /dev/null "$LLDAP_URL"/health; do
 	i=$((i + 1))
 	if [ "$i" -ge 60 ]; then
 		sudo journalctl -u lldap --no-pager -n 30
