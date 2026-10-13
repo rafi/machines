@@ -17,7 +17,7 @@ if test -n "${USE_PACKAGE_MANAGER:-}"
 then
 	case "$(get_distro)" in
 		ubuntu|debian)
-			sudo apt-get install -y nginx libnginx-mod-stream certbot python3-certbot-nginx
+			apt_get install -y nginx libnginx-mod-stream certbot python3-certbot-nginx
 			sudo ufw allow 80/tcp
 			sudo ufw allow 443/tcp
 			;;

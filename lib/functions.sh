@@ -28,6 +28,16 @@ reload_service() {
 	sudo systemctl restart "$@"
 }
 
+# apt-get that never prompts: config files we deploy over a package's own
+# (e.g. /etc/nginx/nginx.conf) are kept on upgrades instead of dpkg asking.
+# stdin is /dev/null, because an installer's own stdin is the script piped
+# over ssh: a prompt would read the rest of the script as its answer.
+# Usage: apt_get install -y nginx
+apt_get() {
+	sudo env DEBIAN_FRONTEND=noninteractive apt-get \
+		-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "$@" </dev/null
+}
+
 # Exports the KEY=value lines of a .env file, literally: values are never
 # evaluated, so `$`, quotes and spaces in secrets survive. Tracing is paused,
 # so installers can run with `set -x` without printing secrets.

@@ -27,7 +27,7 @@ esac
 
 # bootstrap.sh needs curl, jq and jo.
 case "$(get_distro)" in
-	ubuntu|debian) sudo apt-get install -y curl jq jo ;;
+	ubuntu|debian) apt_get install -y curl jq jo ;;
 	*) echo >&2 'ERROR: Unsupported OS.' && exit 1
 esac
 
@@ -44,7 +44,7 @@ fi
 # config and data stay, the unit moves to /etc/systemd/system.
 if dpkg-query -W lldap >/dev/null 2>&1; then
 	sudo systemctl stop lldap || true
-	sudo apt-get remove -y lldap
+	apt_get remove -y lldap
 	sudo rm -f /usr/lib/systemd/system/lldap.service
 fi
 if ! id lldap >/dev/null 2>&1; then

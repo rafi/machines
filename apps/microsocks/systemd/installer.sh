@@ -22,7 +22,7 @@ if test -n "${USE_PACKAGE_MANAGER:-}"
 then
 	case "$(get_distro)" in
 		ubuntu|debian)
-			sudo apt-get install -y microsocks
+			apt_get install -y microsocks
 			;;
 		*)
 			echo >&2 'ERROR: Unsupported OS.' && exit 1
