@@ -32,9 +32,12 @@ reload_service() {
 # (e.g. /etc/nginx/nginx.conf) are kept on upgrades instead of dpkg asking.
 # stdin is /dev/null, because an installer's own stdin is the script piped
 # over ssh: a prompt would read the rest of the script as its answer.
+# needrestart (Ubuntu) is suspended: it would restart an upgraded service
+# before the installer has put its config, permissions and environment in
+# place; installers restart their services themselves.
 # Usage: apt_get install -y nginx
 apt_get() {
-	sudo env DEBIAN_FRONTEND=noninteractive apt-get \
+	sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_SUSPEND=1 apt-get \
 		-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "$@" </dev/null
 }
 
