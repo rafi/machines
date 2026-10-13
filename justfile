@@ -2,6 +2,9 @@
 
 import 'lib/deploy.just'
 
+# Kubernetes cluster (Flux): `just kube`
+mod kube 'kubernetes'
+
 _default:
 	@just --list --unsorted
 

@@ -1,0 +1,51 @@
+---
+# CloudNativePG `cluster` chart. Service: postgres-rw.db.svc.cluster.local
+# https://github.com/cloudnative-pg/charts/tree/main/charts/cluster
+#
+# To add a database for an app: a basic-auth Secret `pg-<app>` in
+# ../secrets/, plus a role and a database below. `initdb` only runs at the
+# first bootstrap and creates the first database.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: postgres
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: cluster
+      version: 0.9.0
+      sourceRef:
+        kind: HelmRepository
+        name: cnpg
+  values:
+    fullnameOverride: postgres
+
+    cluster:
+      instances: 1
+      # A PDB on a single instance would block node drains.
+      enablePDB: false
+      # Superuser has no password (peer auth in-pod only); apps use owner roles.
+      enableSuperuserAccess: false
+      storage:
+        size: 8Gi
+      monitoring:
+        enabled: false
+        podMonitor:
+          enabled: false
+        prometheusRule:
+          enabled: false
+      initdb:
+        database: miniflux
+        owner: usrminiflux
+        secret:
+          name: pg-miniflux
+      roles:
+        - name: usrminiflux
+          ensure: present
+          login: true
+          passwordSecret:
+            name: pg-miniflux
+    databases:
+      - name: miniflux
+        owner: usrminiflux

@@ -1,0 +1,65 @@
+---
+# https://miniflux.app/docs/configuration.html
+# Secret miniflux-env (admin login, DATABASE_URL): `just kube secrets miniflux`.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: miniflux
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: miniflux
+  interval: 1h
+  values:
+    controllers:
+      miniflux:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: ghcr.io/miniflux/miniflux
+              tag: 2.1.4
+            env:
+              BASE_URL: https://home.${SECRET_DOMAIN}/miniflux
+              CREATE_ADMIN: "1"
+              RUN_MIGRATIONS: "1"
+            envFrom:
+              - secretRef:
+                  name: miniflux-env
+            probes:
+              liveness:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /miniflux/healthcheck
+                    port: &port 8080
+              readiness:
+                enabled: true
+              startup:
+                enabled: true
+                spec:
+                  failureThreshold: 30
+                  periodSeconds: 5
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        hostnames:
+          - home.${SECRET_DOMAIN}
+        parentRefs:
+          - name: traefik-gateway
+            namespace: traefik
+            sectionName: web
+        rules:
+          - matches:
+              - path:
+                  type: PathPrefix
+                  value: /miniflux
+            backendRefs:
+              - identifier: app
+                port: *port

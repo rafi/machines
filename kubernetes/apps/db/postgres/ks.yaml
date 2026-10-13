@@ -1,0 +1,24 @@
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: postgres
+spec:
+  dependsOn:
+    - name: cloudnative-pg
+      namespace: cnpg-system
+  healthChecks:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      name: postgres
+      namespace: db
+  timeout: 10m
+  interval: 1h
+  path: ./kubernetes/apps/db/postgres/app
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+    namespace: flux-system
+  targetNamespace: db
+  wait: true

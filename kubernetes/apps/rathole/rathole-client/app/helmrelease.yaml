@@ -1,0 +1,45 @@
+---
+# https://github.com/rapiz1/rathole
+# Tunnels ingress, ssh and the Soulseek port from the server to this cluster.
+# Secrets rathole-conf (client.toml) and rathole (rootCA.crt):
+# `just kube secrets rathole-client`.
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: rathole-client
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: rathole-client
+  interval: 1h
+  values:
+    controllers:
+      rathole-client:
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              repository: rapiz1/rathole
+              tag: v0.5.0
+            args:
+              - --client
+              - /etc/rathole/client.toml
+            resources:
+              requests:
+                cpu: 100m
+                memory: 100Mi
+              limits:
+                memory: 100Mi
+    persistence:
+      conf:
+        type: secret
+        name: rathole-conf
+        globalMounts:
+          - path: /etc/rathole/client.toml
+            subPath: client.toml
+      tls:
+        type: secret
+        name: rathole
+        globalMounts:
+          - path: /etc/rathole/certs

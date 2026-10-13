@@ -1,0 +1,15 @@
+---
+# Gateway API CRDs (standard channel), required by traefik and every HTTPRoute.
+# https://gateway-api.sigs.k8s.io/guides/
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: gateway-api
+spec:
+  interval: 1h
+  url: https://github.com/kubernetes-sigs/gateway-api
+  ref:
+    tag: v1.6.1
+  ignore: |
+    /*
+    !/config/crd
