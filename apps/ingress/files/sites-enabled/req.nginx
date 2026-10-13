@@ -1,0 +1,7 @@
+server {
+	server_name req.*;
+	include /etc/nginx/snippets/site-insecure.nginx;
+	rewrite ^/$ ${SEERR_URL} permanent;
+}
+
+# vim: set ft=nginx ts=2 sw=2 tw=80 noet :

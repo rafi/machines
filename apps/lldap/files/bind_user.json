@@ -1,0 +1,15 @@
+{
+	"id": "bind_user",
+	"email": "noreply@${SECRET_DOMAIN}",
+	"password": "${LLDAP_BIND_USER_PASSWORD}",
+	"displayName": "",
+	"firstName": "",
+	"lastName": "",
+	"avatar_file": "",
+	"avatar_url": "",
+	"gravatar_avatar": "false",
+	"weserv_avatar": "false",
+	"groups": [
+		"lldap_password_manager"
+	]
+}

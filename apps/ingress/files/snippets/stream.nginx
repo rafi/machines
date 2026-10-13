@@ -1,0 +1,42 @@
+stream {
+	upstream ssh {
+		server 127.0.0.1:32022;
+	}
+
+	upstream web {
+		server unix:/run/nginx-ingress.sock;
+		# server 127.0.0.1:9443;
+	}
+
+	# map $ssl_preread_server_name $upstream {
+	#     default ssh;
+	#     echo.${SECRET_DOMAIN} web;
+	#     ldap.${SECRET_DOMAIN} web;
+	# }
+
+	map $ssl_preread_protocol $upstream {
+		"" ssh;
+		"TLSv1.3" web;
+		"TLSv1.2" web;
+		default web;
+		# "TLSv1.1" web;
+		# "TLSv1.0" web;
+	}
+
+	# SSH and SSL on the same port
+	server {
+		listen 443;
+
+		# resolver 1.1.1.1;
+
+		# Max time to connect to server
+		proxy_connect_timeout 10s;
+		# Max time between successive reads or writes
+		proxy_timeout         5m;
+
+		proxy_pass $upstream;
+		ssl_preread on;
+	}
+}
+
+# vim: set ft=nginx ts=2 sw=2 tw=80 noet :

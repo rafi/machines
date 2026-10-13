@@ -5,6 +5,9 @@ import 'lib/deploy.just'
 # Kubernetes cluster (Flux): `just kube`
 mod kube 'kubernetes'
 
+# The server (systemd over SSH): `just server`
+mod server 'server'
+
 _default:
 	@just --list --unsorted
 

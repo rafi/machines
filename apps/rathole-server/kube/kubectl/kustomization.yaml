@@ -2,9 +2,8 @@
 # RATHOLE
 # https://github.com/rapiz1/rathole
 #
-# `just deploy kube rathole-server` with EXTRA_FILES holding identity.pfx
-# (see bin/create-self-signed-cert.sh). server.toml is rendered from
-# ../../systemd/files/server.example.toml, and the ${RATHOLE_*} ports in
+# server.toml and identity.pfx are rendered from ../../files (the pfx
+# decoded from RATHOLE_IDENTITY_PFX_B64), and the ${RATHOLE_*} ports in
 # ../base are substituted, from secretspec.toml.
 # RATHOLE_SERVER_PKCS12 must be /etc/rathole/certs/identity.pfx.
 
@@ -32,10 +31,10 @@ secretGenerator:
   # Holds default_token, so a Secret rather than a ConfigMap.
   - name: rathole-conf
     files:
-      - rathole.toml=../../systemd/files/server.toml
+      - rathole.toml=../../files/server.toml
   - name: rathole
     files:
-      - ../../systemd/files/identity.pfx
+      - ../../files/identity.pfx
 
 replacements:
 - source:

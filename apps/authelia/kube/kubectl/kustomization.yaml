@@ -1,7 +1,7 @@
 # AUTHELIA
 # https://github.com/authelia/authelia
 #
-# `just deploy kube authelia` with EXTRA_FILES holding configuration.yml.
+# ../../files/configuration.yml is rendered with the secretspec values.
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -31,7 +31,7 @@ secretGenerator:
 
 configMapGenerator:
 - files:
-  - ../../systemd/files/configuration.yml
+  - ../../files/configuration.yml
   name: authelia-conf
 
 replacements:

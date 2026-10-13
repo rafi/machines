@@ -1,0 +1,27 @@
+server {
+	server_name auth.${SECRET_DOMAIN};
+	listen unix:/run/nginx-ingress.sock ssl http2;
+
+	ssl_certificate /etc/letsencrypt/live/${SECRET_DOMAIN}/fullchain.pem;
+	ssl_certificate_key /etc/letsencrypt/live/${SECRET_DOMAIN}/privkey.pem;
+	include /etc/nginx/snippets/ssl.nginx;
+
+	include /etc/nginx/snippets/authelia-location.nginx;
+
+	set $upstream http://127.0.0.1:9091;
+
+	location / {
+		include /etc/nginx/snippets/proxy.nginx;
+		proxy_pass $upstream;
+	}
+
+	location = /api/verify {
+		proxy_pass $upstream;
+	}
+
+	location /api/authz/ {
+		proxy_pass $upstream;
+	}
+}
+
+# vim: set ft=nginx ts=2 sw=2 tw=80 noet :

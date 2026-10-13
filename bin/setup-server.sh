@@ -3,7 +3,7 @@
 set -euo pipefail
 
 function usage() {
-	echo "Usage: $0 [--pub-key path|--user name] <host>..." >&2
+	echo "Usage: $0 --etc dir [--ssh-port n|--pub-key path|--user name] <host>..." >&2
 }
 
 function die() {
@@ -35,12 +35,13 @@ function select_pubkey() {
 
 function main() {
 	local hosts=()
-	local ADMIN_USER=rafi SSH_PORT=22 PUB_KEY='' EXECUTE=0
+	local ADMIN_USER=rafi SSH_PORT=22 PUB_KEY='' EXECUTE=0 ETC_DIR=''
 
 	while [[ $# -gt 0 ]]; do
 		case "${1}" in
 			-u|--user) shift; ADMIN_USER="$1"; shift ;;
 			-p|--ssh-port) shift; SSH_PORT="$1"; shift ;;
+			-e|--etc) shift; ETC_DIR="$1"; shift ;;
 			-k|--pub-key) shift; PUB_KEY="${1}"; shift ;;
 			--run-here) EXECUTE=1; shift ;;
 			-*) echo "Warning, unrecognized option ${1}" >&2; shift ;;
@@ -55,8 +56,8 @@ function main() {
 	fi
 
 	# Validate
-	if [ -z "${1+set}" ]; then
-		echo "Usage: $0 [--pub-key path|--user name] <host>..." >&2
+	if [ -z "${1+set}" ] || [ ! -d "$ETC_DIR" ]; then
+		usage
 		exit 1
 	fi
 
@@ -66,12 +67,10 @@ function main() {
 		PUB_KEY="$(cat "$PUB_KEY")"
 	fi
 
-	SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &> /dev/null && pwd)"
-
 	for host
 	do
 		echo ":: [${host}] copy etc files to remote…"
-		if ! rsync -rlt "$SCRIPT_DIR"/etc "$host":./.setup/
+		if ! rsync -rlt "$ETC_DIR"/ "$host":./.setup/etc/
 		then
 			die "[ERROR] failed to copy files to '${host}'"
 		fi
@@ -192,6 +191,8 @@ EOF
 
 	# SSH
 	safecopy .setup/etc/ssh/sshd_config /etc/ssh/sshd_config
+	# The committed sshd_config says Port 22; the real port comes from --ssh-port.
+	sed -e "s/^Port .*/Port $SSH_PORT/" -i /etc/ssh/sshd_config
 	sed -e "s/^\(ListenStream\)=.*$/\1=$SSH_PORT/" -i /etc/systemd/system/sockets.target.wants/ssh.socket
 	systemctl daemon-reload
 

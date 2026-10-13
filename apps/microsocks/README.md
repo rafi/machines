@@ -13,6 +13,5 @@ The installer opens `MICROSOCKS_PORT` with `ufw`.
 
 ## Values
 
-Keys are listed in [`.env.example`](.env.example). There is no
-`secretspec.toml`: the consuming repo supplies the `.env` through
-`EXTRA_FILES`.
+Keys, descriptions and defaults are in [`secretspec.toml`](secretspec.toml);
+values come from pass.

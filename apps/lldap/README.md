@@ -9,4 +9,5 @@ LLDAP LDAP server.
 
 ## Values
 
-Declared in [`secretspec.toml`](secretspec.toml). Keys are listed in [`.env.example`](.env.example).
+Keys, descriptions and defaults are in [`secretspec.toml`](secretspec.toml);
+values come from pass.

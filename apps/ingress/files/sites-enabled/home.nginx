@@ -1,0 +1,6 @@
+server {
+	server_name home.*;
+	include /etc/nginx/snippets/site-protected.nginx;
+}
+
+# vim: set ft=nginx ts=2 sw=2 tw=80 noet :

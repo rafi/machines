@@ -23,10 +23,10 @@ services:
         mode: 0400
     volumes:
       - type: bind
-        source: ../systemd/files/server.toml
+        source: ../files/server.toml
         target: /etc/rathole/server.toml
         read_only: true
 
 secrets:
   cert:
-    file: ../systemd/tls/identity.pfx
+    file: ../files/identity.pfx

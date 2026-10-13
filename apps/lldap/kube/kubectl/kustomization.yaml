@@ -2,9 +2,8 @@
 # LLDAP
 # https://github.com/lldap/lldap
 #
-# `just deploy kube lldap` with EXTRA_FILES holding bind_user.json and
-# groups.json (bootstrap users and groups). ${LLDAP_HTTP_PORT} in ../base is
-# substituted from secretspec.toml.
+# Bootstrap users and groups come from ../../files, rendered with the
+# secretspec values, as is ${LLDAP_HTTP_PORT} in ../base.
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
@@ -36,12 +35,12 @@ secretGenerator:
       - ../../.env
   - name: lldap-users
     files:
-      - ../../systemd/files/bind_user.json
+      - ../../files/bind_user.json
       # Add more users...
-      # - ../../systemd/files/foo.json
+      # - ../../files/foo.json
   - name: lldap-groups
     files:
-      - ../../systemd/files/groups.json
+      - ../../files/groups.json
 
 replacements:
 - source:

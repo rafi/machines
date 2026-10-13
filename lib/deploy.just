@@ -1,13 +1,14 @@
 # Generic deploy recipes, imported by the root justfile.
 #
-# A target is a directory inside apps/<app>/: kube/kubectl, compose, systemd.
+# An app is apps/<app>/: its values in secretspec.toml (from pass), the
+# config its targets share in files/, and the targets themselves:
+# systemd (installer.sh, plus systemd/files/ for units), kube/kubectl and
+# compose.
 #
-# Values come from apps/<app>/secretspec.toml (when present). Files that
-# belong to the deployment, not to this repo (keys, certificates, nginx
-# configs), come from the paths in $EXTRA_FILES (systemd and kube): a
-# colon-separated list of directories (copied flat) and files. An app
-# without secretspec.toml can get its .env this way too; it takes
-# precedence over apps/<app>/.env.
+# A deploy renders files/ in a temp dir, never in the repo: every file goes
+# through envsubst limited to the app's secretspec keys (so `$host` in an
+# nginx site stays), then *.b64 files are base64-decoded, so binary files
+# (e.g. a pfx) can live in pass as text.
 
 # Deploy: `just deploy kube|compose|systemd <app> [host] [VAR=val...]`
 deploy target app host='' *vars:
@@ -28,63 +29,75 @@ deploy target app host='' *vars:
 	# manifests and templates is only touched for known names.
 	subst_vars() { grep -oE '^[A-Za-z_][A-Za-z0-9_]*' | sed 's/.*/${&}/' | tr '\n' ' '; }
 	vars=''
-	# Stage what an installer or kustomization reads from systemd/files into
-	# a temp dir: those files, the $EXTRA_FILES paths (copied flat), the
-	# *.example.* templates rendered with the secretspec values, and the .env.
+	# Render a directory of staged files in place and write the .env: the
+	# secretspec values when the app has a spec, else apps/<app>/.env.
 	# Sets $vars to the envsubst variable list when secretspec is used.
-	# Usage: stage_files <files-dir> <env-file>
-	stage_files() {
-		test ! -d "$dir/systemd/files" || cp -R "$dir/systemd/files/." "$1/"
-		if test -n "${EXTRA_FILES:-}"; then
-			IFS=: read -ra extra <<< "$EXTRA_FILES"
-			for p in "${extra[@]}"; do
-				if test -d "$p"; then cp -R "$p/." "$1/"; else cp "$p" "$1/"; fi
-			done
-		fi
-		rm -f "$1/.gitignore"
+	# Usage: render <files-dir> <env-file>
+	render() {
 		if test -f "$spec"; then
 			dotenv > "$2"
 			vars="$(subst_vars < "$2")"
-			for t in "$1"/*.example.*; do
-				test -e "$t" || continue
-				with_secrets envsubst "$vars" < "$t" > "${t/.example./.}"
-				rm "$t"
+			# Substitute the spec's keys in every staged file, in subdirectories
+			# too. Written back through the same file, so modes stay; the .env
+			# is the values themselves.
+			local files=() f
+			mapfile -d '' files < <(find "$1" -type f ! -name .env -print0)
+			for f in "${files[@]}"; do
+				with_secrets envsubst "$vars" < "$f" > "$f.render"
+				cat "$f.render" > "$f"; rm "$f.render"
 			done
-		elif test -f "$dir/.env" && test ! -e "$2"; then
+		elif test -f "$dir/.env"; then
 			cp "$dir/.env" "$2"
 		fi
+		# Decoded files are usually keys: readable by the owner only.
+		local b
+		while IFS= read -r -d '' b; do
+			(umask 077; base64 -d < "$b" > "${b%.b64}")
+			rm "$b"
+		done < <(find "$1" -name '*.b64' -print0)
 	}
 	case "{{ target }}" in
 	kube)
 		test -f "$dir/kube/kubectl/kustomization.yaml" || fail "no kube/kubectl target"
-		# Build from a temp copy of the app, so the .env and the files staged
-		# in systemd/files never land in the repo. .helm is linked for
-		# helmGlobals.chartHome (../../../../.helm).
+		# Build from a temp copy of the app, so the rendered files and the .env
+		# never land in the repo. .helm is linked for helmGlobals.chartHome
+		# (../../../../.helm).
 		box="$(mktemp -d)"
 		trap 'rm -rf "$box"' EXIT
 		mkdir -p .helm "$box/apps"
 		ln -s "$PWD/.helm" "$box/.helm"
 		cp -R "$dir" "$box/apps/"
 		app="$box/apps/{{ app }}"
-		mkdir -p "$app/systemd/files"
-		stage_files "$app/systemd/files" "$app/.env"
-		# --load-restrictor lets generators read ../../.env and ../../systemd/files.
+		mkdir -p "$app/files"
+		render "$app/files" "$app/.env"
+		# --load-restrictor lets generators read ../../.env and ../../files.
 		kustomize build --enable-helm --load-restrictor LoadRestrictionsNone "$app/kube/kubectl" \
 			| if test -n "$vars"; then with_secrets envsubst "$vars"; else cat; fi \
 			| kubectl apply -f -
 		;;
 	compose)
 		test -f "$dir/compose/compose.yaml" || fail "no compose target"
-		with_secrets docker compose -f "$dir/compose/compose.yaml" up
+		# From a temp copy too: compose.yaml mounts the rendered ../files.
+		box="$(mktemp -d)"
+		trap 'rm -rf "$box"' EXIT
+		cp -R "$dir" "$box/"
+		app="$box/{{ app }}"
+		mkdir -p "$app/files"
+		render "$app/files" "$app/.env"
+		with_secrets docker compose -f "$app/compose/compose.yaml" up
 		;;
 	systemd)
 		test -f "$dir/systemd/installer.sh" || fail "no systemd target"
 		test -n "{{ host }}" || fail "systemd needs a host"
-		# Everything the installer needs is staged in a temp dir, so rendered
-		# secrets never touch the repo, and sent flat to /tmp/<app>.
+		# files/ is staged and rendered in a temp dir, so rendered secrets never
+		# touch the repo, and sent to /tmp/<app> with systemd/files/. Units are
+		# copied after rendering, as they are: systemd expands their ${VAR}
+		# from the EnvironmentFile, and a rendered unit would hold the secret.
 		stage="$(mktemp -d)"
 		trap 'rm -rf "$stage"' EXIT
-		stage_files "$stage" "$stage/.env"
+		test ! -d "$dir/files" || cp -R "$dir/files/." "$stage/"
+		render "$stage" "$stage/.env"
+		test ! -d "$dir/systemd/files" || cp -R "$dir/systemd/files/." "$stage/"
 		rsync -hlrtWxz "$stage/" "{{ host }}:/tmp/{{ app }}/"
 		cat lib/functions.sh "$dir/systemd/installer.sh" \
 			| ssh "{{ host }}" '{{ vars }}' sh -s
@@ -107,8 +120,8 @@ list:
 	done
 
 # kube/kubectl reads files that only exist at deploy time, so it's built from
-# a temp copy of the app with stand-ins: .env.example as the .env, and an
-# empty file for each missing systemd/files/<name> the kustomization references.
+# a temp copy of the app with stand-ins: an empty .env, and an empty file for
+# each rendered files/<name> the kustomization references.
 [doc('Build every kube/flux and kube/kubectl entrypoint')]
 check:
 	#!/usr/bin/env bash
@@ -122,8 +135,9 @@ check:
 	stand_in() {
 		cp -R "apps/$1" "$box/apps/"
 		local app="$box/apps/$1" f
-		test -e "$app/.env" || cp "$app/.env.example" "$app/.env" 2>/dev/null || : > "$app/.env"
-		for f in $(grep -oE 'systemd/files/[A-Za-z0-9._-]+' "$app/kube/kubectl/kustomization.yaml"); do
+		: > "$app/.env"
+		for f in $(grep -oE '\.\./\.\./files/[A-Za-z0-9._-]+' "$app/kube/kubectl/kustomization.yaml"); do
+			f="${f#../../}"
 			mkdir -p "$(dirname "$app/$f")"
 			test -e "$app/$f" || : > "$app/$f"
 		done

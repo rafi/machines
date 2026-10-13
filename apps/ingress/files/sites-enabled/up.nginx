@@ -1,0 +1,19 @@
+server {
+	server_name up.*;
+
+	location /socket.io {
+		include /etc/nginx/snippets/proxy.nginx;
+		proxy_pass http://127.0.0.1:32000;
+		proxy_set_header Upgrade $http_upgrade;
+		proxy_set_header Connection "upgrade";
+	}
+
+	location /manifest.json {
+		include /etc/nginx/snippets/proxy.nginx;
+		proxy_pass http://127.0.0.1:32000;
+	}
+
+	include /etc/nginx/snippets/site-protected.nginx;
+}
+
+# vim: set ft=nginx ts=2 sw=2 tw=80 noet :
