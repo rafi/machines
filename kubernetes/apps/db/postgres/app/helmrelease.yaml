@@ -18,6 +18,8 @@ spec:
       sourceRef:
         kind: HelmRepository
         name: cnpg
+        # One HelmRepository for both CloudNativePG charts, next to the operator.
+        namespace: cnpg-system
   values:
     fullnameOverride: postgres
 

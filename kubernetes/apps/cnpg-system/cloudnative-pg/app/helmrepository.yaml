@@ -1,8 +1,11 @@
 ---
 apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
+# Also used by the postgres `cluster` chart in db. The explicit namespaces
+# here and in both sourceRefs let Renovate link the charts to this repository.
 metadata:
   name: cnpg
+  namespace: cnpg-system
 spec:
   interval: 1h
   url: https://cloudnative-pg.github.io/charts
