@@ -1,43 +1,130 @@
+<div align="center">
+
 # RAFI MACHINES
 
-> Orchestrate my haze.
+**Standalone Reusable Infrastructure Tasks**
 
-## Pre-requisites
+_Orchestrate my haze._ A public edge server and a home Kubernetes cluster,
+driven by [just](https://just.systems) and [Flux](https://fluxcd.io).
 
-```sh
-brew install just
+[![k3s](https://img.shields.io/badge/k3s-single_node-FFC61C?logo=k3s&logoColor=white)](https://k3s.io)&nbsp;
+[![Flux](https://img.shields.io/badge/GitOps-Flux-5468FF?logo=flux&logoColor=white)](https://fluxcd.io)&nbsp;
+[![Gateway API](https://img.shields.io/badge/ingress-Gateway_API-326CE5?logo=kubernetes&logoColor=white)](https://gateway-api.sigs.k8s.io)&nbsp;
+[![just](https://img.shields.io/badge/tasks-just-1f2328?logo=gnubash&logoColor=white)](https://just.systems)&nbsp;
+[![Secrets](https://img.shields.io/badge/secrets-pass_%2B_secretspec-2E7D32?logo=gnuprivacyguard&logoColor=white)](https://secretspec.dev)
 
-just setup
+</div>
+
+---
+
+## 🧭 Overview
+
+One repository for everything I run. No Ansible, no Terraform: small,
+readable `just` recipes and shell installers, plus Flux for the cluster.
+
+| | Runs on | Deployed by |
+|---|---|---|
+| **The server** | a public VPS: nginx, Authelia, LLDAP, rathole, SOCKS5 proxy | `just server apply` over SSH, systemd |
+| **The cluster** | k3s at home, behind CGNAT, reached through a rathole tunnel | Flux, on every push |
+| **Secrets** | [pass](https://www.passwordstore.org), read by [secretspec](https://secretspec.dev) | at deploy time; never committed, not even encrypted |
+
+How the pieces fit together, with diagrams: **[docs/architecture.md](./docs/architecture.md)**.
+
+---
+
+## ☸️ Kubernetes
+
+A single-node [k3s](https://k3s.io) cluster, reconciled by
+[Flux](https://github.com/fluxcd/flux2) from [`kubernetes/`](./kubernetes/).
+
+- **Ingress:** [Traefik](https://traefik.io) implements the
+  [Gateway API](https://gateway-api.sigs.k8s.io); apps attach `HTTPRoute`s.
+  Public traffic arrives through a [rathole](https://github.com/rapiz1/rathole)
+  tunnel that the cluster opens to the server.
+- **Data:** [CloudNativePG](https://cloudnative-pg.io) runs Postgres.
+- **Apps:** [bjw-s app-template](https://bjw-s-labs.github.io/helm-charts/docs/app-template/)
+  HelmReleases; upstream charts for infrastructure.
+- **Secrets:** created by `just kube secrets` from pass. Flux only
+  substitutes the domain and the server's host name.
+
+The layout follows [onedr0p/home-ops](https://github.com/onedr0p/home-ops):
+each namespace lists its apps' Flux Kustomizations (`ks.yaml`), and each
+`ks.yaml` points at an `app/` directory with the HelmRelease.
+
+```mermaid
+flowchart LR
+  push["git push"] --> flux["Flux"] --> ks["Kustomization<br/>per app"] --> hr["HelmRelease"]
+  ks -. "dependsOn" .-> other["e.g. postgres, traefik"]
 ```
 
-## Scripts
+Rebuilding the cluster from scratch: [kubernetes/README.md](./kubernetes/README.md).
 
-See [./bin](./bin/) directory.
+## 🛡️ The server
 
-## Deploy
+The public edge: TLS, single sign-on and the tunnel's far end. Each service is
+an app under [`apps/`](./apps/) installed by its own shell installer;
+[`server/`](./server/) lists which apps run there and how a new server is
+hardened. Details: [server/README.md](./server/README.md).
 
-Machine directories:
+## 📦 Apps
 
-- [cluster](./cluster/) — Cloud server with public IP.
-- [home](./home/) — Home server with ArchLinux
+Every app in [`apps/`](./apps/) can be deployed in up to three ways, all
+reading the same config from its `files/`:
 
-Every machine has a `justfile` with several targets.
+| Target | Command |
+|---|---|
+| systemd | `just deploy systemd <app> <host> [USE_PACKAGE_MANAGER=1]` |
+| kubectl | `just deploy kube <app>` |
+| compose | `just deploy compose <app>` |
 
-### Kustomize
+Files are rendered from pass in a temp directory and never written back to
+the repo. `just list` shows what each app supports.
 
-This repository uses [Kustomize](https://kustomize.io/), mostly, to manage
-Kubernetes manifests. For larger/complex applications, an official Helm chart
-is used.
+---
 
-See [`justfile`](./justfile) and [`helmfile.yaml`](./helmfile.yaml) for an
-overview of each deployment.
+## 📂 Layout
 
-Kustomize tips:
+```
+.
+├── apps/         app definitions: files/, systemd/, kube/, compose/
+├── bin/          server creation and provisioning scripts
+├── docs/         architecture and notes
+├── kubernetes/   the Flux cluster: flux/, apps/<namespace>/<app>/, k3s/
+├── lib/          deploy recipes and installer helpers
+└── server/       the server: its app list and etc/ hardening
+```
 
-- Dry-run: `kubectl apply --dry-run=server -k ./kube/<app>/`
-- Diff: `kubectl diff -k ./kube/<app>/`
-- Deploy: `kubectl apply -k ./kube/<app>/`
+## 🚀 Getting started
 
-## Copyright
+```sh
+brew install just kustomize helm flux yq secretspec pass gettext
+```
 
-2024 © [Rafael Bodill](https://example.com)
+secretspec reads pass (`provider = "pass"` in
+`~/.config/secretspec/config.toml`); values live under
+`secretspec/machines/default/<KEY>`.
+
+```sh
+just                        # list recipes
+just check                  # build every apps/*/kube/kubectl
+just kube check             # build the Flux cluster
+just kube secrets [app...]  # Secrets from pass into the cluster
+just kube sync              # make Flux reconcile now
+just server apply <host>    # deploy the server's apps
+```
+
+---
+
+## 🙏 Thanks
+
+To the [Home Operations](https://discord.gg/home-operations) community and
+[onedr0p/home-ops](https://github.com/onedr0p/home-ops) for the cluster
+layout, [bjw-s](https://github.com/bjw-s-labs/helm-charts) for app-template,
+and [kubesearch.dev](https://kubesearch.dev) for showing how others deploy
+the same apps.
+
+<div align="center">
+
+<sub>2026 © <a href="https://github.com/rafi">Rafael Bodill</a></sub>
+
+</div>

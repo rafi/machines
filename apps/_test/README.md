@@ -1,6 +1,6 @@
 # _test
 
-Test app for the systemd installer.
+Dummy test app for the systemd installer, as a starting template.
 
 ## Targets
 

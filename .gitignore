@@ -1,3 +1,13 @@
-.env
-/.archive/
-/.helm/
+*.crt
+*.env
+*.iso
+*.key
+.archive/
+.decrypted~*
+.DS_Store
+.helm/
+.private/
+.pytest_cache/
+.venv/.env
+kubeconfig
+Thumbs.db
