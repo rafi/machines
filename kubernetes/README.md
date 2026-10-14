@@ -39,15 +39,16 @@ kubectl get nodes
 ### 3. Flux and secrets
 
 ```sh
-just kube bootstrap   # Flux from flux/flux-system; the repo is public
+just kube bootstrap   # Flux Operator + FluxInstance (helm); the repo is public
 just kube secrets     # cluster-settings and every app's Secrets from pass
 just kube sync
 just kube failing     # expect nothing; the first sync takes minutes (Helm charts)
 kubectl get gateway,httproute -A
 ```
 
-Order is enforced by `dependsOn`: gateway-api, then traefik; cloudnative-pg,
-then postgres, then miniflux.
+The operator installs Flux, which syncs `kubernetes/flux/cluster`. Order is
+enforced by `dependsOn`: gateway-api, then traefik; cloudnative-pg, then
+postgres, then miniflux.
 
 ### 4. Data not in git
 
@@ -63,9 +64,9 @@ Renovate (`.renovaterc.json5`) opens a PR for each new version of the items
 below, and the Check workflow builds it. Read the release notes before merging.
 By hand:
 
-- **Flux:** `flux install --export > kubernetes/flux/flux-system/gotk-components.yaml`.
-  The strict-substitution patch is in `flux/flux-system/kustomization.yaml`
-  and survives the regeneration.
+- **Flux:** `distribution.version` in
+  `apps/flux-system/flux-instance/app/helmrelease.yaml` (2.9.x: patches apply
+  on their own).
 - **Charts:** `ref.tag` in an app's `app/ocirepository.yaml` (app-template,
   reloader), or `chart.spec.version` in `app/helmrelease.yaml` (traefik,
   cloudnative-pg, postgres).
@@ -93,6 +94,8 @@ just kube failing
 just kube events
 just kube logs
 just kube tree
+just kube ui          # Flux web UI on http://localhost:9080, read-only
+kubectl -n flux-system get fluxinstance flux
 ```
 
 - A Kustomization fails with an unset variable: `cluster-settings` is

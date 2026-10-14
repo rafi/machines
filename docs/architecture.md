@@ -86,13 +86,13 @@ The port must match in four places; see
 | Layer | Component |
 |---|---|
 | Distribution | [k3s], single node; its bundled Traefik and Helm controller are disabled ([`k3s/config.yaml`](../kubernetes/k3s/config.yaml)) |
-| GitOps | [Flux] |
+| GitOps | [Flux], installed and upgraded by the [Flux Operator] from a `FluxInstance` |
 | Ingress | [Traefik] implementing the [Gateway API] |
 | Database | [CloudNativePG] operator and one Postgres cluster |
 | Apps | [app-template] HelmReleases: echo, miniflux, slskd, rathole client |
 | Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just check` and `just kube check` |
 
-Flux applies [`kubernetes/flux`](../kubernetes/flux), whose `cluster-apps`
+The FluxInstance makes Flux sync [`kubernetes/flux/cluster`](../kubernetes/flux/cluster), whose `cluster-apps`
 Kustomization applies every namespace in
 [`kubernetes/apps`](../kubernetes/apps), the layout of
 [onedr0p/home-ops]:
@@ -188,7 +188,7 @@ literally and pauses tracing.
 | Harden it | `just server setup root@<ip>` | [`server/etc`](../server/etc): sshd, fail2ban, sysctl, Docker |
 | Deploy its apps | `just server apply <host>` | [`server/mod.just`](../server/mod.just) |
 | Install k3s | `just kube k3s-install` | [`kubernetes/k3s`](../kubernetes/k3s) |
-| Bootstrap Flux | `just kube bootstrap`, `just kube secrets` | [`kubernetes/flux`](../kubernetes/flux) |
+| Bootstrap Flux | `just kube bootstrap`, `just kube secrets` | [`kubernetes/apps/flux-system`](../kubernetes/apps/flux-system) |
 
 The server's host name and SSH port never appear in the repository: the
 host is an argument (an SSH alias works), the port comes from `pass`.
@@ -217,6 +217,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 [CloudNativePG]: https://cloudnative-pg.io
 [envsubst]: https://www.gnu.org/software/gettext/manual/html_node/envsubst-Invocation.html
 [Flux]: https://fluxcd.io
+[Flux Operator]: https://fluxoperator.dev
 [flux-subst]: https://fluxcd.io/flux/components/kustomize/kustomizations/#post-build-variable-substitution
 [Gateway API]: https://gateway-api.sigs.k8s.io
 [just]: https://just.systems

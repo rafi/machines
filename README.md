@@ -36,6 +36,8 @@ How the pieces fit together, with diagrams: **[docs/architecture.md](./docs/arch
 
 A single-node [k3s](https://k3s.io) cluster, reconciled by
 [Flux](https://github.com/fluxcd/flux2) from [`kubernetes/`](./kubernetes/).
+The [Flux Operator](https://fluxoperator.dev) installs and upgrades Flux
+itself from a `FluxInstance`.
 
 - **Ingress:** [Traefik](https://traefik.io) implements the
   [Gateway API](https://gateway-api.sigs.k8s.io); apps attach `HTTPRoute`s.
