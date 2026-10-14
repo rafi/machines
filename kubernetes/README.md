@@ -59,17 +59,23 @@ Flux restores manifests; Secrets come from `pass`. Restore these from backups:
 
 ## Upgrades
 
+Renovate (`.renovaterc.json5`) opens a PR for each new version of the items
+below, and the Check workflow builds it. Read the release notes before merging.
+By hand:
+
 - **Flux:** `flux install --export > kubernetes/flux/flux-system/gotk-components.yaml`.
   The strict-substitution patch is in `flux/flux-system/kustomization.yaml`
   and survives the regeneration.
-- **Charts:** `ref.tag` in an app's `app/ocirepository.yaml` (app-template), or
-  `chart.spec.version` in `app/helmrelease.yaml` (traefik, cloudnative-pg,
-  postgres).
+- **Charts:** `ref.tag` in an app's `app/ocirepository.yaml` (app-template,
+  reloader), or `chart.spec.version` in `app/helmrelease.yaml` (traefik,
+  cloudnative-pg, postgres).
 - **Images:** `image.tag` in the app's `app/helmrelease.yaml`.
 - **Gateway API CRDs:** `ref.tag` in
   `apps/kube-system/gateway-api/app/gitrepository.yaml`.
 
-Read the release notes first; `just kube check` builds everything locally.
+`just kube check` builds everything locally. Every HelmRelease gets the same
+install, upgrade and rollback settings from `cluster-apps`
+(`flux/cluster/ks.yaml`): a failed upgrade is retried twice and rolled back.
 
 ## Values that must match
 
@@ -92,5 +98,7 @@ just kube tree
 - A Kustomization fails with an unset variable: `cluster-settings` is
   missing in its namespace, or a literal `${` needs to be `$${`. Run
   `just kube secrets`.
-- Pods read Secrets at start: after `just kube secrets`, run
+- Pods read Secrets at start. Reloader restarts those annotated
+  `reloader.stakater.com/auto: "true"` (miniflux, slskd, rathole-client)
+  when `just kube secrets` changes a Secret they use; any other pod needs
   `kubectl -n <ns> rollout restart deploy/<app>`.
