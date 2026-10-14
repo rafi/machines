@@ -17,7 +17,9 @@ spec:
           app:
             image:
               repository: cilium/echoserver
-              tag: latest
+              # The image the cluster already runs: `latest` is a later build
+              # than the last version tag (1.10.3) and differs from it.
+              tag: latest@sha256:76120aab2583d2283578dfbd3025057f874f12893475db0c1a945d7be211e7f4
             probes:
               liveness:
                 enabled: true
