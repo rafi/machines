@@ -67,9 +67,7 @@ By hand:
 - **Flux:** `distribution.version` in
   `apps/flux-system/flux-instance/app/helmrelease.yaml` (2.9.x: patches apply
   on their own).
-- **Charts:** `ref.tag` in an app's `app/ocirepository.yaml` (app-template,
-  reloader), or `chart.spec.version` in `app/helmrelease.yaml` (traefik,
-  cloudnative-pg, postgres).
+- **Charts:** `ref.tag` in the app's `app/ocirepository.yaml`.
 - **Images:** `image.tag` in the app's `app/helmrelease.yaml`.
 - **Gateway API CRDs:** `ref.tag` in
   `apps/kube-system/gateway-api/app/gitrepository.yaml`.

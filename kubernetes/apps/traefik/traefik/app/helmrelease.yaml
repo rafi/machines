@@ -6,14 +6,10 @@ kind: HelmRelease
 metadata:
   name: traefik
 spec:
+  chartRef:
+    kind: OCIRepository
+    name: traefik
   interval: 1h
-  chart:
-    spec:
-      chart: traefik
-      version: 41.7.1
-      sourceRef:
-        kind: HelmRepository
-        name: traefik
   values:
     fullnameOverride: traefik
 

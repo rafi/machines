@@ -10,16 +10,10 @@ kind: HelmRelease
 metadata:
   name: postgres
 spec:
+  chartRef:
+    kind: OCIRepository
+    name: postgres
   interval: 1h
-  chart:
-    spec:
-      chart: cluster
-      version: 0.9.0
-      sourceRef:
-        kind: HelmRepository
-        name: cnpg
-        # One HelmRepository for both CloudNativePG charts, next to the operator.
-        namespace: cnpg-system
   values:
     fullnameOverride: postgres
 
