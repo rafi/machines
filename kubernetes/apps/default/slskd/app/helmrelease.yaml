@@ -16,6 +16,8 @@ spec:
   values:
     controllers:
       slskd:
+        annotations:
+          reloader.stakater.com/auto: "true"
         # One instance only: state is on a hostPath and the Soulseek login is single-session.
         strategy: Recreate
         containers:

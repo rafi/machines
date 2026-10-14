@@ -4,3 +4,4 @@ kind: Kustomization
 namespace: kube-system
 resources:
   - ./gateway-api/ks.yaml
+  - ./reloader/ks.yaml

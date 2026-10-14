@@ -1,0 +1,18 @@
+---
+# Rolls a Deployment when a Secret or ConfigMap it uses changes. Opt in per
+# workload with the annotation `reloader.stakater.com/auto: "true"` (in
+# app-template: `controllers.<name>.annotations`).
+# https://github.com/stakater/Reloader
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: reloader
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: reloader
+  interval: 1h
+  values:
+    fullnameOverride: reloader
+    reloader:
+      readOnlyRootFileSystem: true
