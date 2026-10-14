@@ -1,5 +1,10 @@
 # RAFI MACHINES
 
+# gpg-agent fails some of the parallel pass decryptions secretspec makes by
+# default; one at a time is reliable (and faster). Covers lib/deploy.just and
+# `just server`, which runs this justfile.
+export SECRETSPEC_PROVIDER_CONCURRENCY := "1"
+
 import 'lib/deploy.just'
 
 # Kubernetes cluster (Flux): `just kube`

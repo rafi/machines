@@ -8,22 +8,6 @@
 # shellcheck source-path=SCRIPTDIR source=functions.sh
 . "${BASH_SOURCE[0]%/*}/functions.sh"
 
-# Print a secretspec.toml's values as a .env. gpg-agent intermittently fails
-# the parallel decryptions secretspec makes, so a failed read is retried.
-# Usage: dotenv <spec> > .env
-dotenv() {
-	local i out
-	for i in 1 2 3; do
-		if out="$(secretspec -f "$1" export --format dotenv)"; then
-			printf '%s\n' "$out"
-			return
-		fi
-		echo "reading secrets failed, retrying ($i/3)" >&2
-		sleep 2
-	done
-	return 1
-}
-
 # Run a command with a .env's values exported, literally (load_env).
 # Usage: with_env <env> <command...>
 with_env() (
@@ -46,7 +30,7 @@ subst() {
 stage() {
 	local app="apps/$1" f tmp
 	if [ -f "$app/secretspec.toml" ]; then
-		dotenv "$app/secretspec.toml" > "$3"
+		secretspec -f "$app/secretspec.toml" export --format dotenv > "$3"
 	elif [ -f "$app/.env" ]; then
 		cp "$app/.env" "$3"
 	else
