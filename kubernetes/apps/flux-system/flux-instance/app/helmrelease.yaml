@@ -1,0 +1,47 @@
+---
+# Flux version, controllers and sync. 2.9.x: patch releases apply on their own.
+# https://fluxoperator.dev/docs/instance/
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: flux-instance
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: flux-instance
+  interval: 1h
+  values:
+    # Uninstalling this release must not delete Flux.
+    commonAnnotations:
+      helm.sh/resource-policy: keep
+    instance:
+      distribution:
+        version: 2.9.x
+        registry: ghcr.io/fluxcd
+      components:
+        - source-controller
+        - kustomize-controller
+        - helm-controller
+        - notification-controller
+      cluster:
+        type: kubernetes
+        networkPolicy: true
+        multitenant: false
+        domain: cluster.local
+      # The repo is public: no pull secret.
+      sync:
+        kind: GitRepository
+        url: https://github.com/rafi/machines.git
+        ref: refs/heads/master
+        path: kubernetes/flux/cluster
+        interval: 1m
+      kustomize:
+        patches:
+          # Fail a Kustomization on an unset variable instead of substituting "".
+          - target:
+              kind: Deployment
+              name: kustomize-controller
+            patch: |
+              - op: add
+                path: /spec/template/spec/containers/0/args/-
+                value: --feature-gates=StrictPostBuildSubstitutions=true

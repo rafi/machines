@@ -45,15 +45,22 @@ kubeconfig-save host:
 		| pass insert -m -f secretspec/machines/default/K3S_KUBECONFIG >/dev/null
 	echo "K3S_KUBECONFIG updated in pass; run: just kube kubeconfig"
 
-# Install (or re-point) Flux. The repo is public: Flux fetches it without
-# credentials.
-# --force-conflicts: on a running cluster these objects are owned by Flux's
-# kustomize-controller; this takes them over until Flux syncs them again.
-[doc('Install or re-point Flux from flux/flux-system; it then syncs this repo')]
+# Install the Flux Operator and FluxInstance with helm from apps/flux-system;
+# their HelmReleases then adopt both. Also migrates a running Flux.
+[doc('Install the Flux Operator and the FluxInstance; Flux then syncs this repo')]
 [group('bootstrap')]
 bootstrap:
-	kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
-	kubectl apply --server-side --force-conflicts -k {{ dir }}/flux/flux-system
+	#!/usr/bin/env bash
+	set -euo pipefail
+	cd "{{ dir }}/apps/flux-system"
+	# --force-conflicts: re-runs override helm-controller's fields.
+	for app in flux-operator flux-instance; do
+		yq '.spec.values' "$app/app/helmrelease.yaml" \
+			| helm upgrade --install "$app" "$(yq '.spec.url' "$app/app/ocirepository.yaml")" \
+				--version "$(yq '.spec.ref.tag' "$app/app/ocirepository.yaml")" \
+				--namespace flux-system --create-namespace --wait --force-conflicts --values -
+	done
+	kubectl -n flux-system wait fluxinstance/flux --for=condition=Ready --timeout=10m
 
 # Creates cluster-settings in every app namespace, plus the secrets/*.yaml of
 # the named apps (all apps when none are named).
@@ -111,7 +118,7 @@ check:
 	set -uo pipefail
 	cd "{{ dir }}"
 	rc=0
-	for d in flux apps/* apps/*/*/app; do
+	for d in flux/cluster apps/* apps/*/*/app; do
 		if kustomize build "$d" >/dev/null 2>&1; then echo "ok    $d"
 		else echo "FAIL  $d"; rc=1; fi
 	done
@@ -145,3 +152,8 @@ logs:
 [group('flux')]
 tree:
 	flux tree ks cluster-apps
+
+[doc('Flux web UI on http://localhost:9080 (port-forward)')]
+[group('flux')]
+ui:
+	kubectl -n flux-system port-forward svc/flux-operator 9080:9080

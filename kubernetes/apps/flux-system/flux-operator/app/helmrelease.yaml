@@ -1,0 +1,13 @@
+---
+# Runs Flux from ../../flux-instance. Web UI: `just kube ui` (read-only).
+# https://fluxoperator.dev/docs/
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: flux-operator
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: flux-operator
+  interval: 1h
+  values: {}

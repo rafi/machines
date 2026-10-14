@@ -8,10 +8,10 @@
   ignorePaths: ["apps/**", "server/**"],
   packageRules: [
     {
-      description: "Flux updates as a whole (flux manager regenerates gotk-components), not one controller image at a time",
-      matchManagers: ["kubernetes"],
-      matchFileNames: ["kubernetes/flux/flux-system/gotk-components.yaml"],
-      enabled: false,
+      description: "The Flux Operator and its FluxInstance chart ship together",
+      groupName: "flux-operator",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["/flux-operator$/", "/flux-instance$/"],
     },
   ],
 }
