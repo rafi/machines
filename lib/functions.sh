@@ -34,7 +34,7 @@ reload_service() {
 # over ssh: a prompt would read the rest of the script as its answer.
 # needrestart (Ubuntu) is suspended: it would restart an upgraded service
 # before the installer has put its config, permissions and environment in
-# place; installers restart their services themselves.
+# place, installers restart their services themselves.
 # Usage: apt_get install -y nginx
 apt_get() {
 	sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_SUSPEND=1 apt-get \
