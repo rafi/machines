@@ -20,7 +20,10 @@ host=cluster
 # The first run creates the repository.
 restic cat config >/dev/null 2>&1 || restic init || fail "restic init"
 
-restic backup --host "$host" /dump /data/slskd || fail "restic backup"
+# slskd's downloads/ and incomplete/ are transfers, not state.
+restic backup --host "$host" \
+	--exclude /data/slskd/downloads --exclude /data/slskd/incomplete \
+	/dump /data/slskd || fail "restic backup"
 restic forget --host "$host" --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune \
 	|| fail "restic forget"
 

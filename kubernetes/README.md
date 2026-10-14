@@ -55,8 +55,9 @@ postgres, then miniflux.
 Flux restores manifests; Secrets come from `pass`. The rest comes from the
 nightly backup (04:00, `apps/backup/restic`): restic, encrypted with
 `RESTIC_PASSWORD`, to a B2 bucket. It holds a `pg_dump` of the miniflux
-database and `/opt/slskd`; 7 daily, 4 weekly and 6 monthly snapshots. The media
-folders slskd shares are not backed up. A failed run is reported on Telegram.
+database and `/opt/slskd` without `downloads/` and `incomplete/`; 7 daily, 4
+weekly and 6 monthly snapshots. The media folders slskd shares are not backed
+up. A failed run is reported on Telegram.
 
 ```sh
 just kube restic snapshots                 # needs `brew install restic`
