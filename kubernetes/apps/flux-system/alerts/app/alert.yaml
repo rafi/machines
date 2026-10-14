@@ -1,0 +1,42 @@
+---
+# Errors from every Flux object, in every namespace under kubernetes/apps
+# (`just kube check` fails when one is missing here).
+apiVersion: notification.toolkit.fluxcd.io/v1beta3
+kind: Alert
+metadata:
+  name: telegram
+spec:
+  providerRef:
+    name: telegram
+  eventSeverity: error
+  eventSources:
+    - { kind: FluxInstance, name: "*", namespace: flux-system }
+    - { kind: GitRepository, name: "*", namespace: flux-system }
+    - { kind: GitRepository, name: "*", namespace: kube-system }
+    - { kind: Kustomization, name: "*", namespace: cnpg-system }
+    - { kind: Kustomization, name: "*", namespace: db }
+    - { kind: Kustomization, name: "*", namespace: default }
+    - { kind: Kustomization, name: "*", namespace: flux-system }
+    - { kind: Kustomization, name: "*", namespace: kube-system }
+    - { kind: Kustomization, name: "*", namespace: rathole }
+    - { kind: Kustomization, name: "*", namespace: traefik }
+    - { kind: HelmRelease, name: "*", namespace: cnpg-system }
+    - { kind: HelmRelease, name: "*", namespace: db }
+    - { kind: HelmRelease, name: "*", namespace: default }
+    - { kind: HelmRelease, name: "*", namespace: flux-system }
+    - { kind: HelmRelease, name: "*", namespace: kube-system }
+    - { kind: HelmRelease, name: "*", namespace: rathole }
+    - { kind: HelmRelease, name: "*", namespace: traefik }
+    - { kind: OCIRepository, name: "*", namespace: cnpg-system }
+    - { kind: OCIRepository, name: "*", namespace: db }
+    - { kind: OCIRepository, name: "*", namespace: default }
+    - { kind: OCIRepository, name: "*", namespace: flux-system }
+    - { kind: OCIRepository, name: "*", namespace: kube-system }
+    - { kind: OCIRepository, name: "*", namespace: rathole }
+    - { kind: OCIRepository, name: "*", namespace: traefik }
+  # Short network outages: Flux retries on its own.
+  exclusionList:
+    - error.*lookup.*github
+    - dial.*tcp.*timeout
+    - dial.*tcp.*unreachable
+    - waiting.*socket

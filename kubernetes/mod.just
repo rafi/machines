@@ -122,6 +122,15 @@ check:
 		if kustomize build "$d" >/dev/null 2>&1; then echo "ok    $d"
 		else echo "FAIL  $d"; rc=1; fi
 	done
+	# An Alert can't select all namespaces: each needs its own event sources.
+	alert=apps/flux-system/alerts/app/alert.yaml
+	for ns in apps/*/; do
+		ns=$(basename "$ns")
+		for kind in Kustomization HelmRelease OCIRepository; do
+			yq -e ".spec.eventSources[] | select(.kind == \"$kind\" and .namespace == \"$ns\")" "$alert" >/dev/null 2>&1 \
+				|| { echo "FAIL  $alert: no $kind events from $ns"; rc=1; }
+		done
+	done
 	exit $rc
 
 # Force Flux to pull and apply now.
