@@ -90,7 +90,7 @@ The port must match in four places; see
 | Ingress | [Traefik] implementing the [Gateway API] |
 | Database | [CloudNativePG] operator and one Postgres cluster |
 | Apps | [app-template] HelmReleases: echo, miniflux, slskd, rathole client |
-| Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just check` and `just kube check` |
+| Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just check` and `just kube check`; Flux errors go to Telegram |
 
 The FluxInstance makes Flux sync [`kubernetes/flux/cluster`](../kubernetes/flux/cluster), whose `cluster-apps`
 Kustomization applies every namespace in
@@ -132,7 +132,8 @@ flowchart LR
 - **Nothing secret is in git**, encrypted or not. Each consumer has a
   `secretspec.toml` naming its keys; values live in `pass` under
   `secretspec/machines/default/<KEY>`.
-- **Flux substitutes two values only**: `SECRET_DOMAIN` and `SERVER_HOSTNAME`,
+- **Flux substitutes three values only**: `SECRET_DOMAIN`, `SERVER_HOSTNAME`
+  and `FLUX_TELEGRAM_CHAT_ID` (the alert chat),
   from the `cluster-settings` Secret in each namespace
   ([post-build substitution][flux-subst]). Strict substitution fails a
   Kustomization on any unknown `${VAR}`.

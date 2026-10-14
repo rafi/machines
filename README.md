@@ -47,7 +47,7 @@ itself from a `FluxInstance`.
 - **Apps:** [bjw-s app-template](https://bjw-s-labs.github.io/helm-charts/docs/app-template/)
   HelmReleases; upstream charts for infrastructure.
 - **Secrets:** created by `just kube secrets` from pass. Flux only
-  substitutes the domain and the server's host name;
+  substitutes the domain, the server's host name and the alert chat ID;
   [Reloader](https://github.com/stakater/Reloader) restarts pods when their
   Secrets change.
 - **Updates:** [Renovate](https://docs.renovatebot.com) opens PRs for charts,

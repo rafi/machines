@@ -8,7 +8,7 @@ deploy. Values that git doesn't hold come from `pass`
 |---|---|
 | `K3S_TOKEN`, `CLUSTER_NODE_IP`, `CLUSTER_NODE_NAME`, `SECRET_DOMAIN` | `just kube k3s-install` ([k3s/config.yaml](k3s/config.yaml)) |
 | `K3S_KUBECONFIG` | `just kube kubeconfig`, `just kube kubeconfig-save` |
-| `SECRET_DOMAIN`, `SERVER_HOSTNAME` | Secret `cluster-settings` in every namespace (Flux substitutes them) |
+| `SECRET_DOMAIN`, `SERVER_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID` | Secret `cluster-settings` in every namespace (Flux substitutes them) |
 | the keys in `apps/<ns>/<app>/secrets/secretspec.toml` | `just kube secrets` |
 
 ## Rebuild from scratch
