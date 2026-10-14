@@ -1,0 +1,39 @@
+---
+# Builds every app target and the Flux cluster, so a broken manifest fails
+# here (and on Renovate's PRs) before Flux pulls it. Needs no secrets: the
+# builds never read pass.
+name: Check
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # kustomize and helm come with the runner image.
+      - name: Setup just
+        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
+
+      - name: Build app targets
+        run: just check
+
+      - name: Build the Flux cluster
+        run: just kube check
