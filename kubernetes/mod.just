@@ -45,18 +45,14 @@ kubeconfig-save host:
 		| pass insert -m -f secretspec/machines/default/K3S_KUBECONFIG >/dev/null
 	echo "K3S_KUBECONFIG updated in pass; run: just kube kubeconfig"
 
-# Install (or re-point) Flux. The repo is private, so the github-token Secret
-# (a read-only GitHub token from pass) is created first.
+# Install (or re-point) Flux. The repo is public: Flux fetches it without
+# credentials.
 # --force-conflicts: on a running cluster these objects are owned by Flux's
 # kustomize-controller; this takes them over until Flux syncs them again.
 [doc('Install or re-point Flux from flux/flux-system; it then syncs this repo')]
 [group('bootstrap')]
 bootstrap:
 	kubectl create namespace flux-system --dry-run=client -o yaml | kubectl apply -f -
-	pass show secretspec/machines/default/FLUX_GITHUB_TOKEN | tr -d '\n' \
-		| kubectl create secret generic github-token -n flux-system \
-			--from-literal=username=git --from-file=password=/dev/stdin --dry-run=client -o yaml \
-		| kubectl apply --server-side --field-manager=just-kube-bootstrap --force-conflicts -f -
 	kubectl apply --server-side --force-conflicts -k {{ dir }}/flux/flux-system
 
 # Creates cluster-settings in every app namespace, plus the secrets/*.yaml of

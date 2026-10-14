@@ -8,9 +8,6 @@ spec:
   interval: 1m0s
   ref:
     branch: master
-  # The repository is private: Secret github-token holds a read-only token.
-  secretRef:
-    name: github-token
   url: https://github.com/rafi/machines.git
 ---
 apiVersion: kustomize.toolkit.fluxcd.io/v1

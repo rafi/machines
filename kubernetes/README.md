@@ -8,7 +8,6 @@ deploy. Values that git doesn't hold come from `pass`
 |---|---|
 | `K3S_TOKEN`, `CLUSTER_NODE_IP`, `CLUSTER_NODE_NAME`, `SECRET_DOMAIN` | `just kube k3s-install` ([k3s/config.yaml](k3s/config.yaml)) |
 | `K3S_KUBECONFIG` | `just kube kubeconfig`, `just kube kubeconfig-save` |
-| `FLUX_GITHUB_TOKEN` | `just kube bootstrap`: read-only GitHub token, the repo is private |
 | `SECRET_DOMAIN`, `SERVER_HOSTNAME` | Secret `cluster-settings` in every namespace (Flux substitutes them) |
 | the keys in `apps/<ns>/<app>/secrets/secretspec.toml` | `just kube secrets` |
 
@@ -40,7 +39,7 @@ kubectl get nodes
 ### 3. Flux and secrets
 
 ```sh
-just kube bootstrap   # github-token from pass, then Flux from flux/flux-system
+just kube bootstrap   # Flux from flux/flux-system; the repo is public
 just kube secrets     # cluster-settings and every app's Secrets from pass
 just kube sync
 just kube failing     # expect nothing; the first sync takes minutes (Helm charts)
