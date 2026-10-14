@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
 # Flux version, controllers and sync. 2.9.x: patch releases apply on their own.
 # https://fluxoperator.dev/docs/instance/
 apiVersion: helm.toolkit.fluxcd.io/v2

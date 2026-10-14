@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/notification.toolkit.fluxcd.io/provider_v1beta3.json
 # Secret telegram-bot (the bot token): `just kube secrets alerts`.
 # The chat ID comes from cluster-settings, already quoted (a bare number would
 # not be a string after substitution).

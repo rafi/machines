@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
 # Runs Flux from ../../flux-instance. Web UI: `just kube ui` (read-only).
 # https://fluxoperator.dev/docs/
 apiVersion: helm.toolkit.fluxcd.io/v2

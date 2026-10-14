@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 # Builds every app target and the Flux cluster, so a broken manifest fails
 # here (and on Renovate's PRs) before Flux pulls it. Needs no secrets: the
 # builds never read pass.

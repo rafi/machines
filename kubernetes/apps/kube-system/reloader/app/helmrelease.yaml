@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
 # Rolls a Deployment when a Secret or ConfigMap it uses changes. Opt in per
 # workload with the annotation `reloader.stakater.com/auto: "true"` (in
 # app-template: `controllers.<name>.annotations`).

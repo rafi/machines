@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
 # CloudNativePG `cluster` chart. Service: postgres-rw.db.svc.cluster.local
 # https://github.com/cloudnative-pg/charts/tree/main/charts/cluster
 #

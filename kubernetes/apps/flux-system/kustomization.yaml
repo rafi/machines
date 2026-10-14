@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
 # No namespace.yaml: the Flux Operator creates and owns flux-system.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization

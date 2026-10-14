@@ -1,9 +1,9 @@
 ---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
 # https://github.com/rapiz1/rathole
 # Tunnels ingress, ssh and the Soulseek port from the server to this cluster.
 # Secrets rathole-conf (client.toml) and rathole (rootCA.crt):
 # `just kube secrets rathole-client`.
-# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:

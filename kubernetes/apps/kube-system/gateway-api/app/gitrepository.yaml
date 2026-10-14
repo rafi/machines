@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/source.toolkit.fluxcd.io/gitrepository_v1.json
 # Gateway API CRDs (standard channel), required by traefik and every HTTPRoute.
 # https://gateway-api.sigs.k8s.io/guides/
 apiVersion: source.toolkit.fluxcd.io/v1

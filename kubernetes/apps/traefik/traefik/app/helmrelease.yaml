@@ -1,4 +1,5 @@
 ---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
 # Gateway API only: the Ingress provider and IngressClass are disabled.
 # https://github.com/traefik/traefik-helm-chart/blob/master/traefik/values.yaml
 apiVersion: helm.toolkit.fluxcd.io/v2
