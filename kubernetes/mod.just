@@ -111,6 +111,14 @@ secrets *apps:
 	done
 	echo "Pods read Secrets at start: kubectl rollout restart the apps whose values changed."
 
+# Run restic against the backup repository on B2, credentials from pass,
+# e.g. `just kube restic snapshots` or `just kube restic restore latest --target /tmp/restore`.
+[doc('restic on the B2 backup repository: just kube restic <args>')]
+[group('backup')]
+restic *args:
+	secretspec run -f {{ dir }}/apps/backup/restic/secrets/secretspec.toml -- \
+		sh -c 'AWS_ACCESS_KEY_ID="$B2_KEY_ID" AWS_SECRET_ACCESS_KEY="$B2_APPLICATION_KEY" exec restic "$@"' restic {{ args }}
+
 # Build every Flux entrypoint and kustomization, as Flux would.
 [group('check')]
 check:
