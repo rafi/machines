@@ -103,7 +103,7 @@ the repo. `just list` shows what each app supports.
 ## 🚀 Getting started
 
 ```sh
-brew install just kustomize helm flux yq secretspec pass gettext
+brew install just kustomize helm flux yq secretspec pass gettext restic
 ```
 
 secretspec reads pass (`provider = "pass"` in

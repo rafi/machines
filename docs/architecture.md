@@ -91,6 +91,7 @@ The port must match in four places; see
 | Database | [CloudNativePG] operator and one Postgres cluster |
 | Apps | [app-template] HelmReleases: echo, miniflux, slskd, rathole client |
 | Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just check` and `just kube check`; Flux errors go to Telegram |
+| Backups | Nightly [restic] CronJob: a miniflux `pg_dump` and `/opt/slskd`, encrypted on the node, to Backblaze B2 |
 
 The FluxInstance makes Flux sync [`kubernetes/flux/cluster`](../kubernetes/flux/cluster), whose `cluster-apps`
 Kustomization applies every namespace in
@@ -206,7 +207,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 
 ## References
 
-- [k3s] · [Flux] · [Gateway API] · [Traefik] · [CloudNativePG] · [app-template] · [Reloader] · [Renovate]
+- [k3s] · [Flux] · [Gateway API] · [Traefik] · [CloudNativePG] · [app-template] · [Reloader] · [Renovate] · [restic]
 - [rathole] · [nginx `ssl_preread`][ssl_preread] · [nginx `auth_request`][auth_request] · [Authelia][authelia-nginx] · [LLDAP] · [microsocks] · [certbot]
 - [pass] · [secretspec] · [just] · [envsubst] · [Flux post-build substitution][flux-subst]
 - [onedr0p/home-ops], whose cluster layout this follows
@@ -230,6 +231,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 [Reloader]: https://github.com/stakater/Reloader
 [Renovate]: https://docs.renovatebot.com
 [rathole]: https://github.com/rapiz1/rathole
+[restic]: https://restic.net
 [secretspec]: https://secretspec.dev
 [slskd]: https://github.com/slskd/slskd
 [ssl_preread]: https://nginx.org/en/docs/stream/ngx_stream_ssl_preread_module.html
