@@ -5,12 +5,10 @@
 # secrets/ holds Secret templates and the secretspec.toml naming their keys.
 
 set shell := ['bash', '-euo', 'pipefail', '-c']
+set script-interpreter := ['bash', '-euo', 'pipefail']
 
-# gpg-agent fails some of the parallel pass decryptions secretspec makes by
-# default; one at a time is reliable (and faster).
-export SECRETSPEC_PROVIDER_CONCURRENCY := "1"
-
-dir := source_directory()
+# Recipes run in kubernetes/. SECRETSPEC_PROVIDER_CONCURRENCY comes from the
+# root justfile.
 
 _default:
 	@just --list kube --unsorted
@@ -20,13 +18,12 @@ _default:
 # Reinstalling on the same host: run /usr/local/bin/k3s-uninstall.sh first.
 [doc('Install k3s on this node, config from pass: just kube k3s-install [version]')]
 [group('bootstrap')]
+[script]
 k3s-install version='':
-	#!/usr/bin/env bash
-	set -euo pipefail
-	spec="{{ dir }}/k3s/secretspec.toml"
+	spec=k3s/secretspec.toml
 	vars=$(grep -oE '^[A-Z][A-Z0-9_]* =' "$spec" | tr -d ' =' | sed 's/.*/${&}/' | tr '\n' ' ')
 	sudo mkdir -p /etc/rancher/k3s
-	secretspec run -f "$spec" -- envsubst "$vars" < "{{ dir }}/k3s/config.yaml" \
+	secretspec run -f "$spec" -- envsubst "$vars" < k3s/config.yaml \
 		| sudo install -m 600 /dev/stdin /etc/rancher/k3s/config.yaml
 	curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='{{ version }}' sh -
 
@@ -40,9 +37,8 @@ kubeconfig out="~/.kube/cluster.yaml":
 # address instead of 127.0.0.1. `host` is the node's SSH destination.
 [doc("Store a node's kubeconfig in pass: just kube kubeconfig-save <host>")]
 [group('bootstrap')]
+[script]
 kubeconfig-save host:
-	#!/usr/bin/env bash
-	set -euo pipefail
 	ip="$(pass show secretspec/machines/default/CLUSTER_NODE_IP)"
 	ssh {{ host }} sudo cat /etc/rancher/k3s/k3s.yaml \
 		| sed "s#https://127.0.0.1:6443#https://$ip:6443#" \
@@ -53,10 +49,9 @@ kubeconfig-save host:
 # their HelmReleases then adopt both. Also migrates a running Flux.
 [doc('Install the Flux Operator and the FluxInstance; Flux then syncs this repo')]
 [group('bootstrap')]
+[script]
 bootstrap:
-	#!/usr/bin/env bash
-	set -euo pipefail
-	cd "{{ dir }}/apps/flux-system"
+	cd apps/flux-system
 	# --force-conflicts: re-runs override helm-controller's fields.
 	for app in flux-operator flux-instance; do
 		yq '.spec.values' "$app/app/helmrelease.yaml" \
@@ -70,9 +65,8 @@ bootstrap:
 # the named apps (all apps when none are named).
 [doc('Create Secrets from pass: cluster-settings + apps/<ns>/<app>/secrets/')]
 [group('secrets')]
+[script]
 secrets *apps:
-	#!/usr/bin/env bash
-	set -euo pipefail
 	# Print the Secret templates in a secrets/ dir with ${KEY}s filled from
 	# pass. yq substitutes after parsing, so any value stays a valid string.
 	# Only the keys of secretspec.toml are in yq's environment: any other
@@ -89,7 +83,6 @@ secrets *apps:
 	# Server-side, under its own field manager: no last-applied annotation, and
 	# it takes over Secrets first created by something else (e.g. old Flux).
 	apply() { kubectl apply --server-side --field-manager=just-kube-secrets --force-conflicts -n "$1" -f -; }
-	cd "{{ dir }}"
 	settings=$(render secrets)
 	for d in apps/*/; do
 		ns=$(basename "$d")
@@ -108,16 +101,16 @@ secrets *apps:
 # e.g. `just kube restic snapshots` or `just kube restic restore latest --target /tmp/restore`.
 [doc('restic on the B2 backup repository: just kube restic <args>')]
 [group('backup')]
+[positional-arguments]
+[no-exit-message]
 restic *args:
-	secretspec run -f {{ dir }}/apps/backup/restic/secrets/secretspec.toml -- \
-		sh -c 'AWS_ACCESS_KEY_ID="$B2_KEY_ID" AWS_SECRET_ACCESS_KEY="$B2_APPLICATION_KEY" exec restic "$@"' restic {{ args }}
+	secretspec run -f apps/backup/restic/secrets/secretspec.toml -- \
+		sh -c 'AWS_ACCESS_KEY_ID="$B2_KEY_ID" AWS_SECRET_ACCESS_KEY="$B2_APPLICATION_KEY" exec restic "$@"' restic "$@"
 
 # Build every Flux entrypoint and kustomization, as Flux would.
 [group('check')]
+[script('bash', '-uo', 'pipefail')]
 check:
-	#!/usr/bin/env bash
-	set -uo pipefail
-	cd "{{ dir }}"
 	rc=0
 	for d in flux/cluster apps/* apps/*/*/app; do
 		if kustomize build "$d" >/dev/null 2>&1; then echo "ok    $d"

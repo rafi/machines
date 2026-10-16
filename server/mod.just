@@ -4,9 +4,10 @@
 # from pass.
 
 set shell := ['bash', '-euo', 'pipefail', '-c']
+set script-interpreter := ['bash', '-euo', 'pipefail']
 
-dir := source_directory()
-root := dir / '..'
+# Recipes here run in server/; deploys run from the repo root.
+root := justfile_directory()
 
 _default:
 	@just --list server --unsorted
@@ -14,14 +15,12 @@ _default:
 # Deploy apps to the server; all of them when none are named. `host` is its
 # SSH destination, e.g. an ssh config alias (the repo doesn't name it).
 [doc('Deploy apps to the server: just server apply <host> [app...]')]
+[script]
 apply host *apps:
-	#!/usr/bin/env bash
-	set -euo pipefail
 	# deploy <app> [VAR=val...], unless apps were named and it isn't one.
 	deploy() {
 		test -z "{{ apps }}" || [[ " {{ apps }} " == *" $1 "* ]] || return 0
-		just --justfile "{{ root }}/justfile" --working-directory "{{ root }}" \
-			deploy systemd "$1" {{ host }} "${@:2}"
+		'{{ just_executable() }}' -d "{{ root }}" deploy systemd "$1" {{ host }} "${@:2}"
 	}
 	deploy rathole-server
 	deploy ingress    USE_PACKAGE_MANAGER=1
@@ -33,7 +32,7 @@ apply host *apps:
 # in pass. `target` is the new machine's first login, e.g. root@<ip>.
 [doc('Provision a new server with server/etc: just server setup root@<ip>')]
 setup target:
-	"{{ root }}/bin/setup-server.sh" --etc "{{ dir }}/etc" \
+	"{{ root }}/bin/setup-server.sh" --etc etc \
 		--ssh-port "$(pass show secretspec/machines/default/SERVER_SSH_PORT)" {{ target }}
 
 # Replace lldap's key_seed. Stored passwords depend on the key, so lldap runs
@@ -41,9 +40,9 @@ setup target:
 # LLDAP_ADMIN_PASSWORD); the deploy that follows re-sets bind_user's. Users
 # not in apps/lldap/files/*.json would have to set new passwords.
 [doc('Rotate lldap key_seed: re-key on the server, then redeploy lldap')]
-lldap-rekey host:
-	#!/usr/bin/env bash
-	set -euo pipefail
+[confirm('Re-key lldap? Users outside apps/lldap/files must set new passwords.')]
+[script]
+lldap-rekey host: && (apply host 'lldap')
 	seed="$(openssl rand -base64 48 | tr -d '\n/+=' | head -c 40)"
 	# Runs on the server under bash (whatever the login shell). The script,
 	# seed included, goes over ssh's stdin, never into a command line.
@@ -65,4 +64,3 @@ lldap-rekey host:
 	# The server has the new key now: keep pass in step before deploying.
 	printf '%s' "$seed" | pass insert -m -f secretspec/machines/default/LLDAP_KEY_SEED >/dev/null
 	echo "LLDAP_KEY_SEED updated in pass; deploying lldap with it"
-	just --justfile "{{ root }}/justfile" --working-directory "{{ root }}" server apply {{ host }} lldap

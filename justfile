@@ -1,8 +1,13 @@
 # RAFI MACHINES
 
+# `just -d DIR` without --justfile.
+set minimum-version := '1.59.0'
+
+# [script] recipes, run as strict bash scripts.
+set script-interpreter := ['bash', '-euo', 'pipefail']
+
 # gpg-agent fails some of the parallel pass decryptions secretspec makes by
-# default; one at a time is reliable (and faster). Covers lib/deploy.just and
-# `just server`, which runs this justfile.
+# default, one at a time is reliable (and faster).
 export SECRETSPEC_PROVIDER_CONCURRENCY := "1"
 
 import 'lib/deploy.just'
@@ -17,7 +22,7 @@ _default:
 	@just --list --unsorted
 
 setup:
-	brew install helm kustomize
+	brew install just kustomize helm flux yq secretspec pass gettext restic
 	helm plugin install https://github.com/databus23/helm-diff --verify=false || true
 
 check-ignore:

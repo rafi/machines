@@ -1,19 +1,17 @@
-# App deploys, imported by the root justfile. An app is apps/<app>/: its keys
-# in secretspec.toml, the config its targets share in files/, and up to three
-# targets. lib/render.sh stages files/ with the app's values in a temp dir.
+# App deploys (apps/<app>/), imported by the root justfile.
 # See docs/architecture.md#apps-and-deploy-targets.
 
 # VAR=val args after the host reach a systemd installer, e.g. USE_PACKAGE_MANAGER=1.
+# The child just prints its own errors.
 [doc('Deploy an app: just deploy systemd|kube|compose <app> [host] [VAR=val...]')]
+[arg('target', pattern='systemd|kube|compose')]
+[no-exit-message]
 deploy target app *args:
-	@'{{ just_executable() }}' -f '{{ source_file() }}' -d '{{ justfile_directory() }}' _{{ target }} {{ app }} {{ args }}
+	@'{{ just_executable() }}' -d '{{ justfile_directory() }}' _{{ target }} {{ app }} {{ args }}
 
-# Units in systemd/files are sent unrendered: systemd expands their ${VAR}
-# from the installed .env, and a rendered unit would hold the secret.
-[private]
+# Units ship unrendered: systemd fills their ${VAR} from the installed .env.
+[script]
 _systemd app host *vars:
-	#!/usr/bin/env bash
-	set -euo pipefail
 	. lib/render.sh
 	tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 	stage {{ app }} "$tmp" "$tmp/.env"
@@ -21,11 +19,10 @@ _systemd app host *vars:
 	rsync -hlrtWxz "$tmp/" {{ host }}:/tmp/{{ app }}/
 	cat lib/functions.sh apps/{{ app }}/systemd/installer.sh | ssh {{ host }} '{{ vars }}' sh -s
 
-# kube/kubectl reads ../../.env, ../../files and ../../../../.helm (chartHome).
-[private]
+# Builds a temp copy of apps/<app> holding the rendered .env and files/;
+# Helm charts come from the repo's .helm cache.
+[script]
 _kube app:
-	#!/usr/bin/env bash
-	set -euo pipefail
 	. lib/render.sh
 	tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 	mkdir -p .helm "$tmp/apps" && ln -s "$PWD/.helm" "$tmp/.helm" && cp -R apps/{{ app }} "$tmp/apps/"
@@ -34,11 +31,10 @@ _kube app:
 	kustomize build --enable-helm --load-restrictor LoadRestrictionsNone "$app/kube/kubectl" \
 		| subst "$app/.env" | kubectl apply -f -
 
-# compose.yaml mounts ../files; the values interpolate it.
-[private]
+# Runs a temp copy of apps/<app>: compose.yaml mounts the rendered files/
+# and interpolates the app's values from the environment.
+[script]
 _compose app:
-	#!/usr/bin/env bash
-	set -euo pipefail
 	. lib/render.sh
 	tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 	cp -R apps/{{ app }} "$tmp/"
@@ -46,16 +42,21 @@ _compose app:
 	with_env "$tmp/{{ app }}/.env" docker compose -f "$tmp/{{ app }}/compose/compose.yaml" up
 
 # Show which targets each app supports.
+[script]
 list:
-	@for d in apps/*/; do t=''; for n in kube/kubectl compose systemd; do [ ! -d "$d$n" ] || t="$t $n"; done; printf '%-16s %s\n' "$(basename "$d")" "${t# }"; done
+	for d in apps/*/; do
+		t=''
+		for n in kube/kubectl compose systemd; do
+			[ ! -d "$d$n" ] || t="$t $n"
+		done
+		printf '%-16s %s\n' "$(basename "$d")" "${t# }"
+	done
 
-# Rendered files exist only at deploy time: each app builds from a temp copy
-# with an empty .env and empty stand-ins for the files/ it references.
+# Build each app from a temp copy with an empty .env and stub files/.
 # The Flux cluster is checked by `just kube check`.
 [doc('Build every apps/*/kube/kubectl entrypoint')]
+[script('bash', '-uo', 'pipefail')]
 check:
-	#!/usr/bin/env bash
-	set -uo pipefail
 	tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 	mkdir -p .helm "$tmp/apps" && ln -s "$PWD/.helm" "$tmp/.helm"
 	rc=0
