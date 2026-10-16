@@ -1,6 +1,7 @@
 # authelia
 
-Authelia single sign-on.
+Authelia single sign-on. The one in use runs in the cluster
+(`kubernetes/apps/auth/authelia`); these targets are standalone.
 
 ## Targets
 

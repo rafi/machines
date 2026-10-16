@@ -1,7 +1,7 @@
-# The server in front of the cluster (nginx, Authelia, rathole server, SOCKS5
-# proxy): which apps/<app> run on it, deployed over SSH with
-# `just deploy systemd`, and how a new one is provisioned (etc/). Values come
-# from pass. LLDAP runs in the cluster (kubernetes/apps/auth/lldap).
+# The server in front of the cluster (nginx, rathole server, SOCKS5 proxy):
+# which apps/<app> run on it, deployed over SSH with `just deploy systemd`,
+# and how a new one is provisioned (etc/). Values come from pass. Authelia
+# and LLDAP run in the cluster (kubernetes/apps/auth).
 
 set shell := ['bash', '-euo', 'pipefail', '-c']
 set script-interpreter := ['bash', '-euo', 'pipefail']
@@ -24,7 +24,6 @@ apply host *apps:
 	}
 	deploy rathole-server
 	deploy ingress    USE_PACKAGE_MANAGER=1
-	deploy authelia   USE_PACKAGE_MANAGER=1
 	deploy microsocks USE_PACKAGE_MANAGER=1
 
 # Provision a fresh server: users, ssh, firewall, etc/ files. The ssh port is

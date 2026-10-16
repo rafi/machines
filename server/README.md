@@ -1,10 +1,10 @@
 # The server
 
 The public server in front of the cluster: nginx (TLS, Authelia forward-auth),
-Authelia, the rathole server and a SOCKS5 proxy. Values come from
+the rathole server and a SOCKS5 proxy. Values come from
 `pass` (`secretspec/machines/default/<KEY>`); nothing secret is in this repo.
-LLDAP runs in the cluster (`kubernetes/apps/auth/lldap`); Authelia reaches it
-at `ldap://127.0.0.1:3890`, a rathole service bound to loopback.
+Authelia and LLDAP run in the cluster (`kubernetes/apps/auth`); nginx reaches
+Authelia at `127.0.0.1:9091`, a rathole service bound to loopback.
 
 ## Create and set up
 
@@ -26,7 +26,6 @@ Each app is `apps/<app>/`: its config in `files/` (rendered with
 
 | App | Config (`apps/<app>/files/`) | Values that identify the setup |
 |---|---|---|
-| authelia | `configuration.yml` | `SECRET_DOMAIN`, `LLDAP_LDAP_BASE_DN` |
 | ingress | `nginx.conf`, `snippets/`, `certbot.sh`, `sites-enabled/`: one file per host, every nginx site incl. auth and ldap | `SECRET_DOMAIN`, `CERT_DEFAULT_EMAIL`, `SEERR_URL` |
 | rathole-server | `server.toml`, `identity.pfx` (decoded from `RATHOLE_IDENTITY_PFX_B64`) | |
 | microsocks | none | |
@@ -38,10 +37,10 @@ advertise the home IP; through this proxy it advertises the server's, where rath
 forwards the listen port back. `MICROSOCKS_USER`/`MICROSOCKS_PASSWORD` must
 equal `SLSKD_SLSK_PROXY_*` in pass.
 
-### LLDAP
+### Authelia and LLDAP
 
-Runs in the cluster. Its users and groups, and how to add one, are in
-`kubernetes/apps/auth/lldap/secrets/lldap-bootstrap.yaml`.
+Run in the cluster (`kubernetes/apps/auth`). LLDAP's users and groups, and
+how to add one, are in `kubernetes/apps/auth/lldap/secrets/lldap-bootstrap.yaml`.
 
 ## Rathole TLS
 

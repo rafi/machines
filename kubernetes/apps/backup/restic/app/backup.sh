@@ -1,7 +1,8 @@
 #!/bin/sh
-# Nightly backup to the restic repository on B2: the miniflux dump written by
-# the `dump` init container to /dump, slskd's state at /data/slskd and
-# lldap's SQLite database at /data/lldap (copied live: lldap rarely writes).
+# Nightly backup to the restic repository on B2: the miniflux and authelia
+# dumps written by the `dump` init containers to /dump, slskd's state at
+# /data/slskd and lldap's SQLite database at /data/lldap (copied live: lldap
+# rarely writes).
 # restic encrypts with RESTIC_PASSWORD before anything leaves the node.
 # Any failure is sent to Telegram and fails the Job.
 set -u
@@ -28,6 +29,7 @@ restic backup --host "$host" \
 restic forget --host "$host" --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune \
 	|| fail "restic forget"
 
-# The dump step never fails the pod, so slskd is backed up either way.
-[ -s /dump/miniflux.dump ] || fail "pg_dump (slskd was backed up)"
+# The dump steps never fail the pod, so the files are backed up either way.
+[ -s /dump/miniflux.dump ] || fail "pg_dump miniflux (the rest was backed up)"
+[ -s /dump/authelia.dump ] || fail "pg_dump authelia (the rest was backed up)"
 echo "Backup finished"

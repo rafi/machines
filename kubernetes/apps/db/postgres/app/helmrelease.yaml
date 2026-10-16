@@ -43,6 +43,13 @@ spec:
           login: true
           passwordSecret:
             name: pg-miniflux
+        - name: authelia
+          ensure: present
+          login: true
+          passwordSecret:
+            name: pg-authelia
     databases:
       - name: miniflux
         owner: usrminiflux
+      - name: authelia
+        owner: authelia

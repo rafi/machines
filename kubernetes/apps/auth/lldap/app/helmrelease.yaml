@@ -1,8 +1,8 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
 # https://github.com/lldap/lldap
-# The user directory Authelia checks logins against. Authelia on the server
-# reaches LDAP (3890) through rathole; the web UI is ldap.<domain>.
+# The user directory Authelia (../../authelia) checks logins against, on
+# lldap.auth:3890; the web UI is ldap.<domain>.
 # Secrets lldap-env, lldap-users, lldap-groups: `just kube secrets lldap`.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease

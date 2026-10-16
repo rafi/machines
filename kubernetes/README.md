@@ -49,16 +49,17 @@ just kube routes      # every Gateway and HTTPRoute accepted
 Secrets go in first, so Flux never reconciles without `cluster-settings`.
 The operator installs Flux, which syncs `kubernetes/flux/cluster`. Order is
 enforced by `dependsOn`: gateway-api, then traefik; cloudnative-pg, then
-postgres, then miniflux; cert-manager, then its ClusterIssuers, then the
-wildcard certificate (Secret `wildcard-tls` in `traefik`). A rebuild issues
-a new certificate: Let's Encrypt allows 5 for the same names per week.
+postgres, then miniflux and authelia (which also waits for lldap);
+cert-manager, then its ClusterIssuers, then the wildcard certificate (Secret
+`wildcard-tls` in `traefik`). A rebuild issues a new certificate: Let's
+Encrypt allows 5 for the same names per week.
 
 ### 4. Data not in git
 
 Flux restores manifests; Secrets come from `pass`. The rest comes from the
 nightly backup (04:00, `apps/backup/restic`): restic, encrypted with
-`RESTIC_PASSWORD`, to a B2 bucket. It holds a `pg_dump` of the miniflux
-database, `/opt/slskd` without `downloads/` and `incomplete/`, and
+`RESTIC_PASSWORD`, to a B2 bucket. It holds `pg_dump`s of the miniflux and
+authelia databases, `/opt/slskd` without `downloads/` and `incomplete/`, and
 `/opt/lldap` (LLDAP's users and groups); 7 daily, 4 weekly and 6 monthly
 snapshots. The media folders slskd shares are not backed up. A failed run is
 reported on Telegram.
@@ -71,6 +72,12 @@ just kube restic dump latest /dump/miniflux.dump > /tmp/miniflux.dump
 kubectl -n db exec -i postgres-1 -c postgres -- \
   pg_restore --clean --if-exists --no-owner --role=usrminiflux -d miniflux < /tmp/miniflux.dump
 kubectl -n default rollout restart deploy/miniflux
+
+# authelia (WebAuthn devices; the storage encryption key in pass must match)
+just kube restic dump latest /dump/authelia.dump > /tmp/authelia.dump
+kubectl -n db exec -i postgres-1 -c postgres -- \
+  pg_restore --clean --if-exists --no-owner --role=authelia -d authelia < /tmp/authelia.dump
+kubectl -n auth rollout restart deploy/authelia
 
 # slskd's state
 kubectl -n default scale deploy/slskd --replicas=0
@@ -138,7 +145,8 @@ kubectl -n flux-system get fluxinstance flux
   missing in its namespace, or a literal `${` needs to be `$${`. Run
   `just kube secrets`.
 - Pods read Secrets at start. Reloader restarts those annotated
-  `reloader.stakater.com/auto: "true"` (miniflux, slskd, rathole-client, lldap)
+  `reloader.stakater.com/auto: "true"` (miniflux, slskd, rathole-client, lldap,
+  authelia; authelia also on its ConfigMap)
   when `just kube secrets` changes a Secret they use; any other pod needs
   `kubectl -n <ns> rollout restart deploy/<app>`.
 - The certificate isn't Ready: `kubectl -n traefik describe certificate wildcard`,

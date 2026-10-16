@@ -6,3 +6,4 @@ namespace: auth
 resources:
   - ./namespace.yaml
   - ./lldap/ks.yaml
+  - ./authelia/ks.yaml

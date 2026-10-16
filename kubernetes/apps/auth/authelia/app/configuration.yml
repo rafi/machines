@@ -1,0 +1,123 @@
+---
+# Authelia: https://www.authelia.com/configuration/
+# Mounted from ConfigMap authelia-config. Flux substitutes ${SECRET_DOMAIN};
+# write any other dollar sign doubled. Secrets, the LDAP base DN and bind
+# user come from Secret authelia-env (AUTHELIA_* environment variables).
+
+theme: dark
+
+server:
+  address: 'tcp://0.0.0.0:9091/'
+  headers:
+    csp_template: ''
+  buffers:
+    read: 4096
+    write: 4096
+  timeouts:
+    read: 6s
+    write: 6s
+    idle: 30s
+  endpoints:
+    enable_pprof: false
+    enable_expvars: false
+    authz:
+      # nginx on the server: auth_request through the rathole service.
+      auth-request:
+        implementation: 'AuthRequest'
+
+log:
+  level: info
+  format: text
+  keep_stdout: true
+
+totp:
+  disable: true
+  issuer: ${SECRET_DOMAIN}
+  algorithm: SHA1
+  digits: 6
+  period: 30
+  skew: 1
+  secret_size: 32
+
+webauthn:
+  disable: false
+  display_name: Authelia
+  attestation_conveyance_preference: indirect
+  timeout: 60s
+  selection_criteria:
+    user_verification: preferred
+
+ntp:
+  address: time.cloudflare.com:123
+  version: 4
+  max_desync: 3s
+  disable_startup_check: false
+  disable_failure: false
+
+access_control:
+  default_policy: one_factor
+
+authentication_backend:
+  password_reset:
+    disable: false
+  ldap:
+    implementation: custom
+    address: ldap://lldap.auth.svc.cluster.local:3890
+    timeout: 5s
+    start_tls: false
+    additional_users_dn: ou=people
+    users_filter: (&({username_attribute}={input})(objectClass=person))
+    additional_groups_dn: ou=groups
+    groups_filter: (member={dn})
+    permit_referrals: false
+    permit_unauthenticated_bind: false
+    attributes:
+      username: uid
+      group_name: cn
+      mail: mail
+      display_name: displayName
+
+password_policy:
+  standard:
+    enabled: true
+    min_length: 8
+    max_length: 0
+    require_uppercase: true
+    require_lowercase: true
+    require_number: true
+    require_special: true
+  zxcvbn:
+    enabled: false
+    min_score: 0
+
+session:
+  same_site: 'lax'
+  expiration: 1h
+  inactivity: 5m
+  remember_me: 1M
+  cookies:
+    - domain: ${SECRET_DOMAIN}
+      authelia_url: https://auth.${SECRET_DOMAIN}
+      default_redirection_url: https://${SECRET_DOMAIN}
+      same_site: 'lax'
+      inactivity: '5m'
+      expiration: '1h'
+      remember_me: '1d'
+
+regulation:
+  ban_time: 5m
+  find_time: 2m
+  max_retries: 3
+
+storage:
+  postgres:
+    address: tcp://postgres-rw.db.svc.cluster.local:5432
+    database: authelia
+    username: authelia
+
+# Password-reset messages land in this file (emptyDir): read them with
+# `kubectl -n auth exec deploy/authelia -- cat /data/notification.txt`.
+notifier:
+  disable_startup_check: false
+  filesystem:
+    filename: /data/notification.txt

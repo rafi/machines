@@ -16,14 +16,14 @@ flowchart LR
   ws["Workstation<br/>just + pass"]
   gh[("GitHub<br/>this repo")]
   subgraph vps["The server (public)"]
-    nginx["nginx"] --- authelia["Authelia"]
+    nginx["nginx"]
     rs["rathole server"]
     socks["microsocks"]
   end
   subgraph home["The cluster (home, CGNAT)"]
     flux["Flux"] --> apps["apps"]
     rc["rathole client"]
-    lldap["LLDAP"]
+    auth["Authelia + LLDAP"]
   end
   ws -- "git push" --> gh
   flux -- "pull" --> gh
@@ -43,15 +43,14 @@ flowchart LR
   user(["Client"]) -- ":443" --> stream
   subgraph vps["The server"]
     stream["nginx stream<br/>ssl_preread"] -- "TLS" --> http["nginx http<br/>TLS + auth_request"]
-    http -. "verify" .-> authelia["Authelia"]
-    authelia -. "LDAP, 127.0.0.1:3890" .-> rs
+    http -. "verify (auth_request), 127.0.0.1:9091" .-> rs
     http --> rs["rathole server"]
     stream -- "not TLS (SSH)" --> rs
   end
   subgraph home["The cluster"]
     rc["rathole client"] --> gw["Traefik<br/>Gateway"] --> route["HTTPRoute"] --> svc["Service"]
     rc --> sshd["node sshd"]
-    rc -. "LDAP" .-> lldap["LLDAP"]
+    rc -. "verify" .-> authelia["Authelia"] -. "LDAP" .-> lldap["LLDAP"]
   end
   rs == "tunnel (client-initiated)" === rc
 ```
@@ -63,10 +62,9 @@ flowchart LR
    issued by [certbot] (DNS-01).
 3. **Authentication happens at the edge.** Protected sites call Authelia
    through [`auth_request`][auth_request]
-   ([Authelia's nginx integration][authelia-nginx]); Authelia checks users
-   against LLDAP, which runs in the cluster and is reached through the
-   tunnel on the server's loopback (`127.0.0.1:3890`). The cluster sees
-   authenticated requests only.
+   ([Authelia's nginx integration][authelia-nginx]). Authelia runs in the
+   cluster with LLDAP; nginx reaches it through the tunnel on the server's
+   loopback (`127.0.0.1:9091`). The cluster sees authenticated requests only.
 4. **Routing happens in the cluster.** The tunnel ends at Traefik, the
    [Gateway API] implementation; each app attaches an `HTTPRoute`.
 
@@ -95,9 +93,9 @@ Both ports come from pass and are shared by the server and the cluster; see
 | Ingress | [Traefik] implementing the [Gateway API]; a `websecure` listener with the wildcard certificate, not public yet (the server's nginx still terminates TLS) |
 | Certificates | [cert-manager]: `<domain>` + `*.<domain>` from Let's Encrypt, DNS-01 on Cloudflare with a token limited to the zone's DNS |
 | Database | [CloudNativePG] operator and one Postgres cluster |
-| Apps | [app-template] HelmReleases: echo, miniflux, slskd, rathole client, [LLDAP] |
+| Apps | [app-template] HelmReleases: echo, miniflux, slskd, rathole client, [LLDAP], [Authelia][authelia-nginx] (storage in Postgres) |
 | Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just check` and `just kube check`; Flux errors go to Telegram |
-| Backups | Nightly [restic] CronJob: a miniflux `pg_dump`, `/opt/slskd` and `/opt/lldap`, encrypted on the node, to Backblaze B2 |
+| Backups | Nightly [restic] CronJob: `pg_dump`s of miniflux and authelia, `/opt/slskd` and `/opt/lldap`, encrypted on the node, to Backblaze B2 |
 
 The FluxInstance makes Flux sync [`kubernetes/flux/cluster`](../kubernetes/flux/cluster), whose `cluster-apps`
 Kustomization applies every namespace in

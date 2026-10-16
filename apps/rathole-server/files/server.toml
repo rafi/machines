@@ -25,7 +25,8 @@ bind_addr = "0.0.0.0:32022"
 [server.services.slskd]
 bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_SLSKD_PORT}"
 
-# lldap in the cluster, for Authelia only: loopback, no ufw rule. The port is
-# lldap's own, so Authelia's address (ldap://127.0.0.1:3890) stays the same.
-[server.services.ldap]
-bind_addr = "127.0.0.1:3890"
+# Authelia in the cluster, for nginx's auth_request and the auth.<domain>
+# portal: loopback only, no ufw rule. Authelia's own port, so nginx's
+# upstream (127.0.0.1:9091) stays the same.
+[server.services.authelia]
+bind_addr = "127.0.0.1:9091"

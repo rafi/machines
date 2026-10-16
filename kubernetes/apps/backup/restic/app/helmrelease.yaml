@@ -1,7 +1,7 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
-# Nightly encrypted backup of the miniflux database, /opt/slskd and
-# /opt/lldap to B2.
+# Nightly encrypted backup of the miniflux and authelia databases,
+# /opt/slskd and /opt/lldap to B2.
 # Secret restic-env: `just kube secrets restic`. Restores: kubernetes/README.md.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -41,6 +41,24 @@ spec:
             envFrom:
               - secretRef:
                   name: restic-env
+          # Same for the authelia database: /dump/authelia.dump.
+          dump-authelia:
+            image:
+              repository: ghcr.io/cloudnative-pg/postgresql
+              tag: "16.14"
+            command:
+              - sh
+              - -c
+              - pg_dump --format=custom --compress=0 --file=/dump/authelia.dump || rm -f /dump/authelia.dump
+            env:
+              PGHOST: postgres-rw.db.svc.cluster.local
+              PGDATABASE: authelia
+              PGUSER: authelia
+              PGPASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: restic-env
+                    key: AUTHELIA_PGPASSWORD
         containers:
           app:
             image:
