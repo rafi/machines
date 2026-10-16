@@ -23,6 +23,12 @@ spec:
           backoffLimit: 0
           successfulJobsHistory: 3
           failedJobsHistory: 3
+        # /opt/slskd and /opt/lldap are owned by 1000:1000 (the apps' user).
+        pod:
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
         initContainers:
           # Writes /dump/miniflux.dump; exits 0 even on failure so the files
           # are still backed up (backup.sh reports the missing dump).
@@ -41,6 +47,10 @@ spec:
             envFrom:
               - secretRef:
                   name: restic-env
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"] }
           # Same for the authelia database: /dump/authelia.dump.
           dump-authelia:
             image:
@@ -59,6 +69,7 @@ spec:
                   secretKeyRef:
                     name: restic-env
                     key: AUTHELIA_PGPASSWORD
+            securityContext: *securityContext
         containers:
           app:
             image:
@@ -67,9 +78,13 @@ spec:
             command:
               - sh
               - /scripts/backup.sh
+            env:
+              # Temporary packs go to /tmp; the cache starts empty every run.
+              RESTIC_CACHE_DIR: /tmp/restic-cache
             envFrom:
               - secretRef:
                   name: restic-env
+            securityContext: *securityContext
             resources:
               requests:
                 cpu: 50m
@@ -108,3 +123,9 @@ spec:
             app:
               - path: /data/lldap
                 readOnly: true
+      tmp:
+        type: emptyDir
+        advancedMounts:
+          restic:
+            app:
+              - path: /tmp
