@@ -1,6 +1,9 @@
 ---
-# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
-# https://github.com/cilium/echoserver
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+# https://github.com/home-operations/echo
+# Echoes each request back as JSON. The chart runs it as 65532 with a
+# read-only root filesystem; its route can't add filters, so the route with
+# Authelia is httproute.yaml.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -11,44 +14,16 @@ spec:
     name: echo
   interval: 1h
   values:
-    controllers:
-      echo:
-        containers:
-          app:
-            image:
-              repository: cilium/echoserver
-              # The image the cluster already runs: `latest` is a later build
-              # than the last version tag (1.10.3) and differs from it.
-              tag: latest@sha256:76120aab2583d2283578dfbd3025057f874f12893475db0c1a945d7be211e7f4
-            probes:
-              liveness:
-                enabled: true
-            resources:
-              requests:
-                cpu: 4m
-                memory: 14Mi
-              limits:
-                memory: 32Mi
-    service:
-      app:
-        ports:
-          http:
-            port: 80
-    route:
-      app:
-        hostnames:
-          - echo.${SECRET_DOMAIN}
-        parentRefs:
-          - name: traefik-gateway
-            namespace: traefik
-            sectionName: websecure
-        rules:
-          - filters:
-              - type: ExtensionRef
-                extensionRef:
-                  group: traefik.io
-                  kind: Middleware
-                  name: authelia
-            backendRefs:
-              - identifier: app
-                port: 80
+    config:
+      # The pod, namespace and node in each response.
+      kubernetes: true
+      # Traefik's pod address (k3s's pod CIDR): its X-Forwarded-For names the client.
+      trustedProxies:
+        - 10.42.0.0/16
+      # Nothing scrapes it.
+      metricsEnabled: false
+    resources:
+      requests:
+        cpu: 10m
+      limits:
+        memory: 64Mi

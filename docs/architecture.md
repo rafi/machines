@@ -93,7 +93,7 @@ shared by the server and the cluster; see
 | Ingress | [Traefik] implementing the [Gateway API]; its `websecure` listener terminates TLS for every host with the wildcard certificate |
 | Certificates | [cert-manager]: `<domain>` + `*.<domain>` from Let's Encrypt, DNS-01 on Cloudflare with a token limited to the zone's DNS |
 | Database | [CloudNativePG] operator and one Postgres cluster |
-| Apps | [app-template] HelmReleases: echo, miniflux, slskd, rathole client, [LLDAP], [Authelia] (storage in Postgres) |
+| Apps | [app-template] HelmReleases: miniflux, slskd, rathole client, [LLDAP], [Authelia] (storage in Postgres); echo from its own chart |
 | Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just kube check`; Flux errors go to Telegram |
 | Backups | Nightly [restic] CronJob: `pg_dump`s of miniflux and authelia, `/opt/slskd` and `/opt/lldap`, encrypted on the node, to Backblaze B2 |
 
