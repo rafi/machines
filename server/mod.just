@@ -15,7 +15,7 @@ _default:
 [doc('Deploy apps to the server: just server apply <host> [app...]')]
 [script]
 apply host *apps:
-	. "{{ root }}/lib/render.sh"
+	. "{{ root }}/server/render.sh"
 	# Subshell: the EXIT trap removes the rendered values even on failure.
 	deploy() (
 		test -z "{{ apps }}" || [[ " {{ apps }} " == *" $1 "* ]] || exit 0
@@ -25,7 +25,7 @@ apply host *apps:
 		env_systemd "$tmp/.env.sh" > "$tmp/.env"
 		[ ! -d "$app/units" ] || cp -R "$app/units/." "$tmp/"
 		rsync -hlrtWxz "$tmp/" "{{ host }}:/tmp/$app/"
-		cat "{{ root }}/lib/functions.sh" "$app/installer.sh" | ssh {{ host }} "${*:2}" sh -s
+		cat "{{ root }}/server/functions.sh" "$app/installer.sh" | ssh {{ host }} "${*:2}" sh -s
 	)
 	deploy rathole-server
 	deploy ingress    USE_PACKAGE_MANAGER=1

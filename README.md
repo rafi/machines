@@ -83,11 +83,10 @@ Details: [server/README.md](./server/README.md).
 
 ```
 .
-├── bin/          server creation and provisioning scripts, the Soulseek port check
+├── bin/          server creation and provisioning scripts, the Soulseek port check, lldap's key rotation
 ├── docs/         architecture and usage
 ├── kubernetes/   the Flux cluster: flux/, apps/<namespace>/<app>/, components/, secrets/, k3s/
-├── lib/          render and installer helpers for the server's deploys
-└── server/       the server: its apps (<app>/) and etc/ hardening
+└── server/       the server: its apps (<app>/), etc/ hardening, and the deploy helpers (render.sh, functions.sh)
 ```
 
 ## 🚀 Getting started

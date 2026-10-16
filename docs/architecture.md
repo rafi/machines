@@ -186,7 +186,7 @@ sequenceDiagram
 Units stay unrendered: systemd expands their `${VAR}` from an
 `EnvironmentFile` (the `.env`, written in systemd's own quoting by
 `env_systemd`), so a rendered unit would hold the secret. Installers run with
-`set -eux`; [`load_env`](../lib/functions.sh) sources the `.env.sh`, whose
+`set -eux`; [`load_env`](../server/functions.sh) sources the `.env.sh`, whose
 values are single-quoted, with tracing paused.
 
 ## Provisioning
