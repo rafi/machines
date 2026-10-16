@@ -66,7 +66,7 @@ snapshots. The media folders slskd shares are not backed up. A failed run is
 reported on Telegram.
 
 ```sh
-just kube restic snapshots                 # needs `brew install restic`
+just kube restic snapshots                 # restic comes from `mise install`
 
 # miniflux, once postgres runs again
 just kube restic dump latest /dump/miniflux.dump > /tmp/miniflux.dump
@@ -99,9 +99,10 @@ Run a backup now: `kubectl -n backup create job --from=cronjob/restic restic-man
 
 Renovate (`.renovaterc.json5`) opens a PR for each new version of the items
 below, labelled `type/major`, `type/minor`, `type/patch` or `type/digest`, and
-the Check workflow builds it. Read the release notes before merging. The
-labels are defined in `.github/labels.yaml`; the Label Sync workflow deletes
-any other. By hand:
+the Check workflow renders and validates it; the run's summary shows the
+rendered diff against the base branch. Read the release notes before
+merging. The labels are defined in `.github/labels.yaml`; the Label Sync
+workflow deletes any other. By hand:
 
 - **Flux:** `distribution.version` in
   `apps/flux-system/flux-instance/app/helmrelease.yaml` (2.9.x: patches apply
@@ -117,11 +118,12 @@ any other. By hand:
   version above, then `just kube k3s-install <node>`, one minor at a time.
 
 `just kube check` renders everything locally with flate, charts checked
-against their schema and `kubeVersion` at `k3s_version`; `just kube render hr
-<name>` prints one release, `just kube diff [base]` the change against a
-revision. Every HelmRelease gets the same install, upgrade and rollback
-settings from `cluster-apps` (`flux/cluster/ks.yaml`): a failed upgrade is
-retried twice and rolled back.
+against their schema and `kubeVersion` at `k3s_version`, then validates the
+render against the Kubernetes and CRD schemas with kubeconform; `just kube
+render hr <name>` prints one release, `just kube diff [base]` the change
+against a revision. Every HelmRelease gets the same install, upgrade and
+rollback settings from `cluster-apps` (`flux/cluster/ks.yaml`): a failed
+upgrade is retried twice and rolled back.
 
 ## Values shared with the server
 

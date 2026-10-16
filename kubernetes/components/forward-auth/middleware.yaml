@@ -1,5 +1,5 @@
 ---
-# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/traefik.io/middleware_v1alpha1.json
+# yaml-language-server: $schema=https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/traefik.io/middleware_v1alpha1.json
 # Asks Authelia whether the request's session may see the page; without one,
 # Authelia answers with a redirect to auth.<domain>. Use it on an HTTPRoute
 # rule:

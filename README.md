@@ -92,7 +92,8 @@ Details: [server/README.md](./server/README.md).
 ## 🚀 Getting started
 
 ```sh
-brew install just helm flux yq secretspec pass gettext restic home-operations/tap/flate
+brew install mise pass gettext
+mise install                # just, flate, kubeconform, helm, flux, … (.mise/config.toml)
 ```
 
 secretspec reads pass (`provider = "pass"` in
@@ -101,7 +102,7 @@ secretspec reads pass (`provider = "pass"` in
 
 ```sh
 just                        # list recipes
-just kube check             # render the Flux cluster offline (flate)
+just kube check             # render the Flux cluster offline and validate it
 just kube secrets [app...]  # Secrets from pass into the cluster
 just kube sync              # make Flux reconcile now
 just server apply <host>    # deploy the server's apps

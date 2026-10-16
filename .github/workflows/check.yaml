@@ -28,16 +28,39 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # On a PR the checkout is the merge commit; its first parent is the
+          # base branch the diff below renders.
+          fetch-depth: 2
 
-      - name: Setup just
-        uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
-
-      # The version follows the pinned tag. An empty base renders the whole
-      # tree, not only what changed.
-      - name: Setup flate
-        uses: home-operations/flate/action@631b76b69c4e58c6f4d1cb01e23616fa61aebafa # v0.6.5
+      # The versions and checksums in .mise/mise.lock; only what the check
+      # runs is installed.
+      - name: Setup tools
+        uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
         with:
-          base: ""
+          install_args: just github:home-operations/flate kubeconform yq
 
-      - name: Render the Flux cluster
+      # kubeconform's downloaded schemas, keyed by the manifests: a new kind
+      # or version adds to the restored set.
+      - name: Cache kubeconform schemas
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/kubeconform
+          key: kubeconform-${{ hashFiles('kubernetes/**/*.yaml', 'kubernetes/mod.just') }}
+          restore-keys: kubeconform-
+
+      - name: Render and validate the Flux cluster
         run: just kube check
+
+      # What Flux would apply differently once the PR merges, in the run's
+      # summary. Runs when the check fails too; the summary caps at 1 MiB.
+      - name: Diff the render against the base branch
+        if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+        run: |
+          if ! out=$(just kube diff HEAD^1 --output github); then
+            out='The render failed; the log of this step has the error.'
+          elif [ -z "$out" ]; then
+            out='None: Flux would apply the same objects.'
+          else
+            out=$(printf '~~~diff\n%s\n~~~' "$(printf '%s' "$out" | head -c 900000)")
+          fi
+          printf '### Rendered changes\n\n%s\n' "$out" >> "$GITHUB_STEP_SUMMARY"

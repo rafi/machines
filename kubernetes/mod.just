@@ -10,8 +10,16 @@ set script-interpreter := ['bash', '-euo', 'pipefail']
 # Recipes run in kubernetes/. SECRETSPEC_PROVIDER_CONCURRENCY comes from the
 # root justfile.
 
-# The node's k3s release; `check` renders charts against it.
+# The node's k3s release; `check` renders and validates against it.
 k3s_version := 'v1.37.1+k3s1'
+
+# flate as the cluster sees it: its Kubernetes version, and the Gateway API
+# (offline, app-template would render HTTPRoutes as v1alpha2).
+flate_flags := '--path . --kube-version ' + k3s_version + ' --api-versions gateway.networking.k8s.io/v1/HTTPRoute --no-progress'
+
+# Core kinds from kubeconform's default; CRDs from the schemas the manifests'
+# headers use (home-operations, then datreeio's catalog for traefik.io).
+kubeconform_schemas := "-schema-location default -schema-location 'https://k8s-schemas.home-operations.com/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json'"
 
 _default:
 	@just --list kube --unsorted
@@ -129,12 +137,20 @@ _settings dir='.' strict='true':
 
 # Render every Kustomization and HelmRelease offline, as Flux would: charts
 # pulled and their values checked against the chart's schema and kubeVersion.
-[doc('Render the cluster offline with flate (chart schemas, kubeVersion); Alert sources')]
+# Then validate what Flux would apply against the Kubernetes and CRD schemas.
+[doc('Render the cluster offline with flate and validate it with kubeconform; Alert sources')]
 [group('check')]
 [script('bash', '-uo', 'pipefail')]
 check: _settings
 	rc=0
-	flate test all --path . --kube-version {{ k3s_version }} --no-progress || rc=1
+	flate test all {{ flate_flags }} || rc=1
+	# A schema already downloaded isn't fetched again (CI restores this
+	# directory): a CRD schema host being down doesn't fail the run.
+	cache=${XDG_CACHE_HOME:-$HOME/.cache}/kubeconform
+	mkdir -p "$cache"
+	flate build all {{ flate_flags }} 2>/dev/null \
+		| kubeconform -strict -summary -cache "$cache" -kubernetes-version {{ replace_regex(k3s_version, '^v([^+]+).*', '$1') }} {{ kubeconform_schemas }} \
+		|| rc=1
 	# An Alert can't select all namespaces: each needs its own event sources.
 	alert=apps/flux-system/alerts/app/alert.yaml
 	for ns in apps/*/; do
@@ -149,17 +165,18 @@ check: _settings
 # Print what Flux would apply: just kube render hr <name>, or all.
 [group('check')]
 render +args: _settings
-	flate build {{ args }} --path . --kube-version {{ k3s_version }} --no-progress
+	flate build {{ args }} {{ flate_flags }}
 
-# Diff what Flux would apply against `base`, rendered the same way.
+# Diff what Flux would apply against `base`, rendered the same way; extra
+# flags go to flate (e.g. --output github).
 [group('check')]
 [script]
-diff base='origin/master': _settings
+diff base='origin/master' *flags: _settings
 	tmp=$(mktemp -d)
 	trap 'git worktree remove --force "$tmp"' EXIT
 	git worktree add -q --detach "$tmp" '{{ base }}'
 	'{{ just_executable() }}' -f '{{ source_file() }}' _settings "$tmp/kubernetes" false
-	flate diff all --path . --path-orig "$tmp/kubernetes" --kube-version {{ k3s_version }} --no-progress
+	flate diff all --path-orig "$tmp/kubernetes" {{ flate_flags }} {{ flags }}
 
 # Force Flux to pull and apply now.
 [group('flux')]
