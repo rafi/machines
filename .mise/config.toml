@@ -8,11 +8,11 @@
 locked = true
 
 [tools]
-actionlint = "1.7.12"
 "github:cachix/secretspec" = "0.21.1"
 "github:home-operations/flate" = "0.6.5"
 flux2 = "2.9.6"
 helm = "4.3.1"
+jactionlint = "2.2.0"
 just = "1.59.0"
 kubeconform = "0.8.0"
 kubectl = "1.37.1"

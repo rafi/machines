@@ -77,7 +77,7 @@ jobs:
       - name: Setup tools
         uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
         with:
-          install_args: just actionlint shellcheck zizmor
+          install_args: just jactionlint shellcheck zizmor
 
       - name: Lint the workflows
         env:

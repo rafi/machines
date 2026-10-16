@@ -26,11 +26,12 @@ setup:
 check-ignore:
 	find . -not -path './.git/*' | git check-ignore --stdin
 
-# Lint the GitHub workflows: actionlint (shellcheck on `run:` scripts) and
+# Lint the GitHub workflows: jactionlint (shellcheck on `run:` scripts) and
 # zizmor's security audits, the online ones too when GH_TOKEN is set.
-[doc('Lint the GitHub workflows: actionlint (with shellcheck) and zizmor')]
+# jactionlint's `correctness` profile is the rule set actionlint checked;
+# its default profile adds policy rules (timeouts, concurrency).
+[doc('Lint the GitHub workflows: jactionlint (with shellcheck) and zizmor')]
 [script]
 lint:
-	# actionlint 1.7.12 doesn't know the ubuntu-26.04 runner label yet.
-	actionlint -ignore 'label "ubuntu-26\.04" is unknown'
+	jactionlint --profile correctness
 	zizmor .github
