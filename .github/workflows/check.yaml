@@ -1,8 +1,8 @@
 ---
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-# Builds every app target and the Flux cluster, so a broken manifest fails
-# here (and on Renovate's PRs) before Flux pulls it. Needs no secrets: the
-# builds never read pass.
+# Builds the Flux cluster, so a broken manifest fails here (and on
+# Renovate's PRs) before Flux pulls it. Needs no secrets: the build never
+# reads pass.
 name: Check
 
 on:
@@ -29,12 +29,9 @@ jobs:
         with:
           persist-credentials: false
 
-      # kustomize and helm come with the runner image.
+      # kustomize comes with the runner image.
       - name: Setup just
         uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
-
-      - name: Build app targets
-        run: just check
 
       - name: Build the Flux cluster
         run: just kube check

@@ -24,7 +24,7 @@ readable `just` recipes and shell installers, plus Flux for the cluster.
 
 | | Runs on | Deployed by |
 |---|---|---|
-| **The server** | a public VPS: nginx (TLS, login check), rathole, SOCKS5 proxy | `just server apply` over SSH, systemd |
+| **The server** | a public VPS: nginx (443 passthrough, 80 redirect), rathole, SOCKS5 proxy | `just server apply` over SSH, systemd |
 | **The cluster** | k3s at home, behind CGNAT, reached through a rathole tunnel | Flux, on every push |
 | **Secrets** | [pass](https://www.passwordstore.org), read by [secretspec](https://secretspec.dev) | at deploy time; never committed, not even encrypted |
 
@@ -67,24 +67,11 @@ Rebuilding the cluster from scratch: [kubernetes/README.md](./kubernetes/README.
 
 ## 🛡️ The server
 
-The public edge: TLS, single sign-on and the tunnel's far end. Each service is
-an app under [`apps/`](./apps/) installed by its own shell installer;
-[`server/`](./server/) lists which apps run there and how a new server is
-hardened. Details: [server/README.md](./server/README.md).
-
-## 📦 Apps
-
-Every app in [`apps/`](./apps/) can be deployed in up to three ways, all
-reading the same config from its `files/`:
-
-| Target | Command |
-|---|---|
-| systemd | `just deploy systemd <app> <host> [USE_PACKAGE_MANAGER=1]` |
-| kubectl | `just deploy kube <app>` |
-| compose | `just deploy compose <app>` |
-
-Files are rendered from pass in a temp directory and never written back to
-the repo. `just list` shows what each app supports.
+The public edge: port 443 forwarded into the cluster without decrypting it,
+the tunnel's far end and the SOCKS5 proxy. Each service lives in
+[`server/<app>/`](./server/) (config in `files/`, rendered from pass, and a
+shell installer) and is deployed over SSH with `just server apply`.
+Details: [server/README.md](./server/README.md).
 
 ---
 
@@ -92,12 +79,11 @@ the repo. `just list` shows what each app supports.
 
 ```
 .
-├── apps/         app definitions: files/, systemd/, kube/, compose/
 ├── bin/          server creation and provisioning scripts
 ├── docs/         architecture and notes
 ├── kubernetes/   the Flux cluster: flux/, apps/<namespace>/<app>/, k3s/
-├── lib/          deploy recipes and installer helpers
-└── server/       the server: its app list and etc/ hardening
+├── lib/          render and installer helpers for the server's deploys
+└── server/       the server: its apps (<app>/) and etc/ hardening
 ```
 
 ## 🚀 Getting started
@@ -112,7 +98,6 @@ secretspec reads pass (`provider = "pass"` in
 
 ```sh
 just                        # list recipes
-just check                  # build every apps/*/kube/kubectl
 just kube check             # build the Flux cluster
 just kube secrets [app...]  # Secrets from pass into the cluster
 just kube sync              # make Flux reconcile now

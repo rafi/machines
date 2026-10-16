@@ -92,7 +92,7 @@ Both ports come from pass and are shared by the server and the cluster; see
 | Certificates | [cert-manager]: `<domain>` + `*.<domain>` from Let's Encrypt, DNS-01 on Cloudflare with a token limited to the zone's DNS |
 | Database | [CloudNativePG] operator and one Postgres cluster |
 | Apps | [app-template] HelmReleases: echo, miniflux, slskd, rathole client, [LLDAP], [Authelia] (storage in Postgres) |
-| Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just check` and `just kube check`; Flux errors go to Telegram |
+| Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just kube check`; Flux errors go to Telegram |
 | Backups | Nightly [restic] CronJob: `pg_dump`s of miniflux and authelia, `/opt/slskd` and `/opt/lldap`, encrypted on the node, to Backblaze B2 |
 
 The FluxInstance makes Flux sync [`kubernetes/flux/cluster`](../kubernetes/flux/cluster), whose `cluster-apps`
@@ -129,7 +129,7 @@ flowchart LR
   pass[("pass")] --> ss["secretspec<br/>(keys in secretspec.toml)"]
   ss --> s1["just kube secrets<br/>→ Kubernetes Secrets"]
   ss --> s2["just kube secrets<br/>→ cluster-settings"]
-  ss --> s3["just deploy<br/>→ rendered files + .env"]
+  ss --> s3["just server apply<br/>→ rendered files + .env"]
   s2 -. "postBuild substitution" .-> flux["Flux"]
 ```
 
@@ -137,9 +137,9 @@ flowchart LR
   `secretspec.toml` naming its keys; values live in `pass` under
   `secretspec/machines/default/<KEY>`.
 - **Flux substitutes non-secret settings only**: `SECRET_DOMAIN`,
-  `SERVER_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID` (the alert chat) and slskd's two
-  ports (`RATHOLE_SERVER_SERVICES_SLSKD_PORT`, `MICROSOCKS_PORT`),
-  from the `cluster-settings` Secret in each namespace
+  `SERVER_HOSTNAME`, `SEERR_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID` (the alert
+  chat) and slskd's two ports (`RATHOLE_SERVER_SERVICES_SLSKD_PORT`,
+  `MICROSOCKS_PORT`), from the `cluster-settings` Secret in each namespace
   ([post-build substitution][flux-subst]). Strict substitution fails a
   Kustomization on any unknown `${VAR}`.
 - **Secret values never pass through Flux.** `just kube secrets` renders the
@@ -149,24 +149,20 @@ flowchart LR
 - **Binary secrets** (the rathole TLS identity) are stored base64-encoded;
   a rendered `*.b64` file is decoded with mode `600`.
 
-## Apps and deploy targets
+## The server's apps
 
-An app in [`apps/`](../apps) is one definition that can run in several ways:
+Each service on the server is one directory, deployed by `just server
+apply` (`server/mod.just`):
 
 ```
-apps/<app>/
+server/<app>/
 ├── secretspec.toml     keys the app needs
-├── files/              config shared by every target, rendered at deploy
-├── systemd/            installer.sh + units
-├── kube/kubectl/       kustomize build | kubectl apply
-└── compose/            docker compose up
+├── files/              config, rendered at deploy
+├── units/              systemd units, copied unrendered
+└── installer.sh        runs on the server
 ```
 
-`systemd` is what runs on the server; `kube/kubectl` and `compose` are a
-playground for trying other setups. The cluster's apps are separate, under
-`kubernetes/apps`, because Flux needs its own layout.
-
-A systemd deploy:
+A deploy:
 
 ```mermaid
 sequenceDiagram
@@ -176,7 +172,7 @@ sequenceDiagram
   W->>P: secretspec export --format shell (app's keys) → .env.sh
   W->>W: .env.sh → .env in EnvironmentFile= syntax
   W->>W: stage files/ in a temp dir, render, decode *.b64
-  W->>W: add systemd/files/ (units, unrendered)
+  W->>W: add units/ (unrendered)
   W->>S: rsync to /tmp/<app>/
   W->>S: functions.sh + installer.sh over SSH stdin
   S->>S: install, validate config, restart, health check

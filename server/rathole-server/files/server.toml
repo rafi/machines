@@ -1,6 +1,6 @@
 # See https://github.com/rapiz1/rathole#configuration
 # FIXME: https://github.com/rapiz1/rathole/issues/218
-# Rendered by `just deploy systemd|kube` with the values in ../../secretspec.toml.
+# Rendered by `just server apply` with the values in ../secretspec.toml.
 [server]
 bind_addr = "0.0.0.0:${RATHOLE_SERVER_BIND_PORT}"
 default_token = "${RATHOLE_DEFAULT_TOKEN}"

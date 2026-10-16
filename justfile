@@ -10,8 +10,6 @@ set script-interpreter := ['bash', '-euo', 'pipefail']
 # default, one at a time is reliable (and faster).
 export SECRETSPEC_PROVIDER_CONCURRENCY := "1"
 
-import 'lib/deploy.just'
-
 # Kubernetes cluster (Flux): `just kube`
 mod kube 'kubernetes'
 

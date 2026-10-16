@@ -11,3 +11,4 @@
 .venv/.env
 kubeconfig
 Thumbs.db
+__pycache__

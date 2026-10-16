@@ -20,11 +20,12 @@ just server apply <host>              # every app; <host> is the server's SSH de
 just server apply <host> microsocks   # only the named apps
 ```
 
-Each app is `apps/<app>/`: its config in `files/` (rendered with
-`apps/<app>/secretspec.toml`) and its `systemd/` installer.
-`mod.just` lists which apps run here and with which installer options.
+Each app is `server/<app>/`: its config in `files/` (rendered with
+`server/<app>/secretspec.toml`), systemd units in `units/` and its
+`installer.sh`. `mod.just` lists which apps run here and with which installer
+options.
 
-| App | Config (`apps/<app>/files/`) | Values that identify the setup |
+| App | Config (`server/<app>/files/`) | Values that identify the setup |
 |---|---|---|
 | ingress | `nginx.conf` (port 80 → HTTPS), `snippets/stream.nginx` (443: SSH and TLS passthrough to the cluster) | none |
 | rathole-server | `server.toml`, `identity.pfx` (decoded from `RATHOLE_IDENTITY_PFX_B64`) | |
