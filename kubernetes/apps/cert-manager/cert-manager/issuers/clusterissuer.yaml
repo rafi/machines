@@ -1,0 +1,46 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/cert-manager.io/clusterissuer_v1.json
+# Proves the domain with a TXT record at _acme-challenge.<domain>, written
+# through Cloudflare's API with the token in Secret cloudflare-dns
+# (DNS edit on this zone only). The ACME account key is kept in the
+# privateKeySecretRef Secret, created by cert-manager.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-production
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-dns
+              key: CLOUDFLARE_DNS_TOKEN
+        selector:
+          dnsZones:
+            - ${SECRET_DOMAIN}
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/cert-manager.io/clusterissuer_v1.json
+# Same, against Let's Encrypt's staging CA: untrusted certificates, but far
+# higher rate limits. Point a Certificate here to test a change first.
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    solvers:
+      - dns01:
+          cloudflare:
+            apiTokenSecretRef:
+              name: cloudflare-dns
+              key: CLOUDFLARE_DNS_TOKEN
+        selector:
+          dnsZones:
+            - ${SECRET_DOMAIN}

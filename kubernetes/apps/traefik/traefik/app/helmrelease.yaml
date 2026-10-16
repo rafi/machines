@@ -73,12 +73,24 @@ spec:
     # Default Gateway "traefik-gateway" (namespace traefik) with an HTTP listener
     # "web" on entrypoint port 8000. HTTPRoutes in all namespaces may attach to it:
     #   parentRefs: [{name: traefik-gateway, namespace: traefik, sectionName: web}]
+    # "websecure" (8443) terminates TLS with the wildcard certificate from
+    # ../../certificate. Nothing public reaches it yet: rathole forwards to
+    # port 80 only, and the server's nginx still terminates TLS.
     gateway:
       enabled: true
       listeners:
         web:
           port: 8000
           protocol: HTTP
+          namespacePolicy:
+            from: All
+        websecure:
+          port: 8443
+          protocol: HTTPS
+          mode: Terminate
+          certificateRefs:
+            - kind: Secret
+              name: wildcard-tls
           namespacePolicy:
             from: All
 

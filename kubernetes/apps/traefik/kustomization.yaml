@@ -6,3 +6,4 @@ namespace: traefik
 resources:
   - ./namespace.yaml
   - ./traefik/ks.yaml
+  - ./certificate/ks.yaml

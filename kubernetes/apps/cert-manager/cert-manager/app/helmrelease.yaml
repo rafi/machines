@@ -1,0 +1,22 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+# cert-manager: issues the domain's wildcard certificate (../issuers,
+# ../../../traefik/certificate). https://cert-manager.io/docs/
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cert-manager
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: cert-manager
+  interval: 1h
+  values:
+    crds:
+      enabled: true
+      # Deleting the CRDs would delete every Certificate and Issuer.
+      keep: true
+    # Check the DNS-01 TXT record through Cloudflare's resolvers over HTTPS,
+    # not the cluster's DNS, so a fresh record is seen at once.
+    dns01RecursiveNameservers: https://1.1.1.1:443/dns-query,https://1.0.0.1:443/dns-query
+    dns01RecursiveNameserversOnly: true

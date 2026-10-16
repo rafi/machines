@@ -87,7 +87,8 @@ Both ports come from pass and are shared by the server and the cluster; see
 |---|---|
 | Distribution | [k3s], single node; its bundled Traefik and Helm controller are disabled ([`k3s/config.yaml`](../kubernetes/k3s/config.yaml)) |
 | GitOps | [Flux], installed and upgraded by the [Flux Operator] from a `FluxInstance` |
-| Ingress | [Traefik] implementing the [Gateway API] |
+| Ingress | [Traefik] implementing the [Gateway API]; a `websecure` listener with the wildcard certificate, not public yet (the server's nginx still terminates TLS) |
+| Certificates | [cert-manager]: `<domain>` + `*.<domain>` from Let's Encrypt, DNS-01 on Cloudflare with a token limited to the zone's DNS |
 | Database | [CloudNativePG] operator and one Postgres cluster |
 | Apps | [app-template] HelmReleases: echo, miniflux, slskd, rathole client |
 | Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just check` and `just kube check`; Flux errors go to Telegram |
@@ -114,6 +115,7 @@ Dependencies are explicit `dependsOn` edges:
 flowchart LR
   gw["gateway-api"] --> traefik --> echo & slskd & miniflux
   cnpg["cloudnative-pg"] --> postgres --> miniflux
+  cm["cert-manager"] --> issuers["cert-manager-issuers"] --> certificate
 ```
 
 Rebuild steps, upgrades and troubleshooting are in
@@ -210,7 +212,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 
 ## References
 
-- [k3s] · [Flux] · [Gateway API] · [Traefik] · [CloudNativePG] · [app-template] · [Reloader] · [Renovate] · [restic]
+- [k3s] · [Flux] · [Gateway API] · [Traefik] · [cert-manager] · [CloudNativePG] · [app-template] · [Reloader] · [Renovate] · [restic]
 - [rathole] · [nginx `ssl_preread`][ssl_preread] · [nginx `auth_request`][auth_request] · [Authelia][authelia-nginx] · [LLDAP] · [microsocks] · [certbot]
 - [pass] · [secretspec] · [just] · [envsubst] · [Flux post-build substitution][flux-subst]
 - [onedr0p/home-ops], whose cluster layout this follows
@@ -219,6 +221,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 [auth_request]: https://nginx.org/en/docs/http/ngx_http_auth_request_module.html
 [authelia-nginx]: https://www.authelia.com/integration/proxies/nginx/
 [certbot]: https://certbot.eff.org
+[cert-manager]: https://cert-manager.io
 [CloudNativePG]: https://cloudnative-pg.io
 [envsubst]: https://www.gnu.org/software/gettext/manual/html_node/envsubst-Invocation.html
 [Flux]: https://fluxcd.io

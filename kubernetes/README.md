@@ -10,6 +10,7 @@ deploy. Values that git doesn't hold come from `pass`
 | `K3S_KUBECONFIG` | `just kube kubeconfig`, `just kube kubeconfig-save` |
 | `SECRET_DOMAIN`, `SERVER_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID`, `RATHOLE_SERVER_SERVICES_SLSKD_PORT`, `MICROSOCKS_PORT` | Secret `cluster-settings` in every namespace (Flux substitutes them) |
 | the keys in `apps/<ns>/<app>/secrets/secretspec.toml` | `just kube secrets`; the backup's (B2, restic) also `just kube restic` |
+| `CLOUDFLARE_DNS_TOKEN` | cert-manager's DNS-01 (`apps/cert-manager/cert-manager/secrets`): a Cloudflare token with Zone.DNS:Edit and Zone:Read on the domain's zone only |
 
 ## Rebuild from scratch
 
@@ -48,7 +49,9 @@ just kube routes      # every Gateway and HTTPRoute accepted
 Secrets go in first, so Flux never reconciles without `cluster-settings`.
 The operator installs Flux, which syncs `kubernetes/flux/cluster`. Order is
 enforced by `dependsOn`: gateway-api, then traefik; cloudnative-pg, then
-postgres, then miniflux.
+postgres, then miniflux; cert-manager, then its ClusterIssuers, then the
+wildcard certificate (Secret `wildcard-tls` in `traefik`). A rebuild issues
+a new certificate: Let's Encrypt allows 5 for the same names per week.
 
 ### 4. Data not in git
 
@@ -116,6 +119,7 @@ install, upgrade and rollback settings from `cluster-apps`
 
 ```sh
 just kube failing
+just kube routes
 just kube events
 just kube logs
 just kube tree
@@ -123,7 +127,6 @@ just kube ui          # Flux web UI on http://localhost:9080, read-only
 kubectl -n flux-system get fluxinstance flux
 ```
 
-just kube routes
 - A Kustomization fails with an unset variable: `cluster-settings` is
   missing in its namespace, or a literal `${` needs to be `$${`. Run
   `just kube secrets`.
@@ -131,3 +134,9 @@ just kube routes
   `reloader.stakater.com/auto: "true"` (miniflux, slskd, rathole-client)
   when `just kube secrets` changes a Secret they use; any other pod needs
   `kubectl -n <ns> rollout restart deploy/<app>`.
+- The certificate isn't Ready: `kubectl -n traefik describe certificate wildcard`,
+  then the `challenges` it lists (`kubectl get challenges -A`). A Cloudflare
+  error there is usually the token (expired, or missing Zone.DNS:Edit);
+  after replacing it in pass, `just kube secrets cert-manager`. To test
+  without Let's Encrypt's production limits, point the Certificate's
+  `issuerRef` at `letsencrypt-staging`.
