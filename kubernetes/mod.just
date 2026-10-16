@@ -45,12 +45,12 @@ kubeconfig-save host:
 		| pass insert -m -f secretspec/machines/default/K3S_KUBECONFIG >/dev/null
 	echo "K3S_KUBECONFIG updated in pass; run: just kube kubeconfig"
 
-# Install the Flux Operator and FluxInstance with helm from apps/flux-system;
-# their HelmReleases then adopt both. Also migrates a running Flux.
-[doc('Install the Flux Operator and the FluxInstance; Flux then syncs this repo')]
+# Push the Secrets, then install the Flux Operator and FluxInstance with helm
+# from apps/flux-system; their HelmReleases then adopt both.
+[doc('Secrets from pass, then the Flux Operator and FluxInstance; Flux then syncs this repo')]
 [group('bootstrap')]
 [script]
-bootstrap:
+bootstrap: secrets
 	cd apps/flux-system
 	# --force-conflicts: re-runs override helm-controller's fields.
 	for app in flux-operator flux-instance; do

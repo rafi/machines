@@ -36,16 +36,16 @@ set -gx KUBECONFIG ~/.kube/cluster.yaml
 kubectl get nodes
 ```
 
-### 3. Flux and secrets
+### 3. Secrets and Flux
 
 ```sh
-just kube bootstrap   # Flux Operator + FluxInstance (helm); the repo is public
-just kube secrets     # cluster-settings and every app's Secrets from pass
+just kube bootstrap   # just kube secrets, then Flux Operator + FluxInstance (helm)
 just kube sync
 just kube failing     # expect nothing; the first sync takes minutes (Helm charts)
 kubectl get gateway,httproute -A
 ```
 
+Secrets go in first, so Flux never reconciles without `cluster-settings`.
 The operator installs Flux, which syncs `kubernetes/flux/cluster`. Order is
 enforced by `dependsOn`: gateway-api, then traefik; cloudnative-pg, then
 postgres, then miniflux.
