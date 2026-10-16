@@ -80,8 +80,10 @@ Run a backup now: `kubectl -n backup create job --from=cronjob/restic restic-man
 ## Upgrades
 
 Renovate (`.renovaterc.json5`) opens a PR for each new version of the items
-below, and the Check workflow builds it. Read the release notes before merging.
-By hand:
+below, labelled `type/major`, `type/minor`, `type/patch` or `type/digest`, and
+the Check workflow builds it. Read the release notes before merging. The
+labels are defined in `.github/labels.yaml`; the Label Sync workflow deletes
+any other. By hand:
 
 - **Flux:** `distribution.version` in
   `apps/flux-system/flux-instance/app/helmrelease.yaml` (2.9.x: patches apply

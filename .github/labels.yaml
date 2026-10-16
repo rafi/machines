@@ -1,0 +1,11 @@
+---
+# The repository's labels, synced by the Label Sync workflow: any label not
+# listed here is deleted. Renovate adds the type/* labels to its PRs.
+- name: type/digest
+  color: "ffeC19"
+- name: type/patch
+  color: "ffeC19"
+- name: type/minor
+  color: "ff9800"
+- name: type/major
+  color: "f6412d"
