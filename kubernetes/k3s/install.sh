@@ -18,6 +18,10 @@ if command -v pacman >/dev/null && pacman -Qq k3s-bin >/dev/null 2>&1; then
 	exit 1
 fi
 
+# The script restarts k3s only when its binary, unit or env file changed:
+# force it when the config did.
+restart=false
+sudo cmp -s "$dir/config.yaml" /etc/rancher/k3s/config.yaml || restart=true
 sudo install -d /etc/rancher/k3s
 sudo install -m 600 "$dir/config.yaml" /etc/rancher/k3s/config.yaml
-curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="$1" sh -
+curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION="$1" INSTALL_K3S_FORCE_RESTART="$restart" sh -
