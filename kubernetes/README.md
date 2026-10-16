@@ -110,7 +110,8 @@ any other. By hand:
 - **Gateway API CRDs:** `ref.tag` in
   `apps/kube-system/gateway-api/app/gitrepository.yaml`.
 - **Postgres:** `version.postgresql` in `apps/db/postgres/app/helmrelease.yaml`
-  (held to 16.x, like the backup's `pg_dump`); a change restarts the instance.
+  (held to 16.x, like the backup's `pg_dump`); a change restarts the instance
+  (about a minute: `smartShutdownTimeout` is 15s, set by a post-renderer).
 
 `just kube check` builds everything locally. Every HelmRelease gets the same
 install, upgrade and rollback settings from `cluster-apps`

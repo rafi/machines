@@ -60,3 +60,18 @@ spec:
         owner: usrminiflux
       - name: authelia
         owner: authelia
+  # The chart doesn't expose smartShutdownTimeout. A smart shutdown waits for
+  # clients to disconnect, but miniflux's and Authelia's pools never do, so
+  # every restart (each image bump) sat out the default 180s. 15s still lets
+  # a running statement, e.g. the nightly pg_dump, finish before the fast
+  # shutdown cuts the remaining connections; the apps reconnect.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Cluster
+              name: postgres
+            patch: |
+              - op: add
+                path: /spec/smartShutdownTimeout
+                value: 15
