@@ -18,7 +18,7 @@ flowchart LR
   subgraph vps["The server (public)"]
     nginx["nginx"]
     rs["rathole server"]
-    socks["microsocks"]
+    ss["shadowsocks"]
   end
   subgraph home["The cluster (home, CGNAT)"]
     flux["Flux"] --> apps["apps"]
@@ -74,12 +74,14 @@ flowchart LR
 
 [slskd] needs inbound peers and must not advertise the home address:
 
-- **Outbound:** through the [microsocks] SOCKS5 proxy on the server, so peers
-  see the server's address.
+- **Outbound:** an [sslocal] container in slskd's pod is its SOCKS5 proxy
+  (`localhost:1080`) and carries each connection, encrypted, to
+  [shadowsocks-rust] on the server, so peers see the server's address.
 - **Inbound:** the listen port is a rathole service, so the server accepts
   the connection and the tunnel carries it to slskd.
 
-Both ports come from pass and are shared by the server and the cluster; see
+The Soulseek port and shadowsocks' port and key come from pass and are
+shared by the server and the cluster; see
 [Values shared with the server](../kubernetes/README.md#values-shared-with-the-server).
 
 ## The cluster
@@ -137,9 +139,9 @@ flowchart LR
   `secretspec.toml` naming its keys; values live in `pass` under
   `secretspec/machines/default/<KEY>`.
 - **Flux substitutes non-secret settings only**: `SECRET_DOMAIN`,
-  `SERVER_HOSTNAME`, `SEERR_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID` (the alert
-  chat) and slskd's two ports (`RATHOLE_SERVER_SERVICES_SLSKD_PORT`,
-  `MICROSOCKS_PORT`), from the `cluster-settings` Secret in each namespace
+  `SEERR_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID` (the alert chat) and slskd's
+  Soulseek port (`RATHOLE_SERVER_SERVICES_SLSKD_PORT`), from the
+  `cluster-settings` Secret in each namespace
   ([post-build substitution][flux-subst]). Strict substitution fails a
   Kustomization on any unknown `${VAR}`.
 - **Secret values never pass through Flux.** `just kube secrets` renders the
@@ -210,7 +212,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 ## References
 
 - [k3s] · [Flux] · [Gateway API] · [Traefik] · [cert-manager] · [CloudNativePG] · [app-template] · [Reloader] · [Renovate] · [restic]
-- [rathole] · [nginx `ssl_preread`][ssl_preread] · [Authelia] · [LLDAP] · [microsocks]
+- [rathole] · [nginx `ssl_preread`][ssl_preread] · [Authelia] · [LLDAP] · [shadowsocks-rust]
 - [pass] · [secretspec] · [just] · [envsubst] · [Flux post-build substitution][flux-subst]
 - [onedr0p/home-ops], whose cluster layout this follows
 
@@ -226,7 +228,8 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 [just]: https://just.systems
 [k3s]: https://k3s.io
 [LLDAP]: https://github.com/lldap/lldap
-[microsocks]: https://github.com/rofl0r/microsocks
+[shadowsocks-rust]: https://github.com/shadowsocks/shadowsocks-rust
+[sslocal]: https://github.com/shadowsocks/shadowsocks-rust#sslocal
 [onedr0p/home-ops]: https://github.com/onedr0p/home-ops
 [pass]: https://www.passwordstore.org
 [Reloader]: https://github.com/stakater/Reloader

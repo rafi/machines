@@ -2,25 +2,29 @@
 """Check that Soulseek peers can reach slskd on its incoming port.
 
 slskd runs at home behind CGNAT, so peers must be sent to the server
-instead: slskd logs in to Soulseek through the server's microsocks, so the
-Soulseek server records the server's address, and the server's port is
-carried by rathole to slskd. The checks follow that path:
+instead: slskd's connections leave through shadowsocks on the server (an
+sslocal container in its pod carries them there), so the Soulseek server
+records the server's address, and the server's port is carried by rathole
+to slskd. The checks follow that path:
 
   1. What Soulseek tells peers: slskd's API asks the Soulseek server for
      our own user's address, which must be the server's address and port
-     (not the home one). Needs the cluster; the kubeconfig comes from pass
-     when kubectl doesn't reach it already.
-  2. Soulseek's own port test, requested through microsocks so it probes
-     the server's address, as a peer would.
+     (not the home one).
+  2. Soulseek's own port test, requested through slskd's sslocal (the path
+     slskd's own connections take), so it probes the server's address.
   3. A peer handshake from this machine: PeerInit, then a user info
      request, which only slskd itself can answer.
   4. The slskd and rathole-client deployments are ready.
+
+1, 2 and 4 need the cluster; the kubeconfig comes from pass when kubectl
+doesn't reach it already.
 
 Values come from pass and are never printed. Standard library only.
 
   bin/check-soulseek-port.py
 """
 
+import contextlib
 import json
 import os
 import re
@@ -60,17 +64,28 @@ def kube_reachable(env):
                           env=env, capture_output=True).returncode == 0
 
 
+@contextlib.contextmanager
+def port_forward(env, target, remote):
+    """kubectl port-forward to `target` (in namespace default) on a free local
+    port; yields that port."""
+    pf = subprocess.Popen(['kubectl', '-n', 'default', 'port-forward', target, f':{remote}'],
+                          env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    try:
+        # kubectl prints "Forwarding from 127.0.0.1:<port> -> <remote>" when ready.
+        match = re.search(r'127\.0\.0\.1:(\d+)', pf.stdout.readline())
+        if not match:
+            raise CheckFailed(f'no port-forward to {target}')
+        yield int(match[1])
+    finally:
+        pf.terminate()
+        pf.wait()
+
+
 def advertised_address(env, host, port):
     """Port-forward to slskd's Service, log in to its API and look up our own
     Soulseek user: the answer is the address the Soulseek server gives peers."""
-    pf = subprocess.Popen(['kubectl', '-n', 'default', 'port-forward', 'svc/slskd', ':80'],
-                          env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    try:
-        # kubectl prints "Forwarding from 127.0.0.1:<port> -> 5030" when ready.
-        match = re.search(r'127\.0\.0\.1:(\d+)', pf.stdout.readline())
-        if not match:
-            raise CheckFailed('no port-forward to svc/slskd')
-        api = f'http://127.0.0.1:{match[1]}/slsk/api/v0'
+    with port_forward(env, 'svc/slskd', 80) as local:
+        api = f'http://127.0.0.1:{local}/slsk/api/v0'
 
         def call(path, body=None, token=None):
             req = urllib.request.Request(api + path, data=body and json.dumps(body).encode(),
@@ -90,9 +105,7 @@ def advertised_address(env, host, port):
             ep = call(f'/users/{user}/endpoint', token=token)
         except OSError as e:
             raise CheckFailed(f"slskd's API: {e}")
-    finally:
-        pf.terminate()
-        pf.wait()
+    # The port-forward is closed; ep holds the answer.
 
     wrong = []
     if ep['address'] != socket.gethostbyname(host):
@@ -104,19 +117,15 @@ def advertised_address(env, host, port):
     return "the server's address and port"
 
 
-def socks5_connect(proxy, user, password, target):
-    """A TCP connection to target through a SOCKS5 proxy with a username and
-    password (RFC 1928, RFC 1929); the proxy resolves the target's name."""
+def socks5_connect(proxy, target):
+    """A TCP connection to target through a SOCKS5 proxy without
+    authentication (RFC 1928); the proxy resolves the target's name."""
     sock = socket.create_connection(proxy, timeout=30)
     closed = 'the proxy closed the connection'
     try:
-        sock.sendall(b'\x05\x01\x02')  # version 5, one method: username/password
-        if recv_exact(sock, 2, closed) != b'\x05\x02':
-            raise CheckFailed('the proxy refused username/password authentication')
-        u, p = user.encode(), password.encode()
-        sock.sendall(b'\x01' + bytes([len(u)]) + u + bytes([len(p)]) + p)
-        if recv_exact(sock, 2, closed)[1] != 0:
-            raise CheckFailed('the proxy rejected the login')
+        sock.sendall(b'\x05\x01\x00')  # version 5, one method: no authentication
+        if recv_exact(sock, 2, closed) != b'\x05\x00':
+            raise CheckFailed('the proxy wants authentication')
         name = target[0].encode()
         sock.sendall(b'\x05\x01\x00\x03' + bytes([len(name)]) + name + struct.pack('>H', target[1]))
         reply = recv_exact(sock, 4, closed)
@@ -131,20 +140,19 @@ def socks5_connect(proxy, user, password, target):
         raise
 
 
-def port_test(host, port):
-    """tools.slsknet.org tests the port of the address that asks, so asking
-    through microsocks tests the server's address."""
-    proxy = (host, int(value('MICROSOCKS_PORT')))
+def port_test(env, port):
+    """tools.slsknet.org tests the port of the address that asks; asking
+    through slskd's sslocal makes that the server's address."""
     name, http_port, path = PORT_TEST
     try:
-        with socks5_connect(proxy, value('MICROSOCKS_USER'), value('MICROSOCKS_PASSWORD'),
-                            (name, http_port)) as sock:
+        with port_forward(env, 'deploy/slskd', 1080) as local, \
+                socks5_connect(('127.0.0.1', local), (name, http_port)) as sock:
             sock.sendall(f'GET {path.format(port=port)} HTTP/1.0\r\nHost: {name}\r\n\r\n'.encode())
             page = b''
             while chunk := sock.recv(65536):
                 page += chunk
     except OSError as e:
-        raise CheckFailed(f"through the server's SOCKS5 proxy: {e}")
+        raise CheckFailed(f"through slskd's sslocal: {e}")
     match = re.search(r'Port: \d+/tcp (\w+)', page.decode(errors='replace'), re.I)
     if not match:
         raise CheckFailed('unexpected page')
@@ -240,9 +248,9 @@ def main():
 
         if cluster:
             report('address given to peers', advertised_address, env, host, port)
+            report("Soulseek's port test", port_test, env, port)
         else:
-            print("skip  address given to peers: kubectl doesn't reach the cluster")
-        report("Soulseek's port test", port_test, host, port)
+            print("skip  address given to peers, Soulseek's port test: kubectl doesn't reach the cluster")
         report("peer handshake through the server's port", peer_handshake, host, port)
         if cluster:
             for label, ok, state in deployments_ready(env):

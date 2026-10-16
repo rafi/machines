@@ -1,0 +1,7 @@
+{
+  "server": "0.0.0.0",
+  "server_port": ${SHADOWSOCKS_PORT},
+  "password": "${SHADOWSOCKS_PASSWORD}",
+  "method": "2022-blake3-aes-256-gcm",
+  "mode": "tcp_only"
+}

@@ -24,7 +24,7 @@ readable `just` recipes and shell installers, plus Flux for the cluster.
 
 | | Runs on | Deployed by |
 |---|---|---|
-| **The server** | a public VPS: nginx (443 passthrough, 80 redirect), rathole, SOCKS5 proxy | `just server apply` over SSH, systemd |
+| **The server** | a public VPS: nginx (443 passthrough, 80 redirect), rathole, shadowsocks | `just server apply` over SSH, systemd |
 | **The cluster** | k3s at home, behind CGNAT, reached through a rathole tunnel | Flux, on every push |
 | **Secrets** | [pass](https://www.passwordstore.org), read by [secretspec](https://secretspec.dev) | at deploy time; never committed, not even encrypted |
 
@@ -68,7 +68,7 @@ Rebuilding the cluster from scratch: [kubernetes/README.md](./kubernetes/README.
 ## 🛡️ The server
 
 The public edge: port 443 forwarded into the cluster without decrypting it,
-the tunnel's far end and the SOCKS5 proxy. Each service lives in
+the tunnel's far end and shadowsocks for slskd's outgoing connections. Each service lives in
 [`server/<app>/`](./server/) (config in `files/`, rendered from pass, and a
 shell installer) and is deployed over SSH with `just server apply`.
 Details: [server/README.md](./server/README.md).

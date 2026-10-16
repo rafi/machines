@@ -1,4 +1,4 @@
-# The server: nginx, rathole and microsocks (server/<app>/), deployed over
+# The server: nginx, rathole and shadowsocks (server/<app>/), deployed over
 # SSH, and provisioning (etc/). Values come from pass.
 
 set shell := ['bash', '-euo', 'pipefail', '-c']
@@ -29,7 +29,7 @@ apply host *apps:
 	)
 	deploy rathole-server
 	deploy ingress    USE_PACKAGE_MANAGER=1
-	deploy microsocks USE_PACKAGE_MANAGER=1
+	deploy shadowsocks
 
 # Provision a fresh server; `target` is its first login, e.g. root@<ip>.
 [doc('Provision a new server with server/etc: just server setup root@<ip>')]

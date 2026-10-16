@@ -1,0 +1,26 @@
+[Unit]
+Description=shadowsocks-rust server (slskd's outgoing connections)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=on-failure
+RestartSec=5s
+LimitNOFILE=1048576
+
+# The config holds the key: root-only on disk, handed to the unprivileged
+# service through a systemd credential.
+LoadCredential=config.json:/etc/shadowsocks/config.json
+ExecStart=/usr/local/bin/ssserver --log-without-time -c %d/config.json
+
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
+
+# vim: set ft=systemd ts=2 sw=2 tw=80 noet :

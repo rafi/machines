@@ -1,7 +1,8 @@
 # The server
 
 The public server in front of the cluster: nginx (port 443 forwarding, port
-80 redirect), the rathole server and a SOCKS5 proxy. Values come from
+80 redirect), the rathole server and shadowsocks (slskd's outgoing
+connections). Values come from
 `pass` (`secretspec/machines/default/<KEY>`); nothing secret is in this repo.
 Authelia and LLDAP run in the cluster (`kubernetes/apps/auth`). nginx only
 forwards: TLS untouched to the cluster, SSH (`s.<domain>`) to the node.
@@ -17,7 +18,7 @@ just server setup root@<ip>   # etc/ files; ssh port from pass (SERVER_SSH_PORT)
 
 ```sh
 just server apply <host>              # every app; <host> is the server's SSH destination
-just server apply <host> microsocks   # only the named apps
+just server apply <host> shadowsocks  # only the named apps
 ```
 
 Each app is `server/<app>/`: its config in `files/` (rendered with
@@ -29,14 +30,15 @@ options.
 |---|---|---|
 | ingress | `nginx.conf` (port 80 → HTTPS), `snippets/stream.nginx` (443: SSH and TLS passthrough to the cluster) | none |
 | rathole-server | `server.toml`, `identity.pfx` (decoded from `RATHOLE_IDENTITY_PFX_B64`) | |
-| microsocks | none | |
+| shadowsocks | `config.json` (`SHADOWSOCKS_PORT`, `SHADOWSOCKS_PASSWORD`) | |
 
-### microsocks
+### shadowsocks
 
-SOCKS5 proxy for slskd on the cluster. Behind CGNAT the Soulseek server would
-advertise the home IP; through this proxy it advertises the server's, where rathole
-forwards the listen port back. `MICROSOCKS_USER`/`MICROSOCKS_PASSWORD` must
-equal `SLSKD_SLSK_PROXY_*` in pass.
+slskd's outgoing connections. Behind CGNAT the Soulseek server would
+advertise the home IP; slskd's connections leave from here instead (an
+`sslocal` container in its pod carries them, encrypted), so it advertises
+the server's, where rathole forwards the listen port back. Details:
+[shadowsocks/README.md](shadowsocks/README.md).
 
 ### Authelia and LLDAP
 

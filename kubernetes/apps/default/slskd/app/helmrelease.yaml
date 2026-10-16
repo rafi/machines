@@ -1,9 +1,11 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
 # https://github.com/slskd/slskd
-# Secret slskd-env: `just kube secrets slskd`.
-# The Soulseek port is forwarded from the server by rathole, and outgoing
-# connections use the SOCKS5 proxy on the server, so peers see the server's address.
+# Secrets slskd-env and sslocal-config: `just kube secrets slskd`.
+# The Soulseek port is forwarded from the server by rathole. Outgoing
+# connections go through the sslocal container's SOCKS5 port (localhost:1080),
+# which carries them encrypted to shadowsocks on the server
+# (server/shadowsocks), so peers see the server's address.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
@@ -30,6 +32,16 @@ spec:
             envFrom:
               - secretRef:
                   name: slskd-env
+          sslocal:
+            image:
+              repository: ghcr.io/shadowsocks/sslocal-rust
+              tag: v1.25.0
+            resources:
+              requests:
+                cpu: 10m
+                memory: 16Mi
+              limits:
+                memory: 64Mi
     service:
       app:
         ports:
@@ -72,30 +84,47 @@ spec:
               connection:
                 proxy:
                   enabled: true
-                  address: ${SERVER_HOSTNAME}
-                  port: ${MICROSOCKS_PORT}
+                  address: 127.0.0.1
+                  port: 1080
     persistence:
       data:
         type: hostPath
         hostPath: /opt/slskd
         hostPathType: DirectoryOrCreate
-        globalMounts:
-          - path: /app
+        advancedMounts:
+          slskd:
+            app:
+              - path: /app
       config-file:
         type: configMap
         identifier: config
-        globalMounts:
-          - path: /app/slskd.yml
-            subPath: slskd.yml
+        advancedMounts:
+          slskd:
+            app:
+              - path: /app/slskd.yml
+                subPath: slskd.yml
       music:
         type: hostPath
         hostPath: /home/rafi/media/music
         hostPathType: Directory
-        globalMounts:
-          - path: /music
+        advancedMounts:
+          slskd:
+            app:
+              - path: /music
       ebooks:
         type: hostPath
         hostPath: /home/rafi/media/ebooks
         hostPathType: Directory
-        globalMounts:
-          - path: /ebooks
+        advancedMounts:
+          slskd:
+            app:
+              - path: /ebooks
+      sslocal-config:
+        type: secret
+        name: sslocal-config
+        advancedMounts:
+          slskd:
+            sslocal:
+              - path: /etc/shadowsocks-rust/config.json
+                subPath: config.json
+                readOnly: true

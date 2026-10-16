@@ -8,7 +8,7 @@ deploy. Values that git doesn't hold come from `pass`
 |---|---|
 | `K3S_TOKEN`, `CLUSTER_NODE_IP`, `CLUSTER_NODE_NAME`, `SECRET_DOMAIN` | `just kube k3s-install` ([k3s/config.yaml](k3s/config.yaml)) |
 | `K3S_KUBECONFIG` | `just kube kubeconfig`, `just kube kubeconfig-save` |
-| `SECRET_DOMAIN`, `SERVER_HOSTNAME`, `SEERR_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID`, `RATHOLE_SERVER_SERVICES_SLSKD_PORT`, `MICROSOCKS_PORT` | Secret `cluster-settings` in every namespace (Flux substitutes them) |
+| `SECRET_DOMAIN`, `SEERR_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID`, `RATHOLE_SERVER_SERVICES_SLSKD_PORT` | Secret `cluster-settings` in every namespace (Flux substitutes them) |
 | the keys in `apps/<ns>/<app>/secrets/secretspec.toml` | `just kube secrets`; the backup's (B2, restic) also `just kube restic` |
 | `CLOUDFLARE_DNS_TOKEN` | cert-manager's DNS-01 (`apps/cert-manager/cert-manager/secrets`): a Cloudflare token with Zone.DNS:Edit and Zone:Read on the domain's zone only |
 
@@ -125,11 +125,13 @@ install, upgrade and rollback settings from `cluster-apps`
   `just kube secrets`, `just kube sync`, then `bin/check-soulseek-port.py`.
   slskd is at home behind CGNAT, so peers must be sent to the server: the
   script checks the address Soulseek gives peers (the server's, not the
-  home one), Soulseek's port test through the proxy, a peer handshake with
-  slskd through the server's port, and the slskd and rathole-client pods.
-- **The SOCKS5 proxy port** is `MICROSOCKS_PORT`, read by microsocks and by
-  slskd's proxy settings.
-- **SOCKS5 proxy credentials:** `SLSKD_SLSK_PROXY_*` equal `MICROSOCKS_*`.
+  home one), Soulseek's port test through slskd's sslocal, a peer handshake
+  with slskd through the server's port, and the slskd and rathole-client pods.
+- **shadowsocks:** `SHADOWSOCKS_PORT` and `SHADOWSOCKS_PASSWORD` (the
+  `2022-blake3-aes-256-gcm` key, `openssl rand -base64 32`) are read by the
+  server's `ssserver` (`server/shadowsocks`) and by slskd's `sslocal`
+  (Secret `sslocal-config`). After changing either:
+  `just server apply <host> shadowsocks`, `just kube secrets slskd`.
 
 ## Troubleshooting
 
