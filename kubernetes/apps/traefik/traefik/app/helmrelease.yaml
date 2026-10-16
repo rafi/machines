@@ -18,10 +18,11 @@ spec:
       kind: Deployment
       replicas: 1
 
-    # In-cluster ClusterIP only, as this is a proxy target for rathole.
-    # k3s servicelb/ports are not touched.
+    # In-cluster ClusterIP only: rathole's client is the one way in. The
+    # chart reads the type from service.spec (default LoadBalancer).
     service:
-      type: ClusterIP
+      spec:
+        type: ClusterIP
 
     ingressClass:
       enabled: false
