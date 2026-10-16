@@ -103,6 +103,7 @@ secretspec reads pass (`provider = "pass"` in
 ```sh
 just                        # list recipes
 just kube check             # render the Flux cluster offline and validate it
+just lint                   # lint the GitHub workflows (actionlint, zizmor)
 just kube secrets [app...]  # Secrets from pass into the cluster
 just kube sync              # make Flux reconcile now
 just server apply <host>    # deploy the server's apps

@@ -2,7 +2,7 @@
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
 # Renders the Flux cluster with flate, so a broken manifest or a value a
 # chart's schema rejects fails here (and on Renovate's PRs) before Flux
-# pulls it. Needs no secrets: the check never reads pass.
+# pulls it, and lints the workflows. Needs no secrets: nothing reads pass.
 name: Check
 
 on:
@@ -64,3 +64,24 @@ jobs:
             out=$(printf '~~~diff\n%s\n~~~' "$(printf '%s' "$out" | head -c 900000)")
           fi
           printf '### Rendered changes\n\n%s\n' "$out" >> "$GITHUB_STEP_SUMMARY"
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup tools
+        uses: jdx/mise-action@9b200bcecbfd6303e69a4a261b2e09e3757440a7 # v5.2.0
+        with:
+          install_args: just actionlint shellcheck zizmor
+
+      - name: Lint the workflows
+        env:
+          # zizmor's online audits (impostor commits, known-vulnerable
+          # actions) read public data with the run's read-only token.
+          GH_TOKEN: ${{ github.token }}
+        run: just lint
