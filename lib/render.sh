@@ -1,38 +1,67 @@
 #!/usr/bin/env bash
-# Render helpers for lib/deploy.just.
-#
-# An app's values are decrypted once, into a .env; files are rendered from
-# it with envsubst limited to its keys, so any other `$` (nginx's $host)
-# stays. Nothing rendered is written to the repo.
+# Render helpers for lib/deploy.just: values come from one .env.sh, and
+# envsubst replaces only the app's keys (nginx's $host stays).
 
 # shellcheck source-path=SCRIPTDIR source=functions.sh
 . "${BASH_SOURCE[0]%/*}/functions.sh"
 
-# Run a command with a .env's values exported, literally (load_env).
-# Usage: with_env <env> <command...>
+# Run a command with a .env.sh's values exported (load_env).
+# Usage: with_env <env.sh> <command...>
 with_env() (
 	load_env "$1"
 	shift
 	exec "$@"
 )
 
-# Copy stdin to stdout, substituting only the .env's keys.
-# Usage: subst <env> < in > out
-subst() {
-	with_env "$1" envsubst "$(sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/${\1}/p' "$1")"
+# Print the keys of a .env.sh, one per line.
+# Usage: env_keys <env.sh>
+env_keys() {
+	sed -n 's/^export \([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' "$1"
 }
 
-# Stage apps/<app>: its values into <env> (or its own .env when it has no
-# secretspec.toml), and files/ into <dir>, rendered in place (modes kept).
-# Rendered *.b64 files are decoded to their name without .b64, owner-only:
-# binary secrets live in pass as base64 text.
-# Usage: stage <app> <dir> <env>
+# Copy stdin to stdout, substituting only the .env.sh's keys.
+# Usage: subst <env.sh> < in > out
+subst() {
+	with_env "$1" envsubst "$(env_keys "$1" | sed 's/.*/${&}/')"
+}
+
+# Print values as systemd EnvironmentFile= lines: KEY="value", with
+# \ " ` $ escaped (the only escapes systemd undoes inside quotes).
+# Usage: env_systemd <env.sh> > .env
+env_systemd() (
+	load_env "$1"
+	for k in $(env_keys "$1"); do
+		v=${!k}
+		v=${v//\\/\\\\}; v=${v//\"/\\\"}; v=${v//\`/\\\`}; v=${v//\$/\\\$}
+		printf '%s="%s"\n' "$k" "$v"
+	done
+)
+
+# Print values as kustomize envs: lines: KEY=value, taken literally.
+# Fails on a newline or trailing CR, which kustomize would cut off.
+# Usage: env_kustomize <env.sh> > .env
+env_kustomize() (
+	load_env "$1"
+	for k in $(env_keys "$1"); do
+		v=${!k}
+		case $v in
+			*$'\n'* | *$'\r')
+				echo >&2 "$k: kustomize env files can't hold a newline or a trailing CR"
+				exit 1 ;;
+		esac
+		printf '%s=%s\n' "$k" "$v"
+	done
+)
+
+# Write the app's values to <env.sh> and render files/ into <dir>.
+# Without a secretspec.toml, a hand-written .env is used literally.
+# Usage: stage <app> <dir> <env.sh>
 stage() {
 	local app="apps/$1" f tmp
 	if [ -f "$app/secretspec.toml" ]; then
-		secretspec -f "$app/secretspec.toml" export --format dotenv > "$3"
+		secretspec -f "$app/secretspec.toml" export --format shell > "$3"
 	elif [ -f "$app/.env" ]; then
-		cp "$app/.env" "$3"
+		sed -n "s/'/'\\\\''/g; s/^\([A-Za-z_][A-Za-z0-9_]*\)=\(.*\)\$/export \1='\2'/p" "$app/.env" > "$3"
 	else
 		: > "$3"
 	fi

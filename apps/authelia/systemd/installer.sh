@@ -13,7 +13,7 @@ DATA_DIR=/var/lib/$APP_NAME
 TEMP_DIR=/tmp/$APP_NAME
 
 # User variables
-load_env "$TEMP_DIR"/.env  # AUTHELIA_* for validate-config
+load_env "$TEMP_DIR"/.env.sh  # AUTHELIA_* for validate-config
 
 # Pre-install
 intro

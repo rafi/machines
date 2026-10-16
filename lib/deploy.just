@@ -10,11 +10,13 @@ deploy target app *args:
 	@'{{ just_executable() }}' -d '{{ justfile_directory() }}' _{{ target }} {{ app }} {{ args }}
 
 # Units ship unrendered: systemd fills their ${VAR} from the installed .env.
+# Installers read .env.sh.
 [script]
 _systemd app host *vars:
 	. lib/render.sh
 	tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
-	stage {{ app }} "$tmp" "$tmp/.env"
+	stage {{ app }} "$tmp" "$tmp/.env.sh"
+	env_systemd "$tmp/.env.sh" > "$tmp/.env"
 	[ ! -d apps/{{ app }}/systemd/files ] || cp -R apps/{{ app }}/systemd/files/. "$tmp/"
 	rsync -hlrtWxz "$tmp/" {{ host }}:/tmp/{{ app }}/
 	cat lib/functions.sh apps/{{ app }}/systemd/installer.sh | ssh {{ host }} '{{ vars }}' sh -s
@@ -27,9 +29,10 @@ _kube app:
 	tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 	mkdir -p .helm "$tmp/apps" && ln -s "$PWD/.helm" "$tmp/.helm" && cp -R apps/{{ app }} "$tmp/apps/"
 	app="$tmp/apps/{{ app }}"
-	stage {{ app }} "$app/files" "$app/.env"
+	stage {{ app }} "$app/files" "$app/.env.sh"
+	env_kustomize "$app/.env.sh" > "$app/.env"
 	kustomize build --enable-helm --load-restrictor LoadRestrictionsNone "$app/kube/kubectl" \
-		| subst "$app/.env" | kubectl apply -f -
+		| subst "$app/.env.sh" | kubectl apply -f -
 
 # Runs a temp copy of apps/<app>: compose.yaml mounts the rendered files/
 # and interpolates the app's values from the environment.
@@ -38,8 +41,8 @@ _compose app:
 	. lib/render.sh
 	tmp="$(mktemp -d)"; trap 'rm -rf "$tmp"' EXIT
 	cp -R apps/{{ app }} "$tmp/"
-	stage {{ app }} "$tmp/{{ app }}/files" "$tmp/{{ app }}/.env"
-	with_env "$tmp/{{ app }}/.env" docker compose -f "$tmp/{{ app }}/compose/compose.yaml" up
+	stage {{ app }} "$tmp/{{ app }}/files" "$tmp/{{ app }}/.env.sh"
+	with_env "$tmp/{{ app }}/.env.sh" docker compose -f "$tmp/{{ app }}/compose/compose.yaml" up
 
 # Show which targets each app supports.
 [script]

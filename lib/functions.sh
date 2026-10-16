@@ -19,8 +19,7 @@ get_distro() {
 	grep ^ID= /etc/os-release | cut -d= -f2 | tr -d '"'
 }
 
-# Uses systemctl to restart a service that might have changed configuration, or
-# was not enabled.
+# Reload units, then enable and restart a service.
 # Usage: reload_service 'service-name'
 reload_service() {
 	sudo systemctl daemon-reload
@@ -28,32 +27,21 @@ reload_service() {
 	sudo systemctl restart "$@"
 }
 
-# apt-get that never prompts: config files we deploy over a package's own
-# (e.g. /etc/nginx/nginx.conf) are kept on upgrades instead of dpkg asking.
-# stdin is /dev/null, because an installer's own stdin is the script piped
-# over ssh: a prompt would read the rest of the script as its answer.
-# needrestart (Ubuntu) is suspended: it would restart an upgraded service
-# before the installer has put its config, permissions and environment in
-# place, installers restart their services themselves.
+# apt-get that never prompts: keeps our config files on upgrade, reads no
+# stdin (the piped script), and lets the installer restart services itself.
 # Usage: apt_get install -y nginx
 apt_get() {
 	sudo env DEBIAN_FRONTEND=noninteractive NEEDRESTART_SUSPEND=1 apt-get \
 		-o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold "$@" </dev/null
 }
 
-# Exports the KEY=value lines of a .env file, literally: values are never
-# evaluated, so `$`, quotes and spaces in secrets survive. Tracing is paused,
-# so installers can run with `set -x` without printing secrets.
-# Usage: load_env "$TEMP_DIR"/.env
+# Export the values of a secretspec shell-format .env.sh, with tracing
+# paused so `set -x` doesn't print secrets.
+# Usage: load_env "$TEMP_DIR"/.env.sh
 load_env() {
 	case $- in *x*) set +x; _load_env_trace=1 ;; *) _load_env_trace= ;; esac
-	while IFS= read -r _load_env_line || [ -n "$_load_env_line" ]; do
-		case $_load_env_line in
-			''|'#'*) continue ;;
-			*=*) export "${_load_env_line%%=*}=${_load_env_line#*=}" ;;
-		esac
-	done < "$1"
-	unset _load_env_line
+	# shellcheck disable=SC1090
+	. "$1"
 	if [ -n "$_load_env_trace" ]; then set -x; fi
 }
 

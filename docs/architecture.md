@@ -169,7 +169,8 @@ sequenceDiagram
   participant W as Workstation
   participant P as pass
   participant S as The server
-  W->>P: secretspec export (app's keys)
+  W->>P: secretspec export --format shell (app's keys) → .env.sh
+  W->>W: .env.sh → .env in EnvironmentFile= syntax
   W->>W: stage files/ in a temp dir, render, decode *.b64
   W->>W: add systemd/files/ (units, unrendered)
   W->>S: rsync to /tmp/<app>/
@@ -178,9 +179,10 @@ sequenceDiagram
 ```
 
 Units stay unrendered: systemd expands their `${VAR}` from an
-`EnvironmentFile`, so a rendered unit would hold the secret. Installers run
-with `set -eux`; [`load_env`](../lib/functions.sh) reads the `.env`
-literally and pauses tracing.
+`EnvironmentFile` (the `.env`, written in systemd's own quoting by
+`env_systemd`), so a rendered unit would hold the secret. Installers run with
+`set -eux`; [`load_env`](../lib/functions.sh) sources the `.env.sh`, whose
+values are single-quoted, with tracing paused.
 
 ## Provisioning
 

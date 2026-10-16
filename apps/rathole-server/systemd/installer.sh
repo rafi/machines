@@ -11,7 +11,7 @@ CONFIG_DIR=/etc/$APP_NAME
 TEMP_DIR=/tmp/rathole-server
 
 # user variables
-load_env "$TEMP_DIR"/.env  # for APP_VERSION and RATHOLE_SERVER_BIND_PORT
+load_env "$TEMP_DIR"/.env.sh  # for APP_VERSION and RATHOLE_SERVER_BIND_PORT
 APP_VERSION=${APP_VERSION:-0.5.0}
 
 # pre-install

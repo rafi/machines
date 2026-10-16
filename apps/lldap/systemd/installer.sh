@@ -12,7 +12,7 @@ DATA_DIR=/var/lib/$APP_NAME
 TEMP_DIR=/tmp/lldap
 
 # User variables
-load_env "$TEMP_DIR"/.env  # LLDAP_* for bootstrap.sh, optional APP_VERSION
+load_env "$TEMP_DIR"/.env.sh  # LLDAP_* for bootstrap.sh, optional APP_VERSION
 APP_VERSION=${APP_VERSION:-0.6.3}
 
 # Pre-install
