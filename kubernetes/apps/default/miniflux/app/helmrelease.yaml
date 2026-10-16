@@ -53,7 +53,11 @@ spec:
       app:
         hostnames:
           - home.${SECRET_DOMAIN}
+        # websecure behind the authelia Middleware; web until no site needs it.
         parentRefs:
+          - name: traefik-gateway
+            namespace: traefik
+            sectionName: websecure
           - name: traefik-gateway
             namespace: traefik
             sectionName: web
@@ -62,6 +66,12 @@ spec:
               - path:
                   type: PathPrefix
                   value: /miniflux
+            filters:
+              - type: ExtensionRef
+                extensionRef:
+                  group: traefik.io
+                  kind: Middleware
+                  name: authelia
             backendRefs:
               - identifier: app
                 port: *port

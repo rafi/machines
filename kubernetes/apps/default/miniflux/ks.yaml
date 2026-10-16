@@ -10,6 +10,7 @@ spec:
       namespace: db
     - name: traefik
       namespace: traefik
+    - name: forward-auth
   interval: 1h
   path: ./kubernetes/apps/default/miniflux/app
   prune: true
