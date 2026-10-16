@@ -2,10 +2,9 @@
 # with the client's address, so whoever ends it knows who connected:
 # - not TLS (SSH): through ssh-strip below, which drops the header, to
 #   rathole's ssh service;
-# - TLS for a host in `cluster`: encrypted and untouched to rathole's
-#   ingress-tls service and Traefik's websecure port, which terminates it;
-# - any other TLS: to nginx's http sites on the unix socket, which
-#   terminate it with the server's certificate.
+# - TLS: encrypted and untouched to rathole's ingress-tls service and
+#   Traefik's websecure port, which terminates it. A host listed as `web`
+#   in the map below would go to nginx's http sites instead; none is left.
 stream {
 	upstream ssh {
 		server unix:/run/nginx-ssh.sock;
@@ -19,14 +18,10 @@ stream {
 		server 127.0.0.1:32443;
 	}
 
-	# Hosts whose TLS ends in the cluster. Move a site by adding it here and
-	# removing its file from sites-enabled/.
+	# TLS ends in the cluster for every host.
 	map $ssl_preread_server_name $tls_upstream {
 		hostnames;
-		echo.${SECRET_DOMAIN} cluster;
-		home.${SECRET_DOMAIN} cluster;
-		ldap.${SECRET_DOMAIN} cluster;
-		default web;
+		default cluster;
 	}
 
 	map $ssl_preread_protocol $upstream {

@@ -2,9 +2,9 @@
 
 Two machines, one repository, no secrets in git.
 
-- **The server** is a small public VPS. It terminates TLS, authenticates
-  users and forwards traffic. Its services run under systemd and are deployed
-  over SSH.
+- **The server** is a small public VPS. It forwards traffic into the
+  cluster without decrypting it and proxies slskd's outgoing connections.
+  Its services run under systemd and are deployed over SSH.
 - **The cluster** is a single-node [k3s] cluster at home, behind CGNAT. It
   runs the applications. [Flux] reconciles it from this repository.
 - **[pass]** holds every secret and every private value (domain, host names,
@@ -42,18 +42,13 @@ the tunnel's services on local ports.
 flowchart LR
   user(["Client"]) -- ":443" --> stream
   subgraph vps["The server"]
-    stream["nginx stream<br/>ssl_preread, PROXY header"] -- "TLS, other hosts" --> http["nginx http<br/>TLS + auth_request"]
-    http -. "verify (auth_request), 127.0.0.1:9091" .-> rs
-    http --> rs["rathole server"]
-    stream -- "TLS, cluster hosts (untouched)" --> rs
+    stream["nginx stream<br/>ssl_preread, PROXY header"] -- "TLS (untouched)" --> rs["rathole server"]
     stream -- "not TLS (SSH)" --> rs
   end
   subgraph home["The cluster"]
-    rc["rathole client"] -- ":80 from nginx" --> gw["Traefik<br/>Gateway"] --> route["HTTPRoute"] --> svc["Service"]
-    rc -- ":443 TLS + PROXY" --> gw
-    gw -. "ForwardAuth" .-> authelia
+    rc["rathole client"] -- ":443 TLS + PROXY" --> gw["Traefik<br/>Gateway (websecure)"] --> route["HTTPRoute"] --> svc["Service"]
+    gw -. "ForwardAuth" .-> authelia["Authelia"] -. "LDAP" .-> lldap["LLDAP"]
     rc --> sshd["node sshd"]
-    rc -. "verify" .-> authelia["Authelia"] -. "LDAP" .-> lldap["LLDAP"]
   end
   rs == "tunnel (client-initiated)" === rc
 ```
@@ -61,27 +56,18 @@ flowchart LR
 1. **Port 443 is shared.** nginx's [stream module][ssl_preread] peeks at
    the first bytes of each connection and adds a PROXY protocol header with
    the client's address: SSH goes to the SSH service in the tunnel (the
-   header stripped first), TLS by its server name either to nginx's HTTP
-   server on a unix socket or, untouched, through the tunnel to Traefik.
-2. **TLS ends in the cluster for the hosts moved there** (the `cluster` map
-   in [`stream.nginx`](../apps/ingress/files/snippets/stream.nginx)):
-   Traefik's `websecure` listener holds the wildcard certificate from
-   cert-manager and reads the client's address from the PROXY header. Their
-   routes attach to `websecure` and log in through the `authelia`
-   ForwardAuth Middleware
-   ([`kubernetes/components/forward-auth`](../kubernetes/components/forward-auth)).
-3. **For the other hosts TLS ends on the server**, with a wildcard Let's
-   Encrypt certificate issued by [certbot] (DNS-01). Protected sites call
-   Authelia through [`auth_request`][auth_request]
-   ([Authelia's nginx integration][authelia-nginx]), reached through the
-   tunnel on the server's loopback (`127.0.0.1:9091`), and pass the request
-   to Traefik's `web` listener.
+   header stripped first), TLS untouched through the tunnel to Traefik.
+   Port 80 only redirects to HTTPS.
+2. **TLS ends in the cluster.** Traefik's `websecure` listener holds the
+   wildcard certificate from cert-manager and reads the client's address
+   from the PROXY header. The server holds no certificate for the sites.
+3. **Authentication happens at the Gateway.** Protected routes use the
+   `authelia` ForwardAuth Middleware
+   ([`kubernetes/components/forward-auth`](../kubernetes/components/forward-auth));
+   Authelia checks users against LLDAP and serves its portal at
+   `auth.<domain>`.
 4. **Routing happens in the cluster.** Each app attaches an `HTTPRoute` to
-   the Gateway; the cluster sees authenticated requests only.
-
-Each server-terminated site is one file in
-[`apps/ingress/files/sites-enabled/`](../apps/ingress/files/sites-enabled/)
-and includes either `site-protected` or `site-insecure` from `snippets/`.
+   `websecure`; `init.` and `req.` are redirect routes.
 
 ### Soulseek
 
@@ -101,10 +87,10 @@ Both ports come from pass and are shared by the server and the cluster; see
 |---|---|
 | Distribution | [k3s], single node; its bundled Traefik and Helm controller are disabled ([`k3s/config.yaml`](../kubernetes/k3s/config.yaml)) |
 | GitOps | [Flux], installed and upgraded by the [Flux Operator] from a `FluxInstance` |
-| Ingress | [Traefik] implementing the [Gateway API]; a `websecure` listener with the wildcard certificate, not public yet (the server's nginx still terminates TLS) |
+| Ingress | [Traefik] implementing the [Gateway API]; its `websecure` listener terminates TLS for every host with the wildcard certificate |
 | Certificates | [cert-manager]: `<domain>` + `*.<domain>` from Let's Encrypt, DNS-01 on Cloudflare with a token limited to the zone's DNS |
 | Database | [CloudNativePG] operator and one Postgres cluster |
-| Apps | [app-template] HelmReleases: echo, miniflux, slskd, rathole client, [LLDAP], [Authelia][authelia-nginx] (storage in Postgres) |
+| Apps | [app-template] HelmReleases: echo, miniflux, slskd, rathole client, [LLDAP], [Authelia] (storage in Postgres) |
 | Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just check` and `just kube check`; Flux errors go to Telegram |
 | Backups | Nightly [restic] CronJob: `pg_dump`s of miniflux and authelia, `/opt/slskd` and `/opt/lldap`, encrypted on the node, to Backblaze B2 |
 
@@ -221,20 +207,18 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 | Secrets only in `pass` | Nothing to leak from git, even if the repo goes public | Deploys need the workstation's GPG key |
 | [just] instead of Ansible/Terraform | Plain shell, readable, no agent or state | Idempotency is each installer's job |
 | Edge on a VPS, apps at home | CGNAT; home address stays private | One extra hop; the tunnel is a single point of failure |
-| Auth at the edge | One login for every site; the cluster stays simple | Cluster-internal traffic is not authenticated |
+| Auth at the Gateway | One login for every site (Traefik ForwardAuth to Authelia) | Cluster-internal traffic is not authenticated |
 | Pinned, held packages | Upgrades only after reading release notes | Manual version bumps |
 
 ## References
 
 - [k3s] · [Flux] · [Gateway API] · [Traefik] · [cert-manager] · [CloudNativePG] · [app-template] · [Reloader] · [Renovate] · [restic]
-- [rathole] · [nginx `ssl_preread`][ssl_preread] · [nginx `auth_request`][auth_request] · [Authelia][authelia-nginx] · [LLDAP] · [microsocks] · [certbot]
+- [rathole] · [nginx `ssl_preread`][ssl_preread] · [Authelia] · [LLDAP] · [microsocks]
 - [pass] · [secretspec] · [just] · [envsubst] · [Flux post-build substitution][flux-subst]
 - [onedr0p/home-ops], whose cluster layout this follows
 
 [app-template]: https://bjw-s-labs.github.io/helm-charts/docs/app-template/
-[auth_request]: https://nginx.org/en/docs/http/ngx_http_auth_request_module.html
-[authelia-nginx]: https://www.authelia.com/integration/proxies/nginx/
-[certbot]: https://certbot.eff.org
+[Authelia]: https://www.authelia.com/integration/proxies/traefik/
 [cert-manager]: https://cert-manager.io
 [CloudNativePG]: https://cloudnative-pg.io
 [envsubst]: https://www.gnu.org/software/gettext/manual/html_node/envsubst-Invocation.html

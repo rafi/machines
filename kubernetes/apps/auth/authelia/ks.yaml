@@ -9,6 +9,8 @@ spec:
     - name: lldap
     - name: postgres
       namespace: db
+    - name: traefik
+      namespace: traefik
   interval: 1h
   path: ./kubernetes/apps/auth/authelia/app
   prune: true

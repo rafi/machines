@@ -7,4 +7,5 @@ resources:
   - ./echo/ks.yaml
   - ./forward-auth/ks.yaml
   - ./miniflux/ks.yaml
+  - ./redirects/ks.yaml
   - ./slskd/ks.yaml

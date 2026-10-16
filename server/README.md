@@ -26,7 +26,7 @@ Each app is `apps/<app>/`: its config in `files/` (rendered with
 
 | App | Config (`apps/<app>/files/`) | Values that identify the setup |
 |---|---|---|
-| ingress | `nginx.conf`, `snippets/`, `certbot.sh`, `sites-enabled/`: one file per host, every nginx site incl. auth and ldap | `SECRET_DOMAIN`, `CERT_DEFAULT_EMAIL`, `SEERR_URL` |
+| ingress | `nginx.conf`, `snippets/stream.nginx` (443: SSH and TLS passthrough to the cluster), `certbot.sh` | `SECRET_DOMAIN`, `CERT_DEFAULT_EMAIL` |
 | rathole-server | `server.toml`, `identity.pfx` (decoded from `RATHOLE_IDENTITY_PFX_B64`) | |
 | microsocks | none | |
 
