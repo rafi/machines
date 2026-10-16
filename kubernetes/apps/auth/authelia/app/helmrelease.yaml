@@ -19,6 +19,14 @@ spec:
       authelia:
         annotations:
           reloader.stakater.com/auto: "true"
+        # Not root: the image's entrypoint then runs authelia directly instead
+        # of trying to chown the read-only /config mount.
+        pod:
+          securityContext:
+            runAsUser: 65534
+            runAsGroup: 65534
+            runAsNonRoot: true
+            fsGroup: 65534
         containers:
           app:
             image:
