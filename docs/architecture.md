@@ -78,8 +78,8 @@ and includes either `site-protected` or `site-insecure` from `snippets/`.
 - **Inbound:** the listen port is a rathole service, so the server accepts
   the connection and the tunnel carries it to slskd.
 
-The port must match in four places; see
-[Values that must match](../kubernetes/README.md#values-that-must-match).
+Both ports come from pass and are shared by the server and the cluster; see
+[Values shared with the server](../kubernetes/README.md#values-shared-with-the-server).
 
 ## The cluster
 
@@ -133,8 +133,9 @@ flowchart LR
 - **Nothing secret is in git**, encrypted or not. Each consumer has a
   `secretspec.toml` naming its keys; values live in `pass` under
   `secretspec/machines/default/<KEY>`.
-- **Flux substitutes three values only**: `SECRET_DOMAIN`, `SERVER_HOSTNAME`
-  and `FLUX_TELEGRAM_CHAT_ID` (the alert chat),
+- **Flux substitutes non-secret settings only**: `SECRET_DOMAIN`,
+  `SERVER_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID` (the alert chat) and slskd's two
+  ports (`RATHOLE_SERVER_SERVICES_SLSKD_PORT`, `MICROSOCKS_PORT`),
   from the `cluster-settings` Secret in each namespace
   ([post-build substitution][flux-subst]). Strict substitution fails a
   Kustomization on any unknown `${VAR}`.

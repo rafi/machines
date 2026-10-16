@@ -8,7 +8,7 @@ deploy. Values that git doesn't hold come from `pass`
 |---|---|
 | `K3S_TOKEN`, `CLUSTER_NODE_IP`, `CLUSTER_NODE_NAME`, `SECRET_DOMAIN` | `just kube k3s-install` ([k3s/config.yaml](k3s/config.yaml)) |
 | `K3S_KUBECONFIG` | `just kube kubeconfig`, `just kube kubeconfig-save` |
-| `SECRET_DOMAIN`, `SERVER_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID` | Secret `cluster-settings` in every namespace (Flux substitutes them) |
+| `SECRET_DOMAIN`, `SERVER_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID`, `RATHOLE_SERVER_SERVICES_SLSKD_PORT`, `MICROSOCKS_PORT` | Secret `cluster-settings` in every namespace (Flux substitutes them) |
 | the keys in `apps/<ns>/<app>/secrets/secretspec.toml` | `just kube secrets`; the backup's (B2, restic) also `just kube restic` |
 
 ## Rebuild from scratch
@@ -95,13 +95,15 @@ By hand:
 install, upgrade and rollback settings from `cluster-apps`
 (`flux/cluster/ks.yaml`): a failed upgrade is retried twice and rolled back.
 
-## Values that must match
+## Values shared with the server
 
-- **The Soulseek port (30002)** is in four places: the slskd Service and
-  `listen_port` in `apps/default/slskd/app/helmrelease.yaml`, the rathole
-  client's `[client.services.slskd]` in
-  `apps/rathole/rathole-client/secrets/rathole-conf.yaml`, and the server's
-  `RATHOLE_SERVER_SERVICES_SLSKD_PORT` (rathole and `ufw` there).
+- **The Soulseek port** is one pass key, `RATHOLE_SERVER_SERVICES_SLSKD_PORT`:
+  the server's rathole and `ufw`, the rathole client's
+  `[client.services.slskd]`, and slskd's Service and `listen_port` all read it.
+  After changing it: `just server apply <host> rathole-server`,
+  `just kube secrets`, `just kube sync`.
+- **The SOCKS5 proxy port** is `MICROSOCKS_PORT`, read by microsocks and by
+  slskd's proxy settings.
 - **SOCKS5 proxy credentials:** `SLSKD_SLSK_PROXY_*` equal `MICROSOCKS_*`.
 
 ## Troubleshooting
