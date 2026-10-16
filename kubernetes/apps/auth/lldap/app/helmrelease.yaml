@@ -23,10 +23,10 @@ spec:
         containers:
           app:
             image:
-              # The root image: its entrypoint chowns /data to UID 1000, then
-              # drops to it; the hostPath starts out owned by root.
+              # Runs as lldap (1000:1000); /opt/lldap on the node must be
+              # owned by it (fsGroup doesn't chown a hostPath).
               repository: ghcr.io/lldap/lldap
-              tag: v0.6.3-alpine
+              tag: v0.6.3-alpine-rootless
             env:
               TZ: Etc/UTC
               LLDAP_DATABASE_URL: sqlite:///data/users.db?mode=rwc
@@ -46,6 +46,10 @@ spec:
                     path: /health
                     port: &http 17170
               readiness: *probe
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"] }
             resources:
               requests:
                 cpu: 5m
@@ -69,9 +73,10 @@ spec:
           app:
             image:
               repository: ghcr.io/lldap/lldap
-              tag: v0.6.3-alpine
+              tag: v0.6.3-alpine-rootless
             command:
               - /app/bootstrap.sh
+            securityContext: *securityContext
             env:
               LLDAP_URL: http://lldap:17170
               DO_CLEANUP: "true"
@@ -85,6 +90,11 @@ spec:
                   secretKeyRef:
                     name: lldap-env
                     key: LLDAP_LDAP_USER_PASS
+    defaultPodOptions:
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        runAsNonRoot: true
     service:
       app:
         controller: lldap
@@ -146,3 +156,10 @@ spec:
                 subPath: user
               - path: /bootstrap/group-schemas
                 subPath: group
+      # bootstrap.sh downloads avatars to a mktemp dir.
+      tmp:
+        type: emptyDir
+        advancedMounts:
+          bootstrap:
+            app:
+              - path: /tmp

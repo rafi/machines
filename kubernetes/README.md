@@ -88,10 +88,10 @@ just kube restic restore latest --include /data/slskd --target /tmp/restore
 rsync -a --chown=1000:1000 --rsync-path='sudo rsync' /tmp/restore/data/slskd/ <node>:/opt/slskd/
 kubectl -n default scale deploy/slskd --replicas=1
 
-# LLDAP (its key_seed in pass must be the one the backup was made with)
+# LLDAP (runs as 1000:1000; its key_seed in pass must be the one the backup was made with)
 kubectl -n auth scale deploy/lldap --replicas=0
 just kube restic restore latest --include /data/lldap --target /tmp/restore
-rsync -a --rsync-path='sudo rsync' /tmp/restore/data/lldap/ <node>:/opt/lldap/
+rsync -a --chown=1000:1000 --rsync-path='sudo rsync' /tmp/restore/data/lldap/ <node>:/opt/lldap/
 kubectl -n auth scale deploy/lldap --replicas=1
 ```
 
