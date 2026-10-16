@@ -37,12 +37,12 @@ spec:
         enabled: true
 
     ports:
+      # Nothing reaches port 80 any more (the server redirects plain HTTP
+      # itself): not on the Service, no Gateway listener.
       web:
         port: 8000
-        exposedPort: 80
-        # As this ingress is a proxy to rathole, trust forwarded headers.
-        forwardedHeaders:
-          insecure: true
+        expose:
+          default: false
         http:
           # Drop X_Auth_User / X.Auth.User style aliases so clients can't spoof the
           # Authelia Remote-* headers for backends that normalize header names.
@@ -75,20 +75,16 @@ spec:
     api:
       dashboard: false
 
-    # Default Gateway "traefik-gateway" (namespace traefik) with an HTTP listener
-    # "web" on entrypoint port 8000. HTTPRoutes in all namespaces may attach to it:
-    #   parentRefs: [{name: traefik-gateway, namespace: traefik, sectionName: web}]
-    # "websecure" (8443) terminates TLS with the wildcard certificate from
-    # ../../certificate. Nothing public reaches it yet: rathole forwards to
-    # port 80 only, and the server's nginx still terminates TLS.
+    # Default Gateway "traefik-gateway" (namespace traefik) with one listener,
+    # "websecure" (8443), which terminates TLS for every host with the
+    # wildcard certificate from ../../certificate. HTTPRoutes in all
+    # namespaces may attach to it:
+    #   parentRefs: [{name: traefik-gateway, namespace: traefik, sectionName: websecure}]
     gateway:
       enabled: true
       listeners:
-        web:
-          port: 8000
-          protocol: HTTP
-          namespacePolicy:
-            from: All
+        # The chart's default listener; null removes it.
+        web: null
         websecure:
           port: 8443
           protocol: HTTPS

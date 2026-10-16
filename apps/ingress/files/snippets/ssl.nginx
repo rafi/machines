@@ -1,7 +1,0 @@
-# Let's encrypt SSL settings
-
-include /etc/letsencrypt/options-ssl-nginx.conf;
-ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
-add_header Strict-Transport-Security "max-age=31536000" always;
-
-# vim: set ft=nginx ts=2 sw=2 tw=80 noet :

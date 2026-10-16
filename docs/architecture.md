@@ -57,7 +57,8 @@ flowchart LR
    the first bytes of each connection and adds a PROXY protocol header with
    the client's address: SSH goes to the SSH service in the tunnel (the
    header stripped first), TLS untouched through the tunnel to Traefik.
-   Port 80 only redirects to HTTPS.
+   Port 80 only redirects to HTTPS. SSH uses `s.<domain>`.
+   record of its own, like every other host).
 2. **TLS ends in the cluster.** Traefik's `websecure` listener holds the
    wildcard certificate from cert-manager and reads the client's address
    from the PROXY header. The server holds no certificate for the sites.

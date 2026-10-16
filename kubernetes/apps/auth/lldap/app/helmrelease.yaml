@@ -97,14 +97,10 @@ spec:
       app:
         hostnames:
           - ldap.${SECRET_DOMAIN}
-        # websecure behind the authelia Middleware; web until no site needs it.
         parentRefs:
           - name: traefik-gateway
             namespace: traefik
             sectionName: websecure
-          - name: traefik-gateway
-            namespace: traefik
-            sectionName: web
         rules:
           - filters:
               - type: ExtensionRef

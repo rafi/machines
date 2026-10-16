@@ -38,15 +38,10 @@ spec:
       app:
         hostnames:
           - echo.${SECRET_DOMAIN}
-        # websecure: TLS passed through by the server, login by the authelia
-        # Middleware. web: the server's nginx, until no site needs it.
         parentRefs:
           - name: traefik-gateway
             namespace: traefik
             sectionName: websecure
-          - name: traefik-gateway
-            namespace: traefik
-            sectionName: web
         rules:
           - filters:
               - type: ExtensionRef

@@ -21,9 +21,6 @@ server:
     enable_pprof: false
     enable_expvars: false
     authz:
-      # nginx on the server: auth_request through the rathole service.
-      auth-request:
-        implementation: 'AuthRequest'
       # Traefik: the ForwardAuth Middleware (kubernetes/components/forward-auth).
       forward-auth:
         implementation: 'ForwardAuth'

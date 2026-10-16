@@ -12,10 +12,10 @@ spec:
     name: tcp
     protocol: TCP
     targetPort: tcp
-  - port: 32000
-    name: ingress
+  - port: 32443
+    name: ingress-tls
     protocol: TCP
-    targetPort: ingress
+    targetPort: ingress-tls
   - port: 32022
     name: ssh
     protocol: TCP

@@ -1,10 +1,10 @@
 # The server
 
-The public server in front of the cluster: nginx (TLS, Authelia forward-auth),
-the rathole server and a SOCKS5 proxy. Values come from
+The public server in front of the cluster: nginx (port 443 forwarding, port
+80 redirect), the rathole server and a SOCKS5 proxy. Values come from
 `pass` (`secretspec/machines/default/<KEY>`); nothing secret is in this repo.
-Authelia and LLDAP run in the cluster (`kubernetes/apps/auth`); nginx reaches
-Authelia at `127.0.0.1:9091`, a rathole service bound to loopback.
+Authelia and LLDAP run in the cluster (`kubernetes/apps/auth`). nginx only
+forwards: TLS untouched to the cluster, SSH (`s.<domain>`) to the node.
 
 ## Create and set up
 
@@ -26,7 +26,7 @@ Each app is `apps/<app>/`: its config in `files/` (rendered with
 
 | App | Config (`apps/<app>/files/`) | Values that identify the setup |
 |---|---|---|
-| ingress | `nginx.conf`, `snippets/stream.nginx` (443: SSH and TLS passthrough to the cluster), `certbot.sh` | `SECRET_DOMAIN`, `CERT_DEFAULT_EMAIL` |
+| ingress | `nginx.conf` (port 80 → HTTPS), `snippets/stream.nginx` (443: SSH and TLS passthrough to the cluster) | none |
 | rathole-server | `server.toml`, `identity.pfx` (decoded from `RATHOLE_IDENTITY_PFX_B64`) | |
 | microsocks | none | |
 

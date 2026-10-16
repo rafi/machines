@@ -1,32 +1,21 @@
 # Port 443 carries SSH and TLS. Every connection gets a PROXY protocol header
 # with the client's address, so whoever ends it knows who connected:
-# - not TLS (SSH): through ssh-strip below, which drops the header, to
-#   rathole's ssh service;
+# - not TLS (SSH, s.<domain>): through ssh-strip below, which drops the
+#   header, to rathole's ssh service;
 # - TLS: encrypted and untouched to rathole's ingress-tls service and
-#   Traefik's websecure port, which terminates it. A host listed as `web`
-#   in the map below would go to nginx's http sites instead; none is left.
+#   Traefik's websecure port, which terminates it for every host.
 stream {
 	upstream ssh {
 		server unix:/run/nginx-ssh.sock;
-	}
-
-	upstream web {
-		server unix:/run/nginx-ingress.sock;
 	}
 
 	upstream cluster {
 		server 127.0.0.1:32443;
 	}
 
-	# TLS ends in the cluster for every host.
-	map $ssl_preread_server_name $tls_upstream {
-		hostnames;
-		default cluster;
-	}
-
 	map $ssl_preread_protocol $upstream {
 		"" ssh;
-		default $tls_upstream;
+		default cluster;
 	}
 
 	server {

@@ -12,26 +12,16 @@ pkcs12 = "${RATHOLE_SERVER_PKCS12}"
 pkcs12_password = "${RATHOLE_SERVER_PKCS12_PASSWORD}"
 
 # The service name must be identical to the client side.
-# ingress and ssh are only reached on the server itself (nginx's http and
-# stream upstreams use the same literal ports); ufw keeps them closed.
-[server.services.ingress]
-# type = "tcp"
-bind_addr = "0.0.0.0:32000"
-# nodelay = true
-
+# ssh and ingress-tls are only reached on the server itself (nginx's stream
+# block uses the same literal ports); ufw keeps ssh closed, ingress-tls is
+# loopback only.
 [server.services.ssh]
 bind_addr = "0.0.0.0:32022"
 
-# TLS for the hosts nginx's stream block passes through untouched (with a
-# PROXY header): Traefik's websecure port terminates it. Loopback only.
+# Every TLS connection, passed through untouched by nginx's stream block
+# (with a PROXY header): Traefik's websecure port terminates it.
 [server.services.ingress-tls]
 bind_addr = "127.0.0.1:32443"
 
 [server.services.slskd]
 bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_SLSKD_PORT}"
-
-# Authelia in the cluster, for nginx's auth_request and the auth.<domain>
-# portal: loopback only, no ufw rule. Authelia's own port, so nginx's
-# upstream (127.0.0.1:9091) stays the same.
-[server.services.authelia]
-bind_addr = "127.0.0.1:9091"
