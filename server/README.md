@@ -1,8 +1,10 @@
 # The server
 
 The public server in front of the cluster: nginx (TLS, Authelia forward-auth),
-Authelia, LLDAP, the rathole server and a SOCKS5 proxy. Values come from
+Authelia, the rathole server and a SOCKS5 proxy. Values come from
 `pass` (`secretspec/machines/default/<KEY>`); nothing secret is in this repo.
+LLDAP runs in the cluster (`kubernetes/apps/auth/lldap`); Authelia reaches it
+at `ldap://127.0.0.1:3890`, a rathole service bound to loopback.
 
 ## Create and set up
 
@@ -26,7 +28,6 @@ Each app is `apps/<app>/`: its config in `files/` (rendered with
 |---|---|---|
 | authelia | `configuration.yml` | `SECRET_DOMAIN`, `LLDAP_LDAP_BASE_DN` |
 | ingress | `nginx.conf`, `snippets/`, `certbot.sh`, `sites-enabled/`: one file per host, every nginx site incl. auth and ldap | `SECRET_DOMAIN`, `CERT_DEFAULT_EMAIL`, `SEERR_URL` |
-| lldap | `config.toml`, `bind_user.json`, `groups.json` | `SECRET_DOMAIN`, `LLDAP_BIND_USER_PASSWORD` |
 | rathole-server | `server.toml`, `identity.pfx` (decoded from `RATHOLE_IDENTITY_PFX_B64`) | |
 | microsocks | none | |
 
@@ -39,19 +40,8 @@ equal `SLSKD_SLSK_PROXY_*` in pass.
 
 ### LLDAP
 
-Users and groups are bootstrapped from the JSON files in `apps/lldap/files/`.
-Add a user as `<id>.json` with its password as a `${KEY}` from pass, e.g.:
-
-```json
-{
-  "id": "foobar",
-  "email": "foobar@example.com",
-  "password": "${LLDAP_FOOBAR_PASSWORD}",
-  "groups": [ "users" ]
-}
-```
-
-and declare the key in `apps/lldap/secretspec.toml`.
+Runs in the cluster. Its users and groups, and how to add one, are in
+`kubernetes/apps/auth/lldap/secrets/lldap-bootstrap.yaml`.
 
 ## Rathole TLS
 

@@ -1,7 +1,7 @@
-# The server in front of the cluster (nginx, Authelia, LLDAP, rathole
-# server, SOCKS5 proxy): which apps/<app> run on it, deployed over SSH with
+# The server in front of the cluster (nginx, Authelia, rathole server, SOCKS5
+# proxy): which apps/<app> run on it, deployed over SSH with
 # `just deploy systemd`, and how a new one is provisioned (etc/). Values come
-# from pass.
+# from pass. LLDAP runs in the cluster (kubernetes/apps/auth/lldap).
 
 set shell := ['bash', '-euo', 'pipefail', '-c']
 set script-interpreter := ['bash', '-euo', 'pipefail']
@@ -24,7 +24,6 @@ apply host *apps:
 	}
 	deploy rathole-server
 	deploy ingress    USE_PACKAGE_MANAGER=1
-	deploy lldap
 	deploy authelia   USE_PACKAGE_MANAGER=1
 	deploy microsocks USE_PACKAGE_MANAGER=1
 
@@ -34,19 +33,3 @@ apply host *apps:
 setup target:
 	"{{ root }}/bin/setup-server.sh" --etc etc \
 		--ssh-port "$(pass show secretspec/machines/default/SERVER_SSH_PORT)" {{ target }}
-
-# Replace lldap's key_seed: re-key on the server (apps/lldap/systemd/rekey.sh),
-# then redeploy. Users not in apps/lldap/files/*.json must set new passwords.
-[doc('Rotate lldap key_seed: re-key on the server, then redeploy lldap')]
-[confirm('Re-key lldap? Users outside apps/lldap/files must set new passwords.')]
-[script]
-lldap-rekey host: && (apply host 'lldap')
-	seed="$(openssl rand -base64 48 | tr -d '\n/+=' | head -c 40)"
-	# The seed goes over ssh's stdin, never into a command line.
-	{
-		printf "seed=\$(cat <<'SEED'\n%s\nSEED\n)\n" "$seed"
-		cat "{{ root }}/apps/lldap/systemd/rekey.sh"
-	} | ssh {{ host }} bash -s
-	# The server has the new key now: keep pass in step before deploying.
-	printf '%s' "$seed" | pass insert -m -f secretspec/machines/default/LLDAP_KEY_SEED >/dev/null
-	echo "LLDAP_KEY_SEED updated in pass; deploying lldap with it"

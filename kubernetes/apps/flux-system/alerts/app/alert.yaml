@@ -14,6 +14,7 @@ spec:
     - { kind: FluxInstance, name: "*", namespace: flux-system }
     - { kind: GitRepository, name: "*", namespace: flux-system }
     - { kind: GitRepository, name: "*", namespace: kube-system }
+    - { kind: Kustomization, name: "*", namespace: auth }
     - { kind: Kustomization, name: "*", namespace: backup }
     - { kind: Kustomization, name: "*", namespace: cert-manager }
     - { kind: Kustomization, name: "*", namespace: cnpg-system }
@@ -23,6 +24,7 @@ spec:
     - { kind: Kustomization, name: "*", namespace: kube-system }
     - { kind: Kustomization, name: "*", namespace: rathole }
     - { kind: Kustomization, name: "*", namespace: traefik }
+    - { kind: HelmRelease, name: "*", namespace: auth }
     - { kind: HelmRelease, name: "*", namespace: backup }
     - { kind: HelmRelease, name: "*", namespace: cert-manager }
     - { kind: HelmRelease, name: "*", namespace: cnpg-system }
@@ -32,6 +34,7 @@ spec:
     - { kind: HelmRelease, name: "*", namespace: kube-system }
     - { kind: HelmRelease, name: "*", namespace: rathole }
     - { kind: HelmRelease, name: "*", namespace: traefik }
+    - { kind: OCIRepository, name: "*", namespace: auth }
     - { kind: OCIRepository, name: "*", namespace: backup }
     - { kind: OCIRepository, name: "*", namespace: cert-manager }
     - { kind: OCIRepository, name: "*", namespace: cnpg-system }

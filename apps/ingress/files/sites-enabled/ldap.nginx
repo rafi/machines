@@ -1,7 +1,6 @@
 server {
-	server_name ldap.${SECRET_DOMAIN};
+	server_name ldap.*;
 	include /etc/nginx/snippets/site-protected.nginx;
-	set $upstream http://127.0.0.1:17170;
 }
 
 # vim: set ft=nginx ts=2 sw=2 tw=80 noet :

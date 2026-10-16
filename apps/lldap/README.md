@@ -1,6 +1,7 @@
 # lldap
 
-LLDAP LDAP server.
+LLDAP LDAP server. The one in use runs in the cluster
+(`kubernetes/apps/auth/lldap`); these targets are standalone.
 
 ## Targets
 

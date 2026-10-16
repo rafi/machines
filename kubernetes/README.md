@@ -58,9 +58,10 @@ a new certificate: Let's Encrypt allows 5 for the same names per week.
 Flux restores manifests; Secrets come from `pass`. The rest comes from the
 nightly backup (04:00, `apps/backup/restic`): restic, encrypted with
 `RESTIC_PASSWORD`, to a B2 bucket. It holds a `pg_dump` of the miniflux
-database and `/opt/slskd` without `downloads/` and `incomplete/`; 7 daily, 4
-weekly and 6 monthly snapshots. The media folders slskd shares are not backed
-up. A failed run is reported on Telegram.
+database, `/opt/slskd` without `downloads/` and `incomplete/`, and
+`/opt/lldap` (LLDAP's users and groups); 7 daily, 4 weekly and 6 monthly
+snapshots. The media folders slskd shares are not backed up. A failed run is
+reported on Telegram.
 
 ```sh
 just kube restic snapshots                 # needs `brew install restic`
@@ -76,6 +77,12 @@ kubectl -n default scale deploy/slskd --replicas=0
 just kube restic restore latest --include /data/slskd --target /tmp/restore
 rsync -a --rsync-path='sudo rsync' /tmp/restore/data/slskd/ <node>:/opt/slskd/
 kubectl -n default scale deploy/slskd --replicas=1
+
+# LLDAP (its key_seed in pass must be the one the backup was made with)
+kubectl -n auth scale deploy/lldap --replicas=0
+just kube restic restore latest --include /data/lldap --target /tmp/restore
+rsync -a --rsync-path='sudo rsync' /tmp/restore/data/lldap/ <node>:/opt/lldap/
+kubectl -n auth scale deploy/lldap --replicas=1
 ```
 
 Run a backup now: `kubectl -n backup create job --from=cronjob/restic restic-manual`.
@@ -131,7 +138,7 @@ kubectl -n flux-system get fluxinstance flux
   missing in its namespace, or a literal `${` needs to be `$${`. Run
   `just kube secrets`.
 - Pods read Secrets at start. Reloader restarts those annotated
-  `reloader.stakater.com/auto: "true"` (miniflux, slskd, rathole-client)
+  `reloader.stakater.com/auto: "true"` (miniflux, slskd, rathole-client, lldap)
   when `just kube secrets` changes a Secret they use; any other pod needs
   `kubectl -n <ns> rollout restart deploy/<app>`.
 - The certificate isn't Ready: `kubectl -n traefik describe certificate wildcard`,

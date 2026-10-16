@@ -1,0 +1,142 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+# https://github.com/lldap/lldap
+# The user directory Authelia checks logins against. Authelia on the server
+# reaches LDAP (3890) through rathole; the web UI is ldap.<domain>.
+# Secrets lldap-env, lldap-users, lldap-groups: `just kube secrets lldap`.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: lldap
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: lldap
+  interval: 1h
+  values:
+    controllers:
+      lldap:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # One instance: the SQLite database is on a hostPath.
+        strategy: Recreate
+        containers:
+          app:
+            image:
+              # The root image: its entrypoint chowns /data to UID 1000, then
+              # drops to it; the hostPath starts out owned by root.
+              repository: ghcr.io/lldap/lldap
+              tag: v0.6.3-alpine
+            env:
+              TZ: Etc/UTC
+              LLDAP_DATABASE_URL: sqlite:///data/users.db?mode=rwc
+              # The key comes from LLDAP_KEY_SEED; no key file.
+              LLDAP_KEY_FILE: ""
+            # LLDAP_JWT_SECRET, LLDAP_KEY_SEED, LLDAP_LDAP_BASE_DN and the
+            # admin's LLDAP_LDAP_USER_DN/_PASS/_EMAIL.
+            envFrom:
+              - secretRef:
+                  name: lldap-env
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /health
+                    port: &http 17170
+              readiness: *probe
+            resources:
+              requests:
+                cpu: 5m
+                memory: 32Mi
+              limits:
+                memory: 128Mi
+      # Creates bind_user and the groups from Secrets lldap-users and
+      # lldap-groups, and removes users and groups not listed there
+      # (DO_CLEANUP), as the server's installer did. Runs after every install
+      # and upgrade; force one with `flux -n auth reconcile hr lldap --force`.
+      bootstrap:
+        type: job
+        annotations:
+          helm.sh/hook: post-install,post-upgrade
+          helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+        job:
+          backoffLimit: 6
+        pod:
+          restartPolicy: OnFailure
+        containers:
+          app:
+            image:
+              repository: ghcr.io/lldap/lldap
+              tag: v0.6.3-alpine
+            command:
+              - /app/bootstrap.sh
+            env:
+              LLDAP_URL: http://lldap:17170
+              DO_CLEANUP: "true"
+              LLDAP_ADMIN_USERNAME:
+                valueFrom:
+                  secretKeyRef:
+                    name: lldap-env
+                    key: LLDAP_LDAP_USER_DN
+              LLDAP_ADMIN_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: lldap-env
+                    key: LLDAP_LDAP_USER_PASS
+    service:
+      app:
+        controller: lldap
+        ports:
+          http:
+            port: *http
+          ldap:
+            port: 3890
+    route:
+      app:
+        hostnames:
+          - ldap.${SECRET_DOMAIN}
+        parentRefs:
+          - name: traefik-gateway
+            namespace: traefik
+            sectionName: web
+        rules:
+          - backendRefs:
+              - identifier: app
+                port: *http
+    persistence:
+      data:
+        type: hostPath
+        hostPath: /opt/lldap
+        hostPathType: DirectoryOrCreate
+        advancedMounts:
+          lldap:
+            app:
+              - path: /data
+      users:
+        type: secret
+        name: lldap-users
+        advancedMounts:
+          bootstrap:
+            app:
+              - path: /bootstrap/user-configs
+                readOnly: true
+      groups:
+        type: secret
+        name: lldap-groups
+        advancedMounts:
+          bootstrap:
+            app:
+              - path: /bootstrap/group-configs
+                readOnly: true
+      # Empty: no custom attributes.
+      schemas:
+        type: emptyDir
+        advancedMounts:
+          bootstrap:
+            app:
+              - path: /bootstrap/user-schemas
+                subPath: user
+              - path: /bootstrap/group-schemas
+                subPath: group

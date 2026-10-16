@@ -24,7 +24,7 @@ readable `just` recipes and shell installers, plus Flux for the cluster.
 
 | | Runs on | Deployed by |
 |---|---|---|
-| **The server** | a public VPS: nginx, Authelia, LLDAP, rathole, SOCKS5 proxy | `just server apply` over SSH, systemd |
+| **The server** | a public VPS: nginx, Authelia, rathole, SOCKS5 proxy | `just server apply` over SSH, systemd |
 | **The cluster** | k3s at home, behind CGNAT, reached through a rathole tunnel | Flux, on every push |
 | **Secrets** | [pass](https://www.passwordstore.org), read by [secretspec](https://secretspec.dev) | at deploy time; never committed, not even encrypted |
 

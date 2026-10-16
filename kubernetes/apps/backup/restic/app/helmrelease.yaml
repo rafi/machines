@@ -1,6 +1,7 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
-# Nightly encrypted backup of the miniflux database and /opt/slskd to B2.
+# Nightly encrypted backup of the miniflux database, /opt/slskd and
+# /opt/lldap to B2.
 # Secret restic-env: `just kube secrets restic`. Restores: kubernetes/README.md.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -79,4 +80,13 @@ spec:
             app:
               - path: /scripts/backup.sh
                 subPath: backup.sh
+                readOnly: true
+      lldap:
+        type: hostPath
+        hostPath: /opt/lldap
+        hostPathType: Directory
+        advancedMounts:
+          restic:
+            app:
+              - path: /data/lldap
                 readOnly: true
