@@ -35,31 +35,17 @@ setup target:
 	"{{ root }}/bin/setup-server.sh" --etc etc \
 		--ssh-port "$(pass show secretspec/machines/default/SERVER_SSH_PORT)" {{ target }}
 
-# Replace lldap's key_seed. Stored passwords depend on the key, so lldap runs
-# once with the new seed to re-key and reset the admin password (to
-# LLDAP_ADMIN_PASSWORD); the deploy that follows re-sets bind_user's. Users
-# not in apps/lldap/files/*.json would have to set new passwords.
+# Replace lldap's key_seed: re-key on the server (apps/lldap/systemd/rekey.sh),
+# then redeploy. Users not in apps/lldap/files/*.json must set new passwords.
 [doc('Rotate lldap key_seed: re-key on the server, then redeploy lldap')]
 [confirm('Re-key lldap? Users outside apps/lldap/files must set new passwords.')]
 [script]
 lldap-rekey host: && (apply host 'lldap')
 	seed="$(openssl rand -base64 48 | tr -d '\n/+=' | head -c 40)"
-	# Runs on the server under bash (whatever the login shell). The script,
-	# seed included, goes over ssh's stdin, never into a command line.
-	remote='set -euo pipefail
-		sudo systemctl stop lldap
-		sudo install -d -m 700 /var/backups/lldap
-		sudo cp -a /var/lib/lldap/users.db "/var/backups/lldap/users.db-$(date +%Y%m%d%H%M%S)-rekey"
-		export LLDAP_KEY_SEED="$seed" LLDAP_FORCE_UPDATE_PRIVATE_KEY=true LLDAP_FORCE_LDAP_USER_PASS_RESET=true
-		cd /var/lib/lldap
-		out="$(sudo --preserve-env=LLDAP_KEY_SEED,LLDAP_FORCE_UPDATE_PRIVATE_KEY,LLDAP_FORCE_LDAP_USER_PASS_RESET \
-			-u lldap /opt/lldap/lldap run --config-file /etc/lldap/config.toml 2>&1 || true)"
-		printf "%s\n" "$out" | grep -iE "private key|admin password|error|restart" || true
-		# lldap exits with this message once the key and admin password are updated.
-		grep -q "Restart the server without" <<< "$out"'
+	# The seed goes over ssh's stdin, never into a command line.
 	{
 		printf "seed=\$(cat <<'SEED'\n%s\nSEED\n)\n" "$seed"
-		printf '%s\n' "$remote"
+		cat "{{ root }}/apps/lldap/systemd/rekey.sh"
 	} | ssh {{ host }} bash -s
 	# The server has the new key now: keep pass in step before deploying.
 	printf '%s' "$seed" | pass insert -m -f secretspec/machines/default/LLDAP_KEY_SEED >/dev/null
