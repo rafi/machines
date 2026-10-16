@@ -13,19 +13,21 @@ set script-interpreter := ['bash', '-euo', 'pipefail']
 _default:
 	@just --list kube --unsorted
 
-# Install k3s on this node, with its config rendered from k3s/config.yaml
-# and pass. `version` pins a release (e.g. v1.33.4+k3s1); empty takes stable.
-# Reinstalling on the same host: run /usr/local/bin/k3s-uninstall.sh first.
-[doc('Install k3s on this node, config from pass: just kube k3s-install [version]')]
+# Render k3s/config.yaml from pass and run k3s/install.sh on the node.
+# Keep `version` equal to the one in kubernetes/README.md.
+[doc('Install k3s on the node over SSH, config from pass: just kube k3s-install <host> [version]')]
 [group('bootstrap')]
 [script]
-k3s-install version='':
+k3s-install host version='v1.37.1+k3s1':
 	spec=k3s/secretspec.toml
 	vars=$(grep -oE '^[A-Z][A-Z0-9_]* =' "$spec" | tr -d ' =' | sed 's/.*/${&}/' | tr '\n' ' ')
-	sudo mkdir -p /etc/rancher/k3s
-	secretspec run -f "$spec" -- envsubst "$vars" < k3s/config.yaml \
-		| sudo install -m 600 /dev/stdin /etc/rancher/k3s/config.yaml
-	curl -sfL https://get.k3s.io | INSTALL_K3S_VERSION='{{ version }}' sh -
+	umask 077
+	tmp=$(mktemp -d)
+	trap 'rm -rf "$tmp"' EXIT
+	secretspec run -f "$spec" -- envsubst "$vars" < k3s/config.yaml > "$tmp/config.yaml"
+	cp k3s/install.sh "$tmp/"
+	rsync -rtz --chmod=D700,F600 "$tmp/" "{{ host }}:/tmp/k3s-install/"
+	ssh -t {{ host }} sh /tmp/k3s-install/install.sh {{ version }}
 
 # Write the kubeconfig from pass to a file.
 [group('bootstrap')]

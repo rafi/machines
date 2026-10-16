@@ -196,7 +196,7 @@ values are single-quoted, with tracing paused.
 | Create the server | `bin/create-server.sh` | DigitalOcean droplet |
 | Harden it | `just server setup root@<ip>` | [`server/etc`](../server/etc): sshd, fail2ban, sysctl |
 | Deploy its apps | `just server apply <host>` | [`server/mod.just`](../server/mod.just) |
-| Install k3s | `just kube k3s-install` | [`kubernetes/k3s`](../kubernetes/k3s) |
+| Install k3s | `just kube k3s-install <node>` | [`kubernetes/k3s`](../kubernetes/k3s) |
 | Bootstrap Flux | `just kube bootstrap` (runs `just kube secrets` first) | [`kubernetes/apps/flux-system`](../kubernetes/apps/flux-system) |
 
 The server's host name and SSH port never appear in the repository: the

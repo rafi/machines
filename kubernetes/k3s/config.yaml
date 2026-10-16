@@ -1,5 +1,5 @@
-# k3s server config, rendered from pass into /etc/rancher/k3s/config.yaml by
-# `just kube k3s-install`. https://docs.k3s.io/cli/server
+# k3s server config, rendered from pass by `just kube k3s-install`.
+# https://docs.k3s.io/cli/server
 bind-address: ${CLUSTER_NODE_IP}
 write-kubeconfig-mode: "0644"
 tls-san:

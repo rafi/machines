@@ -1,8 +1,8 @@
 # Kubernetes cluster
 
-A single k3s node, managed by Flux from this repo. Pushing to `master` is the
-deploy. Values that git doesn't hold come from `pass`
-(`secretspec/machines/default/<KEY>`):
+A single k3s node (Arch Linux, amd64, k3s `v1.37.1+k3s1`), managed by Flux
+from this repo. Pushing to `master` is the deploy. Values that git doesn't
+hold come from `pass` (`secretspec/machines/default/<KEY>`):
 
 | Key | Used by |
 |---|---|
@@ -14,17 +14,18 @@ deploy. Values that git doesn't hold come from `pass`
 
 ## Rebuild from scratch
 
-### 1. k3s, on the node
+### 1. k3s, from the workstation
 
 ```sh
-/usr/local/bin/k3s-uninstall.sh      # only when reinstalling on the same host
-just kube k3s-install                # or: just kube k3s-install v1.33.4+k3s1
-sudo systemctl status k3s
+ssh -t <node> sudo /usr/local/bin/k3s-uninstall.sh   # only when reinstalling
+just kube k3s-install <node> [version]
+ssh <node> systemctl status k3s
 ```
 
-k3s's own Traefik and Helm controller are disabled in the config: Flux
-installs Traefik and runs the Helm charts. `K3S_TOKEN` only has to be kept
-to join more nodes; a fresh single node may get a new one.
+The recipe runs [k3s/install.sh](k3s/install.sh) on the node over SSH. It
+stops on a host without the config's `bind-address` or with Arch's `k3s-bin`.
+k3s's own Traefik and Helm controller are disabled: Flux installs them.
+`K3S_TOKEN` only has to be kept to join more nodes.
 
 ### 2. Kubeconfig, on the workstation
 
@@ -112,6 +113,8 @@ any other. By hand:
 - **Postgres:** `version.postgresql` in `apps/db/postgres/app/helmrelease.yaml`
   (held to 16.x, like the backup's `pg_dump`); a change restarts the instance
   (about a minute: `smartShutdownTimeout` is 15s, set by a post-renderer).
+- **k3s:** not tracked by Renovate. Bump the `k3s-install` default and the
+  version above, then `just kube k3s-install <node>`, one minor at a time.
 
 `just kube check` builds everything locally. Every HelmRelease gets the same
 install, upgrade and rollback settings from `cluster-apps`
