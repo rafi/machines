@@ -142,6 +142,10 @@ status:
 [group('flux')]
 failing:
 	flux get all -A --status-selector ready=false
+
+# Gateways and HTTPRoutes, with whether each is accepted.
+[group('flux')]
+routes:
 	kubectl get gateway,httproute -A
 
 [group('flux')]

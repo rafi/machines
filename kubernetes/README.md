@@ -42,7 +42,7 @@ kubectl get nodes
 just kube bootstrap   # just kube secrets, then Flux Operator + FluxInstance (helm)
 just kube sync
 just kube failing     # expect nothing; the first sync takes minutes (Helm charts)
-kubectl get gateway,httproute -A
+just kube routes      # every Gateway and HTTPRoute accepted
 ```
 
 Secrets go in first, so Flux never reconciles without `cluster-settings`.
@@ -119,6 +119,7 @@ just kube ui          # Flux web UI on http://localhost:9080, read-only
 kubectl -n flux-system get fluxinstance flux
 ```
 
+just kube routes
 - A Kustomization fails with an unset variable: `cluster-settings` is
   missing in its namespace, or a literal `${` needs to be `$${`. Run
   `just kube secrets`.
