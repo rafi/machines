@@ -7,8 +7,15 @@ tls-san:
   - ${CLUSTER_NODE_IP}
 node-label:
   - node.${SECRET_DOMAIN}/name=${CLUSTER_NODE_NAME}
-# Flux installs Traefik and runs Helm charts itself (kubernetes/apps).
-disable: traefik
+# Packaged addons we don't use. Flux installs Traefik and the Gateway API
+# CRDs (gateway-api-crd is a HelmChart, which can't apply with the helm
+# controller disabled below); nothing is a LoadBalancer (servicelb, and with
+# it the ccm RBAC); no RuntimeClasses beyond runc.
+disable:
+  - traefik
+  - gateway-api-crd
+  - servicelb
+  - runtimes
 disable-helm-controller: true
 disable-cloud-controller: true
 # Joining more nodes later needs the same token.

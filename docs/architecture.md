@@ -88,7 +88,7 @@ shared by the server and the cluster; see
 
 | Layer | Component |
 |---|---|
-| Distribution | [k3s], single node; its bundled Traefik and Helm controller are disabled ([`k3s/config.yaml`](../kubernetes/k3s/config.yaml)) |
+| Distribution | [k3s], single node; its bundled Traefik, Helm controller, Gateway API CRDs, servicelb and RuntimeClasses are disabled ([`k3s/config.yaml`](../kubernetes/k3s/config.yaml)) |
 | GitOps | [Flux], installed and upgraded by the [Flux Operator] from a `FluxInstance` |
 | Ingress | [Traefik] implementing the [Gateway API]; its `websecure` listener terminates TLS for every host with the wildcard certificate |
 | Certificates | [cert-manager]: `<domain>` + `*.<domain>` from Let's Encrypt, DNS-01 on Cloudflare with a token limited to the zone's DNS |

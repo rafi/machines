@@ -24,7 +24,9 @@ ssh <node> systemctl status k3s
 
 The recipe runs [k3s/install.sh](k3s/install.sh) on the node over SSH. It
 stops on a host without the config's `bind-address` or with Arch's `k3s-bin`.
-k3s's own Traefik and Helm controller are disabled: Flux installs them.
+k3s's own Traefik, Helm controller, Gateway API CRDs, servicelb and
+RuntimeClasses are disabled: Flux installs Traefik and the CRDs, and
+nothing is a LoadBalancer (Traefik is reached through rathole only).
 `K3S_TOKEN` only has to be kept to join more nodes.
 
 ### 2. Kubeconfig, on the workstation
