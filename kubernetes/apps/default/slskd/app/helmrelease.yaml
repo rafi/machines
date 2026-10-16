@@ -22,20 +22,60 @@ spec:
           reloader.stakater.com/auto: "true"
         # One instance only: state is on a hostPath and the Soulseek login is single-session.
         strategy: Recreate
+        # /opt/slskd is a hostPath, which fsGroup doesn't chown: it must be
+        # owned by 1000:1000 on the node. The media folders only need to be
+        # readable by it.
+        pod:
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
         containers:
           app:
             image:
-              repository: slskd/slskd
-              tag: 0.26.1
+              repository: ghcr.io/slskd/slskd
+              tag: 0.26.1@sha256:588af49abc3088d639c8f1174d3bfad6e92c093a275a593140e3ac9311ebf6c4
             env:
-              SLSKD_SHARED_DIR: /music;/ebooks
+              # The image extracts its .NET bundle to /.net, read-only here.
+              DOTNET_BUNDLE_EXTRACT_BASE_DIR: /tmp/.net
             envFrom:
               - secretRef:
                   name: slskd-env
+            # /health needs no login and answers with or without url_base.
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet: &health
+                    path: /health
+                    port: 5030
+                  periodSeconds: 10
+                  timeoutSeconds: 5
+                  failureThreshold: 5
+              readiness: *probe
+              # Up to 5 minutes to start (share scan, Soulseek login).
+              startup:
+                enabled: true
+                custom: true
+                spec:
+                  httpGet: *health
+                  periodSeconds: 10
+                  failureThreshold: 30
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 1Gi
+            securityContext: &securityContext
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"] }
           sslocal:
             image:
               repository: ghcr.io/shadowsocks/sslocal-rust
               tag: v1.25.0
+            securityContext: *securityContext
             resources:
               requests:
                 cpu: 10m
@@ -77,8 +117,24 @@ spec:
       config:
         data:
           slskd.yml: |
+            flags:
+              no_version_check: true
             web:
               url_base: /slsk
+              # Unused: TLS ends at Traefik.
+              https:
+                disabled: true
+              # Authelia guards the route; slskd's own login is off.
+              authentication:
+                disabled: true
+            shares:
+              directories:
+                - /music
+                - /ebooks
+              filters:
+                - \.ini$
+                - Thumbs.db$
+                - \.DS_Store$
             soulseek:
               listen_port: ${RATHOLE_SERVER_SERVICES_SLSKD_PORT}
               connection:
@@ -119,6 +175,12 @@ spec:
           slskd:
             app:
               - path: /ebooks
+      tmp:
+        type: emptyDir
+        advancedMounts:
+          slskd:
+            app:
+              - path: /tmp
       sslocal-config:
         type: secret
         name: sslocal-config

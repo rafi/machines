@@ -82,10 +82,10 @@ kubectl -n db exec -i postgres-1 -c postgres -- \
   pg_restore --clean --if-exists --no-owner --role=authelia -d authelia < /tmp/authelia.dump
 kubectl -n auth rollout restart deploy/authelia
 
-# slskd's state
+# slskd's state (slskd runs as 1000:1000)
 kubectl -n default scale deploy/slskd --replicas=0
 just kube restic restore latest --include /data/slskd --target /tmp/restore
-rsync -a --rsync-path='sudo rsync' /tmp/restore/data/slskd/ <node>:/opt/slskd/
+rsync -a --chown=1000:1000 --rsync-path='sudo rsync' /tmp/restore/data/slskd/ <node>:/opt/slskd/
 kubectl -n default scale deploy/slskd --replicas=1
 
 # LLDAP (its key_seed in pass must be the one the backup was made with)

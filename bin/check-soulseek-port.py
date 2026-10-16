@@ -82,27 +82,22 @@ def port_forward(env, target, remote):
 
 
 def advertised_address(env, host, port):
-    """Port-forward to slskd's Service, log in to its API and look up our own
-    Soulseek user: the answer is the address the Soulseek server gives peers."""
+    """Port-forward to slskd's Service and look up our own Soulseek user in
+    its API (no login: Authelia guards slskd): the answer is the address the
+    Soulseek server gives peers."""
     with port_forward(env, 'svc/slskd', 80) as local:
         api = f'http://127.0.0.1:{local}/slsk/api/v0'
 
-        def call(path, body=None, token=None):
-            req = urllib.request.Request(api + path, data=body and json.dumps(body).encode(),
-                                         headers={'Content-Type': 'application/json'})
-            if token:
-                req.add_header('Authorization', 'Bearer ' + token)
-            with urllib.request.urlopen(req, timeout=30) as r:
+        def call(path):
+            with urllib.request.urlopen(api + path, timeout=30) as r:
                 return json.load(r)
 
         try:
-            token = call('/session', {'username': value('SLSKD_USERNAME'),
-                                      'password': value('SLSKD_PASSWORD')})['token']
-            server = call('/server', token=token)
+            server = call('/server')
             if not server.get('isLoggedIn'):
                 raise CheckFailed(f"slskd is not logged in to Soulseek (state: {server.get('state')})")
             user = urllib.parse.quote(value('SLSKD_SLSK_USERNAME'))
-            ep = call(f'/users/{user}/endpoint', token=token)
+            ep = call(f'/users/{user}/endpoint')
         except OSError as e:
             raise CheckFailed(f"slskd's API: {e}")
     # The port-forward is closed; ep holds the answer.
