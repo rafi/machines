@@ -18,6 +18,13 @@ spec:
   values:
     fullnameOverride: postgres
 
+    # The image is ghcr.io/cloudnative-pg/postgresql:<this>. Pinned so a chart
+    # update can't move it; Renovate raises it within 16.x (.renovaterc.json5).
+    # A new major needs a planned upgrade (and the backup's pg_dump with it).
+    version:
+      # renovate: datasource=docker depName=ghcr.io/cloudnative-pg/postgresql
+      postgresql: "16.15"
+
     cluster:
       instances: 1
       # A PDB on a single instance would block node drains.

@@ -13,10 +13,9 @@ pkcs12_password = "${RATHOLE_SERVER_PKCS12_PASSWORD}"
 
 # The service name must be identical to the client side.
 # ssh and ingress-tls are only reached on the server itself (nginx's stream
-# block uses the same literal ports); ufw keeps ssh closed, ingress-tls is
-# loopback only.
+# block uses the same literal ports), so both bind to loopback.
 [server.services.ssh]
-bind_addr = "0.0.0.0:32022"
+bind_addr = "127.0.0.1:32022"
 
 # Every TLS connection, passed through untouched by nginx's stream block
 # (with a PROXY header): Traefik's websecure port terminates it.

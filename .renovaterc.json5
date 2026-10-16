@@ -14,7 +14,7 @@
       matchPackageNames: ["/flux-operator$/", "/flux-instance$/"],
     },
     {
-      description: "pg_dump in the backup job follows the cluster's Postgres 16",
+      description: "Postgres 16: the db/postgres cluster's image and the backup's pg_dump",
       matchDatasources: ["docker"],
       matchPackageNames: ["ghcr.io/cloudnative-pg/postgresql"],
       allowedVersions: "/^16\\./",
