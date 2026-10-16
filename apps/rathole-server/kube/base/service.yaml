@@ -12,11 +12,11 @@ spec:
     name: tcp
     protocol: TCP
     targetPort: tcp
-  - port: ${RATHOLE_SERVER_SERVICES_INGRESS_PORT}
+  - port: 32000
     name: ingress
     protocol: TCP
     targetPort: ingress
-  - port: ${RATHOLE_SERVER_SERVICES_SSH_PORT}
+  - port: 32022
     name: ssh
     protocol: TCP
     targetPort: ssh

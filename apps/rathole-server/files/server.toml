@@ -12,13 +12,15 @@ pkcs12 = "${RATHOLE_SERVER_PKCS12}"
 pkcs12_password = "${RATHOLE_SERVER_PKCS12_PASSWORD}"
 
 # The service name must be identical to the client side.
+# ingress and ssh are only reached on the server itself (nginx's http and
+# stream upstreams use the same literal ports); ufw keeps them closed.
 [server.services.ingress]
 # type = "tcp"
-bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_INGRESS_PORT}"
+bind_addr = "0.0.0.0:32000"
 # nodelay = true
 
 [server.services.ssh]
-bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_SSH_PORT}"
+bind_addr = "0.0.0.0:32022"
 
 [server.services.slskd]
 bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_SLSKD_PORT}"

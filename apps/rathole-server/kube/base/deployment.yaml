@@ -21,14 +21,14 @@ spec:
         args:
         - --server
         - /etc/rathole/rathole.toml
-        # Ports are ${VAR}s substituted at deploy time; keep them equal to
-        # the bind_addr ports in rathole.toml.
+        # The ${VAR} ports are substituted at deploy time; keep them all equal
+        # to the bind_addr ports in rathole.toml.
         ports:
         - containerPort: ${RATHOLE_SERVER_BIND_PORT}
           name: tcp
-        - containerPort: ${RATHOLE_SERVER_SERVICES_INGRESS_PORT}
+        - containerPort: 32000
           name: ingress
-        - containerPort: ${RATHOLE_SERVER_SERVICES_SSH_PORT}
+        - containerPort: 32022
           name: ssh
         - containerPort: ${RATHOLE_SERVER_SERVICES_SLSKD_PORT}
           name: slskd
