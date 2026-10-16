@@ -103,7 +103,11 @@ install, upgrade and rollback settings from `cluster-apps`
   the server's rathole and `ufw`, the rathole client's
   `[client.services.slskd]`, and slskd's Service and `listen_port` all read it.
   After changing it: `just server apply <host> rathole-server`,
-  `just kube secrets`, `just kube sync`.
+  `just kube secrets`, `just kube sync`, then `bin/check-soulseek-port.py`.
+  slskd is at home behind CGNAT, so peers must be sent to the server: the
+  script checks the address Soulseek gives peers (the server's, not the
+  home one), Soulseek's port test through the proxy, a peer handshake with
+  slskd through the server's port, and the slskd and rathole-client pods.
 - **The SOCKS5 proxy port** is `MICROSOCKS_PORT`, read by microsocks and by
   slskd's proxy settings.
 - **SOCKS5 proxy credentials:** `SLSKD_SLSK_PROXY_*` equal `MICROSOCKS_*`.
