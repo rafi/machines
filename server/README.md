@@ -26,11 +26,11 @@ Each app is `server/<app>/`: its config in `files/` (rendered with
 `installer.sh`. `mod.just` lists which apps run here and with which installer
 options.
 
-| App | Config (`server/<app>/files/`) | Values that identify the setup |
-|---|---|---|
-| ingress | `nginx.conf` (port 80 → HTTPS), `snippets/stream.nginx` (443: SSH and TLS passthrough to the cluster) | none |
-| rathole-server | `server.toml`, `identity.pfx` (decoded from `RATHOLE_IDENTITY_PFX_B64`) | |
-| shadowsocks | `config.json` (`SHADOWSOCKS_PORT`, `SHADOWSOCKS_PASSWORD`) | |
+| App | Config (`server/<app>/files/`) |
+|---|---|
+| ingress | `nginx.conf` (port 80 → HTTPS), `snippets/stream.nginx` (443: SSH and TLS passthrough to the cluster) |
+| rathole-server | `server.toml`, `identity.pfx` (decoded from `RATHOLE_IDENTITY_PFX_B64`) |
+| shadowsocks | `config.json` (`SHADOWSOCKS_PORT`, `SHADOWSOCKS_PASSWORD`) |
 
 ### shadowsocks
 

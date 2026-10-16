@@ -57,8 +57,8 @@ flowchart LR
    the first bytes of each connection and adds a PROXY protocol header with
    the client's address: SSH goes to the SSH service in the tunnel (the
    header stripped first), TLS untouched through the tunnel to Traefik.
-   Port 80 only redirects to HTTPS. SSH uses `s.<domain>`.
-   record of its own, like every other host).
+   Port 80 only redirects to HTTPS. SSH uses `s.<domain>`, a DNS record of
+   its own like every other host.
 2. **TLS ends in the cluster.** Traefik's `websecure` listener holds the
    wildcard certificate from cert-manager and reads the client's address
    from the PROXY header. The server holds no certificate for the sites.
@@ -116,8 +116,11 @@ Dependencies are explicit `dependsOn` edges:
 
 ```mermaid
 flowchart LR
-  gw["gateway-api"] --> traefik --> echo & slskd & miniflux
-  cnpg["cloudnative-pg"] --> postgres --> miniflux
+  gw["gateway-api"] --> traefik --> fa["forward-auth"] --> echo & slskd & miniflux & lldap
+  traefik --> redirects
+  cnpg["cloudnative-pg"] --> postgres --> miniflux & authelia
+  lldap --> authelia
+  traefik --> authelia
   cm["cert-manager"] --> issuers["cert-manager-issuers"] --> certificate
 ```
 
@@ -206,8 +209,10 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 | Secrets only in `pass` | Nothing to leak from git, even if the repo goes public | Deploys need the workstation's GPG key |
 | [just] instead of Ansible/Terraform | Plain shell, readable, no agent or state | Idempotency is each installer's job |
 | Edge on a VPS, apps at home | CGNAT; home address stays private | One extra hop; the tunnel is a single point of failure |
+| TLS ends in the cluster | Certificates, routes and auth live under Flux and Renovate; the server holds no certificate | The server can't serve anything when the tunnel is down |
 | Auth at the Gateway | One login for every site (Traefik ForwardAuth to Authelia) | Cluster-internal traffic is not authenticated |
-| Pinned, held packages | Upgrades only after reading release notes | Manual version bumps |
+| slskd's outbound through shadowsocks | Peers see the server's address; the link is encrypted and the port answers only the key | One more service on the server; its version is pinned twice (installer and image) |
+| Pinned versions | Upgrades only after reading release notes | Manual bumps for the server's apps (Renovate ignores `server/`) |
 
 ## References
 

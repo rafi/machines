@@ -42,14 +42,18 @@ itself from a `FluxInstance`.
 - **Ingress:** [Traefik](https://traefik.io) implements the
   [Gateway API](https://gateway-api.sigs.k8s.io); apps attach `HTTPRoute`s.
   Public traffic arrives through a [rathole](https://github.com/rapiz1/rathole)
-  tunnel that the cluster opens to the server.
-- **Data:** [CloudNativePG](https://cloudnative-pg.io) runs Postgres.
+  tunnel that the cluster opens to the server, and TLS ends in Traefik with
+  a [cert-manager](https://cert-manager.io) wildcard certificate.
+- **Auth:** [Authelia](https://www.authelia.com) (ForwardAuth at the
+  Gateway) with users in [LLDAP](https://github.com/lldap/lldap).
+- **Data:** [CloudNativePG](https://cloudnative-pg.io) runs Postgres;
+  nightly [restic](https://restic.net) backups go to Backblaze B2.
 - **Apps:** [bjw-s app-template](https://bjw-s-labs.github.io/helm-charts/docs/app-template/)
   HelmReleases; upstream charts for infrastructure.
 - **Secrets:** created by `just kube secrets` from pass. Flux only
-  substitutes the domain, the server's host name, the Seerr host, slskd's ports and the alert chat ID;
-  [Reloader](https://github.com/stakater/Reloader) restarts pods when their
-  Secrets change.
+  substitutes the domain, the Seerr host, the Soulseek port and the alert
+  chat ID; [Reloader](https://github.com/stakater/Reloader) restarts pods
+  when their Secrets change.
 - **Updates:** [Renovate](https://docs.renovatebot.com) opens PRs for charts,
   images and Flux; a GitHub workflow builds every push and PR.
 
@@ -79,9 +83,9 @@ Details: [server/README.md](./server/README.md).
 
 ```
 .
-├── bin/          server creation and provisioning scripts
-├── docs/         architecture and notes
-├── kubernetes/   the Flux cluster: flux/, apps/<namespace>/<app>/, k3s/
+├── bin/          server creation and provisioning scripts, the Soulseek port check
+├── docs/         architecture and usage
+├── kubernetes/   the Flux cluster: flux/, apps/<namespace>/<app>/, components/, secrets/, k3s/
 ├── lib/          render and installer helpers for the server's deploys
 └── server/       the server: its apps (<app>/) and etc/ hardening
 ```

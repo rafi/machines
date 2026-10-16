@@ -28,7 +28,7 @@ spec:
           # are still backed up (backup.sh reports the missing dump).
           dump:
             image:
-              # Same major version as the cluster (cluster chart: Postgres 16).
+              # Same major as the database (version.postgresql in db/postgres).
               repository: ghcr.io/cloudnative-pg/postgresql
               tag: "16.14"
             command:
