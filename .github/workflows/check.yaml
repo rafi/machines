@@ -1,8 +1,8 @@
 ---
 # yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
-# Builds the Flux cluster, so a broken manifest fails here (and on
-# Renovate's PRs) before Flux pulls it. Needs no secrets: the build never
-# reads pass.
+# Renders the Flux cluster with flate, so a broken manifest or a value a
+# chart's schema rejects fails here (and on Renovate's PRs) before Flux
+# pulls it. Needs no secrets: the check never reads pass.
 name: Check
 
 on:
@@ -29,9 +29,15 @@ jobs:
         with:
           persist-credentials: false
 
-      # kustomize comes with the runner image.
       - name: Setup just
         uses: extractions/setup-just@53165ef7e734c5c07cb06b3c8e7b647c5aa16db3 # v4.0.0
 
-      - name: Build the Flux cluster
+      # The version follows the pinned tag. An empty base renders the whole
+      # tree, not only what changed.
+      - name: Setup flate
+        uses: home-operations/flate/action@631b76b69c4e58c6f4d1cb01e23616fa61aebafa # v0.6.5
+        with:
+          base: ""
+
+      - name: Render the Flux cluster
         run: just kube check

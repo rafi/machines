@@ -20,7 +20,7 @@ _default:
 	@just --list --unsorted
 
 setup:
-	brew install just kustomize helm flux yq secretspec pass gettext restic
+	brew install just helm flux yq secretspec pass gettext restic home-operations/tap/flate
 
 check-ignore:
 	find . -not -path './.git/*' | git check-ignore --stdin

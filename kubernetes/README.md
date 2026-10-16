@@ -113,12 +113,15 @@ any other. By hand:
 - **Postgres:** `version.postgresql` in `apps/db/postgres/app/helmrelease.yaml`
   (held to 16.x, like the backup's `pg_dump`); a change restarts the instance
   (about a minute: `smartShutdownTimeout` is 15s, set by a post-renderer).
-- **k3s:** not tracked by Renovate. Bump the `k3s-install` default and the
+- **k3s:** not tracked by Renovate. Bump `k3s_version` in `mod.just` and the
   version above, then `just kube k3s-install <node>`, one minor at a time.
 
-`just kube check` builds everything locally. Every HelmRelease gets the same
-install, upgrade and rollback settings from `cluster-apps`
-(`flux/cluster/ks.yaml`): a failed upgrade is retried twice and rolled back.
+`just kube check` renders everything locally with flate, charts checked
+against their schema and `kubeVersion` at `k3s_version`; `just kube render hr
+<name>` prints one release, `just kube diff [base]` the change against a
+revision. Every HelmRelease gets the same install, upgrade and rollback
+settings from `cluster-apps` (`flux/cluster/ks.yaml`): a failed upgrade is
+retried twice and rolled back.
 
 ## Values shared with the server
 

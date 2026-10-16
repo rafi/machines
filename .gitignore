@@ -9,6 +9,7 @@
 .private/
 .pytest_cache/
 .venv/.env
+kubernetes/flate-cluster-settings.yaml
 kubeconfig
 Thumbs.db
 __pycache__

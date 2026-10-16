@@ -10,15 +10,18 @@ set script-interpreter := ['bash', '-euo', 'pipefail']
 # Recipes run in kubernetes/. SECRETSPEC_PROVIDER_CONCURRENCY comes from the
 # root justfile.
 
+# The node's k3s release; `check` renders charts against it.
+k3s_version := 'v1.37.1+k3s1'
+
 _default:
 	@just --list kube --unsorted
 
 # Render k3s/config.yaml from pass and run k3s/install.sh on the node.
-# Keep `version` equal to the one in kubernetes/README.md.
+# Keep `k3s_version` equal to the one in kubernetes/README.md.
 [doc('Install k3s on the node over SSH, config from pass: just kube k3s-install <host> [version]')]
 [group('bootstrap')]
 [script]
-k3s-install host version='v1.37.1+k3s1':
+k3s-install host version=k3s_version:
 	spec=k3s/secretspec.toml
 	vars=$(grep -oE '^[A-Z][A-Z0-9_]* =' "$spec" | tr -d ' =' | sed 's/.*/${&}/' | tr '\n' ' ')
 	umask 077
@@ -163,15 +166,29 @@ restic *args:
 	secretspec run -f apps/backup/restic/secrets/secretspec.toml -- \
 		sh -c 'AWS_ACCESS_KEY_ID="$B2_KEY_ID" AWS_SECRET_ACCESS_KEY="$B2_APPLICATION_KEY" exec restic "$@"' restic "$@"
 
-# Build every Flux entrypoint and kustomization, as Flux would.
+# flate reads Secrets from any file under --path: write a placeholder
+# cluster-settings for every namespace of the tree in `dir` (gitignored).
+# A key without a placeholder here fails, unless `strict` is false (a diff's
+# base may hold keys since removed).
+[private]
+[script]
+_settings dir='.' strict='true':
+	export SECRET_DOMAIN=example.com SEERR_HOSTNAME=seerr.example.net \
+		RATHOLE_SERVER_SERVICES_SLSKD_PORT=50000 FLUX_TELEGRAM_CHAT_ID=0
+	subst='envsubst(nu, ne)'; [[ {{ strict }} == true ]] || subst=envsubst
+	for d in '{{ dir }}'/apps/*/; do
+		ns=$(basename "$d") yq "(.. | select(tag == \"!!str\")) |= $subst | .metadata.namespace = strenv(ns)" \
+			'{{ dir }}/secrets/cluster-settings.yaml'
+	done > '{{ dir }}/flate-cluster-settings.yaml'
+
+# Render every Kustomization and HelmRelease offline, as Flux would: charts
+# pulled and their values checked against the chart's schema and kubeVersion.
+[doc('Render the cluster offline with flate (chart schemas, kubeVersion); Alert sources')]
 [group('check')]
 [script('bash', '-uo', 'pipefail')]
-check:
+check: _settings
 	rc=0
-	for d in flux/cluster apps/* apps/*/*/app; do
-		if kustomize build "$d" >/dev/null 2>&1; then echo "ok    $d"
-		else echo "FAIL  $d"; rc=1; fi
-	done
+	flate test all --path . --kube-version {{ k3s_version }} --no-progress || rc=1
 	# An Alert can't select all namespaces: each needs its own event sources.
 	alert=apps/flux-system/alerts/app/alert.yaml
 	for ns in apps/*/; do
@@ -182,6 +199,21 @@ check:
 		done
 	done
 	exit $rc
+
+# Print what Flux would apply: just kube render hr <name>, or all.
+[group('check')]
+render +args: _settings
+	flate build {{ args }} --path . --kube-version {{ k3s_version }} --no-progress
+
+# Diff what Flux would apply against `base`, rendered the same way.
+[group('check')]
+[script]
+diff base='origin/master': _settings
+	tmp=$(mktemp -d)
+	trap 'git worktree remove --force "$tmp"' EXIT
+	git worktree add -q --detach "$tmp" '{{ base }}'
+	'{{ just_executable() }}' -f '{{ source_file() }}' _settings "$tmp/kubernetes" false
+	flate diff all --path . --path-orig "$tmp/kubernetes" --kube-version {{ k3s_version }} --no-progress
 
 # Force Flux to pull and apply now.
 [group('flux')]
