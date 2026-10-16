@@ -150,22 +150,12 @@ function _setup() {
 		useradd --comment Service -m -G remote deploy
 	fi
 
-	if [ ! -d /home/deploy ]; then
-		# `setgid` bit makes created files/directories inherit group ownership
-		chmod g+s /home/deploy
-
-		if hash setfacl 2>/dev/null; then
-			# ACL inherit group write permission
-			setfacl --set u::rwX,g::rwX,o::rX,d:u::rwX,d:g::rwX,d:o::rX /home/deploy
-		fi
-	fi
-
 	# Admins and users
 	if ! id "$ADMIN_USER" >/dev/null 2>&1; then
 		useradd --comment Admin -m --shell /bin/bash \
 			--no-user-group -G remote -g users "$ADMIN_USER"
 		passwd -d "$ADMIN_USER"
-		usermod -aG sudo,remote,docker,deploy "$ADMIN_USER"
+		usermod -aG sudo,remote,deploy "$ADMIN_USER"
 	fi
 
 	# Authorize admin public key
@@ -197,9 +187,10 @@ EOF
 	sed -e "s/^\(ListenStream\)=.*$/\1=$SSH_PORT/" -i /etc/systemd/system/sockets.target.wants/ssh.socket
 	systemctl daemon-reload
 
-	# See https://www.cyberciti.biz/faq/linux-kernel-etcsysctl-conf-security-hardening/
-	echo 'net.ipv4.tcp_syncookies = 1' >> /etc/sysctl.d/local.conf
-	service procps force-reload
+	# Kernel network hardening (server/etc/sysctl); 11- sorts after Ubuntu's
+	# 10-network-security.conf, so these values win.
+	install -m 644 .setup/etc/sysctl/11-network-security.conf /etc/sysctl.d/
+	sysctl --system >/dev/null
 
 	# Fail2ban
 	apt-get -yq install fail2ban

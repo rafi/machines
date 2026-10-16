@@ -19,10 +19,14 @@ env_keys() {
 	sed -n 's/^export \([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' "$1"
 }
 
-# Copy stdin to stdout, substituting only the .env.sh's keys.
+# Copy stdin to stdout, substituting only the .env.sh's keys. With no keys
+# it copies as is: envsubst with an empty list would replace every $VAR.
 # Usage: subst <env.sh> < in > out
 subst() {
-	with_env "$1" envsubst "$(env_keys "$1" | sed 's/.*/${&}/')"
+	local keys
+	keys="$(env_keys "$1" | sed 's/.*/${&}/')"
+	if [ -z "$keys" ]; then cat; return; fi
+	with_env "$1" envsubst "$keys"
 }
 
 # Print values as systemd EnvironmentFile= lines: KEY="value", with
@@ -38,10 +42,15 @@ env_systemd() (
 )
 
 # Write the app's values to <env.sh> and render its files/ into <dir>.
+# An app without a secretspec.toml has no values.
 # Usage: stage <app dir> <dir> <env.sh>
 stage() {
 	local app="$1" f tmp
-	secretspec -f "$app/secretspec.toml" export --format shell > "$3"
+	if [ -f "$app/secretspec.toml" ]; then
+		secretspec -f "$app/secretspec.toml" export --format shell > "$3"
+	else
+		: > "$3"
+	fi
 	mkdir -p "$2"
 	[ ! -d "$app/files" ] || cp -R "$app/files/." "$2/"
 	tmp="$(mktemp)"

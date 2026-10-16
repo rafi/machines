@@ -21,7 +21,6 @@ _default:
 
 setup:
 	brew install just kustomize helm flux yq secretspec pass gettext restic
-	helm plugin install https://github.com/databus23/helm-diff --verify=false || true
 
 check-ignore:
 	find . -not -path './.git/*' | git check-ignore --stdin
