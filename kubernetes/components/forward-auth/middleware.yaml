@@ -1,0 +1,22 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/traefik.io/middleware_v1alpha1.json
+# Asks Authelia whether the request's session may see the page; without one,
+# Authelia answers with a redirect to auth.<domain>. Use it on an HTTPRoute
+# rule:
+#   filters:
+#     - type: ExtensionRef
+#       extensionRef: { group: traefik.io, kind: Middleware, name: authelia }
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: authelia
+spec:
+  forwardAuth:
+    address: http://authelia.auth.svc.cluster.local:9091/api/authz/forward-auth
+    # The entrypoint has already replaced any client-sent X-Forwarded-*.
+    trustForwardHeader: true
+    authResponseHeaders:
+      - Remote-User
+      - Remote-Groups
+      - Remote-Email
+      - Remote-Name

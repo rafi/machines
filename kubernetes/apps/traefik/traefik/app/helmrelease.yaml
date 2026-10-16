@@ -50,8 +50,13 @@ spec:
       websecure:
         port: 8443
         exposedPort: 443
-        forwardedHeaders:
-          insecure: true
+        # Reached through the server's nginx stream block and rathole's
+        # ingress-tls service: the client's address arrives in a PROXY header
+        # from the rathole client, a pod (k3s' pod network). Forwarded headers
+        # are not trusted here: the client talks to Traefik directly.
+        proxyProtocol:
+          trustedIPs:
+            - 10.42.0.0/16
         http:
           aliasHeadersStrategy: delete
       # Internal entrypoints (not exposed); set only to silence the warning.

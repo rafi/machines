@@ -36,6 +36,10 @@ sudo mv -vf "$TEMP_DIR"/certbot.sh /usr/local/bin/
 sudo mv -vf "$TEMP_DIR"/nginx.conf "$CONFIG_DIR"/
 sudo mkdir -p "$CONFIG_DIR"/snippets
 sudo mv -vf "$TEMP_DIR"/snippets/* "$CONFIG_DIR"/snippets/
+# This app owns every site: one that left files/sites-enabled/ goes here too.
+for f in "$CONFIG_DIR"/sites-enabled/*; do
+	test -e "$TEMP_DIR/sites-enabled/${f##*/}" || sudo rm -vf "$f"
+done
 sudo mv -vf "$TEMP_DIR"/sites-enabled/* "$CONFIG_DIR"/sites-enabled/
 sudo rm -rf "$TEMP_DIR"
 

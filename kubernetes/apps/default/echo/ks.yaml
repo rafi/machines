@@ -8,6 +8,7 @@ spec:
   dependsOn:
     - name: traefik
       namespace: traefik
+    - name: forward-auth
   interval: 1h
   path: ./kubernetes/apps/default/echo/app
   prune: true

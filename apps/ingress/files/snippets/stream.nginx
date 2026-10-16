@@ -1,41 +1,56 @@
+# Port 443 carries SSH and TLS. Every connection gets a PROXY protocol header
+# with the client's address, so whoever ends it knows who connected:
+# - not TLS (SSH): through ssh-strip below, which drops the header, to
+#   rathole's ssh service;
+# - TLS for a host in `cluster`: encrypted and untouched to rathole's
+#   ingress-tls service and Traefik's websecure port, which terminates it;
+# - any other TLS: to nginx's http sites on the unix socket, which
+#   terminate it with the server's certificate.
 stream {
 	upstream ssh {
-		server 127.0.0.1:32022;
+		server unix:/run/nginx-ssh.sock;
 	}
 
 	upstream web {
 		server unix:/run/nginx-ingress.sock;
-		# server 127.0.0.1:9443;
 	}
 
-	# map $ssl_preread_server_name $upstream {
-	#     default ssh;
-	#     echo.${SECRET_DOMAIN} web;
-	#     ldap.${SECRET_DOMAIN} web;
-	# }
+	upstream cluster {
+		server 127.0.0.1:32443;
+	}
+
+	# Hosts whose TLS ends in the cluster. Move a site by adding it here and
+	# removing its file from sites-enabled/.
+	map $ssl_preread_server_name $tls_upstream {
+		hostnames;
+		echo.${SECRET_DOMAIN} cluster;
+		default web;
+	}
 
 	map $ssl_preread_protocol $upstream {
 		"" ssh;
-		"TLSv1.3" web;
-		"TLSv1.2" web;
-		default web;
-		# "TLSv1.1" web;
-		# "TLSv1.0" web;
+		default $tls_upstream;
 	}
 
-	# SSH and SSL on the same port
 	server {
 		listen 443;
-
-		# resolver 1.1.1.1;
 
 		# Max time to connect to server
 		proxy_connect_timeout 10s;
 		# Max time between successive reads or writes
-		proxy_timeout         5m;
+		proxy_timeout 5m;
 
-		proxy_pass $upstream;
 		ssl_preread on;
+		proxy_protocol on;
+		proxy_pass $upstream;
+	}
+
+	# ssh-strip: sshd doesn't speak the PROXY protocol.
+	server {
+		listen unix:/run/nginx-ssh.sock proxy_protocol;
+		proxy_connect_timeout 10s;
+		proxy_timeout 5m;
+		proxy_pass 127.0.0.1:32022;
 	}
 }
 

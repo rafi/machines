@@ -24,6 +24,9 @@ server:
       # nginx on the server: auth_request through the rathole service.
       auth-request:
         implementation: 'AuthRequest'
+      # Traefik: the ForwardAuth Middleware (kubernetes/components/forward-auth).
+      forward-auth:
+        implementation: 'ForwardAuth'
 
 log:
   level: info

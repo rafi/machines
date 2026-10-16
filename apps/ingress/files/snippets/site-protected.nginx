@@ -1,6 +1,6 @@
 # 'server' block
 
-listen unix:/run/nginx-ingress.sock ssl http2;
+listen unix:/run/nginx-ingress.sock ssl http2 proxy_protocol;
 
 ssl_certificate /etc/letsencrypt/live/${SECRET_DOMAIN}/fullchain.pem;
 ssl_certificate_key /etc/letsencrypt/live/${SECRET_DOMAIN}/privkey.pem;

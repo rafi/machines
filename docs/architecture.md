@@ -42,13 +42,16 @@ the tunnel's services on local ports.
 flowchart LR
   user(["Client"]) -- ":443" --> stream
   subgraph vps["The server"]
-    stream["nginx stream<br/>ssl_preread"] -- "TLS" --> http["nginx http<br/>TLS + auth_request"]
+    stream["nginx stream<br/>ssl_preread, PROXY header"] -- "TLS, other hosts" --> http["nginx http<br/>TLS + auth_request"]
     http -. "verify (auth_request), 127.0.0.1:9091" .-> rs
     http --> rs["rathole server"]
+    stream -- "TLS, cluster hosts (untouched)" --> rs
     stream -- "not TLS (SSH)" --> rs
   end
   subgraph home["The cluster"]
-    rc["rathole client"] --> gw["Traefik<br/>Gateway"] --> route["HTTPRoute"] --> svc["Service"]
+    rc["rathole client"] -- ":80 from nginx" --> gw["Traefik<br/>Gateway"] --> route["HTTPRoute"] --> svc["Service"]
+    rc -- ":443 TLS + PROXY" --> gw
+    gw -. "ForwardAuth" .-> authelia
     rc --> sshd["node sshd"]
     rc -. "verify" .-> authelia["Authelia"] -. "LDAP" .-> lldap["LLDAP"]
   end
@@ -56,19 +59,27 @@ flowchart LR
 ```
 
 1. **Port 443 is shared.** nginx's [stream module][ssl_preread] peeks at
-   the first bytes of each connection: a TLS ClientHello goes to the HTTP
-   server on a unix socket, anything else to the SSH service in the tunnel.
-2. **TLS ends on the server**, with a wildcard Let's Encrypt certificate
-   issued by [certbot] (DNS-01).
-3. **Authentication happens at the edge.** Protected sites call Authelia
-   through [`auth_request`][auth_request]
-   ([Authelia's nginx integration][authelia-nginx]). Authelia runs in the
-   cluster with LLDAP; nginx reaches it through the tunnel on the server's
-   loopback (`127.0.0.1:9091`). The cluster sees authenticated requests only.
-4. **Routing happens in the cluster.** The tunnel ends at Traefik, the
-   [Gateway API] implementation; each app attaches an `HTTPRoute`.
+   the first bytes of each connection and adds a PROXY protocol header with
+   the client's address: SSH goes to the SSH service in the tunnel (the
+   header stripped first), TLS by its server name either to nginx's HTTP
+   server on a unix socket or, untouched, through the tunnel to Traefik.
+2. **TLS ends in the cluster for the hosts moved there** (the `cluster` map
+   in [`stream.nginx`](../apps/ingress/files/snippets/stream.nginx)):
+   Traefik's `websecure` listener holds the wildcard certificate from
+   cert-manager and reads the client's address from the PROXY header. Their
+   routes attach to `websecure` and log in through the `authelia`
+   ForwardAuth Middleware
+   ([`kubernetes/components/forward-auth`](../kubernetes/components/forward-auth)).
+3. **For the other hosts TLS ends on the server**, with a wildcard Let's
+   Encrypt certificate issued by [certbot] (DNS-01). Protected sites call
+   Authelia through [`auth_request`][auth_request]
+   ([Authelia's nginx integration][authelia-nginx]), reached through the
+   tunnel on the server's loopback (`127.0.0.1:9091`), and pass the request
+   to Traefik's `web` listener.
+4. **Routing happens in the cluster.** Each app attaches an `HTTPRoute` to
+   the Gateway; the cluster sees authenticated requests only.
 
-Each site is one file in
+Each server-terminated site is one file in
 [`apps/ingress/files/sites-enabled/`](../apps/ingress/files/sites-enabled/)
 and includes either `site-protected` or `site-insecure` from `snippets/`.
 

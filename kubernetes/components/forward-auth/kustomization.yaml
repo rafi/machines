@@ -1,0 +1,9 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+# Middleware `authelia` for one namespace. An HTTPRoute can only use a
+# Middleware from its own namespace (ExtensionRef), so each namespace with
+# protected routes applies this once, from its `forward-auth` Kustomization.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+resources:
+  - ./middleware.yaml
