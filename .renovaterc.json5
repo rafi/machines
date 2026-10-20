@@ -2,7 +2,7 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   // Managers for Flux (HelmRelease, OCIRepository, GitRepository), images in
   // HelmRelease values, GitHub Actions pinned to digests, commit messages.
-  extends: ["github>home-operations/renovate-presets#8.1.0"],
+  extends: ["github>home-operations/renovate-presets#9.0.0"],
   // The cluster and CI only: the server's versions are pinned in its
   // installers.
   ignorePaths: ["server/**"],
