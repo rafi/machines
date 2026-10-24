@@ -50,7 +50,6 @@ spec:
                   httpGet: &health
                     path: /health
                     port: 5030
-                  periodSeconds: 10
                   timeoutSeconds: 5
                   failureThreshold: 5
               readiness: *probe
@@ -102,7 +101,6 @@ spec:
         rules:
           - matches:
               - path:
-                  type: PathPrefix
                   value: /slsk
             filters:
               - type: ExtensionRef

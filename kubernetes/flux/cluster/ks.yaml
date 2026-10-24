@@ -8,13 +8,15 @@ metadata:
   name: cluster-apps
   namespace: flux-system
 spec:
+  # Deleting cluster-apps (a wrong sync path, an uninstall) leaves the apps
+  # running instead of deleting every Kustomization and HelmRelease under it.
+  deletionPolicy: Orphan
   interval: 1h
   path: ./kubernetes/apps
   prune: true
   sourceRef:
     kind: GitRepository
     name: flux-system
-  wait: false
   patches:
     # Every app Kustomization substitutes ${SECRET_DOMAIN} from Secret
     # cluster-settings in its own namespace (`just kube secrets` creates it).
