@@ -5,7 +5,7 @@ The public server in front of the cluster: nginx (port 443 forwarding, port
 connections). Values come from
 `pass` (`secretspec/machines/default/<KEY>`); nothing secret is in this repo.
 Authelia and LLDAP run in the cluster (`kubernetes/apps/auth`). nginx only
-forwards: TLS untouched to the cluster, SSH (`s.<domain>`) to the node.
+forwards: TLS untouched to the cluster, SSH to the node.
 
 ## Create and set up
 

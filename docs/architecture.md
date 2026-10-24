@@ -60,8 +60,9 @@ flowchart LR
    the first bytes of each connection and adds a PROXY protocol header with
    the client's address: SSH goes to the SSH service in the tunnel (the
    header stripped first), TLS untouched through the tunnel to Traefik.
-   Port 80 only redirects to HTTPS. SSH uses `s.<domain>`, a DNS record of
-   its own like every other host.
+   Port 80 only redirects to HTTPS. A DNS-only wildcard record at
+   Cloudflare (`*.<domain>`) points every host name at the server, so a new
+   host needs no DNS change; the apex has a record of its own.
 2. **TLS ends in the cluster.** Traefik's `websecure` listener holds the
    wildcard certificate from cert-manager and reads the client's address
    from the PROXY header. The server holds no certificate for the sites.
@@ -222,6 +223,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 | Edge on a VPS, apps at home | CGNAT; home address stays private | One extra hop; the tunnel is a single point of failure |
 | TLS ends in the cluster | Certificates, routes and auth live under Flux and Renovate; the server holds no certificate | The server can't serve anything when the tunnel is down |
 | Auth at the Gateway | One login for every site (Traefik ForwardAuth to Authelia) | Cluster-internal traffic is not authenticated |
+| Wildcard DNS record | A new host is only an `HTTPRoute`; DNS doesn't reveal which hosts exist, as the wildcard certificate keeps them out of CT logs | Every name resolves: typos and scanners reach Traefik and get a 404 |
 | CrowdSec's bouncer fails open | A LAPI outage never takes the sites down | Bans made during an outage, or before a Traefik restart, wait for LAPI |
 | slskd's outbound through shadowsocks | Peers see the server's address; the link is encrypted and the port answers only the key | One more service on the server; its version is pinned twice (installer and image) |
 | Pinned versions | Upgrades only after reading release notes | Manual bumps for the server's apps (Renovate ignores `server/`) |
@@ -234,9 +236,9 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 - [onedr0p/home-ops], whose cluster layout this follows
 
 [app-template]: https://bjw-s-labs.github.io/helm-charts/docs/app-template/
+[Atuin]: https://atuin.sh
 [Authelia]: https://www.authelia.com/integration/proxies/traefik/
 [cert-manager]: https://cert-manager.io
-[Atuin]: https://atuin.sh
 [CloudNativePG]: https://cloudnative-pg.io
 [CrowdSec]: https://docs.crowdsec.net
 [CrowdSec web UI]: https://github.com/TheDuffman85/crowdsec-web-ui
