@@ -102,10 +102,10 @@ shared by the server and the cluster; see
 | Ingress | [Traefik] implementing the [Gateway API]; its `websecure` listener terminates TLS for every host with the wildcard certificate |
 | Certificates | [cert-manager]: `<domain>` + `*.<domain>` from Let's Encrypt, DNS-01 on Cloudflare with a token limited to the zone's DNS |
 | Database | [CloudNativePG] operator and one Postgres cluster |
-| Apps | [app-template] HelmReleases: miniflux, slskd, rathole client, [LLDAP], [Authelia] (storage in Postgres), [CrowdSec web UI] (`crowdsec.<domain>`); echo from its own chart |
+| Apps | [app-template] HelmReleases: miniflux, slskd, [Atuin] sync server (`atuin.<domain>`, its own accounts, no Authelia), rathole client, [LLDAP], [Authelia] (storage in Postgres), [CrowdSec web UI] (`crowdsec.<domain>`); echo from its own chart |
 | Security | [CrowdSec] agent and LAPI from CrowdSec's chart; Traefik's [bouncer plugin][crowdsec-bouncer], fetched from GitHub at its pinned tag when Traefik starts |
 | Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just kube check`; Flux errors go to Telegram |
-| Backups | Nightly [restic] CronJob: `pg_dump`s of miniflux and authelia, `/opt/slskd` and `/opt/lldap`, encrypted on the node, to Backblaze B2 |
+| Backups | Nightly [restic] CronJob: `pg_dump`s of miniflux and authelia, `/opt/slskd`, `/opt/lldap` and `/opt/atuin`, encrypted on the node, to Backblaze B2 |
 
 The FluxInstance makes Flux sync [`kubernetes/flux/cluster`](../kubernetes/flux/cluster), whose `cluster-apps`
 Kustomization applies every namespace in
@@ -128,7 +128,7 @@ Dependencies are explicit `dependsOn` edges:
 flowchart LR
   gw["gateway-api"] --> traefik --> fa["forward-auth"] --> echo & slskd & miniflux & lldap & webui["crowdsec-web-ui"]
   crowdsec --> webui
-  traefik --> redirects
+  traefik --> redirects & atuin
   cnpg["cloudnative-pg"] --> postgres --> miniflux & authelia
   lldap --> authelia
   traefik --> authelia
@@ -236,6 +236,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 [app-template]: https://bjw-s-labs.github.io/helm-charts/docs/app-template/
 [Authelia]: https://www.authelia.com/integration/proxies/traefik/
 [cert-manager]: https://cert-manager.io
+[Atuin]: https://atuin.sh
 [CloudNativePG]: https://cloudnative-pg.io
 [CrowdSec]: https://docs.crowdsec.net
 [CrowdSec web UI]: https://github.com/TheDuffman85/crowdsec-web-ui

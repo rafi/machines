@@ -1,8 +1,9 @@
 #!/bin/sh
 # Nightly backup to the restic repository on B2: the miniflux and authelia
 # dumps written by the `dump` init containers to /dump, slskd's state at
-# /data/slskd and lldap's SQLite database at /data/lldap (copied live: lldap
-# rarely writes).
+# /data/slskd, lldap's SQLite database at /data/lldap (copied live: lldap
+# rarely writes) and atuin's at /data/atuin (copied live: a sync at 04:00 is
+# rare, and its clients keep all history and upload what the server lacks).
 # restic encrypts with RESTIC_PASSWORD before anything leaves the node.
 # Any failure is sent to Telegram and fails the Job.
 set -u
@@ -25,7 +26,7 @@ restic cat config >/dev/null 2>&1 || restic init || fail "restic init"
 # slskd's downloads/ and incomplete/ are transfers, not state.
 restic backup --host "$host" \
 	--exclude /data/slskd/downloads --exclude /data/slskd/incomplete \
-	/dump /data/slskd /data/lldap || fail "restic backup"
+	/dump /data/slskd /data/lldap /data/atuin || fail "restic backup"
 restic forget --host "$host" --keep-daily 7 --keep-weekly 4 --keep-monthly 6 --prune \
 	|| fail "restic forget"
 

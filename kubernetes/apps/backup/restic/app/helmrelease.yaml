@@ -1,7 +1,7 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
 # Nightly encrypted backup of the miniflux and authelia databases,
-# /opt/slskd and /opt/lldap to B2.
+# /opt/slskd, /opt/lldap and /opt/atuin to B2.
 # Secret restic-env: `just kube secrets restic`. Restores: kubernetes/README.md.
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
@@ -23,7 +23,7 @@ spec:
           backoffLimit: 0
           successfulJobsHistory: 3
           failedJobsHistory: 3
-        # /opt/slskd and /opt/lldap are owned by 1000:1000 (the apps' user).
+        # /opt/slskd, /opt/lldap and /opt/atuin are owned by 1000:1000 (the apps' user).
         pod:
           securityContext:
             runAsUser: 1000
@@ -122,6 +122,15 @@ spec:
           restic:
             app:
               - path: /data/lldap
+                readOnly: true
+      atuin:
+        type: hostPath
+        hostPath: /opt/atuin
+        hostPathType: Directory
+        advancedMounts:
+          restic:
+            app:
+              - path: /data/atuin
                 readOnly: true
       tmp:
         type: emptyDir

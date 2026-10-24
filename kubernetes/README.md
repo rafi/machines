@@ -58,20 +58,22 @@ cert-manager, then its ClusterIssuers, then the wildcard certificate (Secret
 `wildcard-tls` in `traefik`). A rebuild issues a new certificate: Let's
 Encrypt allows 5 for the same names per week.
 
-The CrowdSec web UI runs as 1000:1000 on a hostPath, like slskd and LLDAP:
-before its first start, `ssh <node> sudo install -d -o 1000 -g 1000 /opt/crowdsec-web-ui`.
+The CrowdSec web UI and Atuin run as 1000:1000 on a hostPath, like slskd and
+LLDAP: before their first start,
+`ssh <node> sudo install -d -o 1000 -g 1000 /opt/crowdsec-web-ui /opt/atuin`.
 
 ### 4. Data not in git
 
 Flux restores manifests; Secrets come from `pass`. The rest comes from the
 nightly backup (04:00, `apps/backup/restic`): restic, encrypted with
 `RESTIC_PASSWORD`, to a B2 bucket. It holds `pg_dump`s of the miniflux and
-authelia databases, `/opt/slskd` without `downloads/` and `incomplete/`, and
-`/opt/lldap` (LLDAP's users and groups); 7 daily, 4 weekly and 6 monthly
-snapshots. The media folders slskd shares are not backed up. A failed run is
-reported on Telegram. CrowdSec is not backed up: its bans and alerts (LAPI's
-PVCs in `crowdsec`) rebuild themselves, and the web UI's settings
-(`/opt/crowdsec-web-ui`) start over.
+authelia databases, `/opt/slskd` without `downloads/` and `incomplete/`,
+`/opt/lldap` (LLDAP's users and groups) and `/opt/atuin` (Atuin's SQLite
+database, copied live; its clients also keep their whole history); 7 daily,
+4 weekly and 6 monthly snapshots. The media folders slskd shares are not
+backed up. A failed run is reported on Telegram. CrowdSec is not backed up:
+its bans and alerts (LAPI's PVCs in `crowdsec`) rebuild themselves, and the
+web UI's settings (`/opt/crowdsec-web-ui`) start over.
 
 ```sh
 just kube restic snapshots                 # restic comes from `mise install`
@@ -99,6 +101,12 @@ kubectl -n auth scale deploy/lldap --replicas=0
 just kube restic restore latest --include /data/lldap --target /tmp/restore
 rsync -a --chown=1000:1000 --rsync-path='sudo rsync' /tmp/restore/data/lldap/ <node>:/opt/lldap/
 kubectl -n auth scale deploy/lldap --replicas=1
+
+# Atuin (runs as 1000:1000)
+kubectl -n default scale deploy/atuin --replicas=0
+just kube restic restore latest --include /data/atuin --target /tmp/restore
+rsync -a --chown=1000:1000 --rsync-path='sudo rsync' /tmp/restore/data/atuin/ <node>:/opt/atuin/
+kubectl -n default scale deploy/atuin --replicas=1
 ```
 
 Run a backup now: `kubectl -n backup create job --from=cronjob/restic restic-manual`.
