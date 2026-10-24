@@ -27,7 +27,7 @@ spec:
       # at every start (Traefik's plugin catalog is not involved).
       initContainers:
         - name: fetch-crowdsec-bouncer
-          image: mirror.gcr.io/library/alpine:3.22
+          image: mirror.gcr.io/library/alpine:3.24
           env:
             # renovate: datasource=github-releases depName=maxlerebourg/crowdsec-bouncer-traefik-plugin
             - { name: PLUGIN_VERSION, value: v1.8.1 }
