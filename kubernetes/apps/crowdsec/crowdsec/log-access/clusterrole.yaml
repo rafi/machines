@@ -1,0 +1,14 @@
+---
+# Read pods and their logs; bound per namespace in rolebindings.yaml, so the
+# agent reads only the namespaces it watches.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crowdsec-log-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]

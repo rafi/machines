@@ -1,0 +1,96 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+# https://github.com/crowdsecurity/helm-charts/tree/main/charts/crowdsec
+# Secret crowdsec-env: `just kube secrets crowdsec`.
+# The agent reads Traefik's access log and Authelia's log through the
+# Kubernetes API and bans the IPs behind attacks (scans, CVE probes, login
+# brute force). LAPI keeps the bans, adds CrowdSec's community blocklist,
+# and serves them to Traefik's bouncer plugin (../../../traefik/traefik).
+# Not backed up: bans and alerts rebuild themselves.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: crowdsec
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: crowdsec
+  # The chart's schema doesn't know the `kubernetes` log source.
+  install:
+    disableSchemaValidation: true
+  interval: 1h
+  upgrade:
+    disableSchemaValidation: true
+  values:
+    # The default (docker) expects /var/lib/docker/containers.
+    container_runtime: containerd
+    image:
+      repository: crowdsecurity/crowdsec
+      tag: v1.8.1
+    lapi:
+      podAnnotations:
+        secret.reloader.stakater.com/reload: crowdsec-env
+      env:
+        - name: USE_WAL
+          value: "true"
+        # Registers the bouncer `traefik` with this key at every start.
+        - name: BOUNCER_KEY_traefik
+          valueFrom:
+            secretKeyRef:
+              name: crowdsec-env
+              key: BOUNCER_KEY
+      # The web UI logs in as a watcher. Runs the chart's own config setup,
+      # then adds (or resets) the machine before LAPI starts.
+      extraInitContainers:
+        - name: add-web-ui-machine
+          image: crowdsecurity/crowdsec:v1.8.1
+          command:
+            - sh
+            - -c
+            - >-
+              cp -nR /staging/etc/crowdsec/* /etc/crowdsec_data/ &&
+              ln -s /etc/crowdsec_data /etc/crowdsec &&
+              cscli machines add crowdsec-web-ui --password "$PASSWORD" -f /dev/null --force
+          env:
+            - name: PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: crowdsec-env
+                  key: WEB_UI_PASSWORD
+          volumeMounts:
+            - name: crowdsec-db
+              mountPath: /var/lib/crowdsec/data
+              subPath: crowdsec
+            - name: crowdsec-config
+              mountPath: /etc/crowdsec_data
+      resources:
+        requests:
+          cpu: 20m
+          memory: 64Mi
+        limits:
+          memory: 500Mi
+    agent:
+      isDeployment: true
+      # Logs come from the Kubernetes API, not the node's /var/log.
+      hostVarLog: false
+      serviceAccountName: crowdsec-agent
+      additionalAcquisition:
+        - source: kubernetes
+          namespace: traefik
+          selector: app.kubernetes.io/name=traefik
+          labels:
+            type: traefik
+        - source: kubernetes
+          namespace: auth
+          selector: app.kubernetes.io/name=authelia
+          labels:
+            type: authelia
+      env:
+        - name: COLLECTIONS
+          value: crowdsecurity/traefik LePresidente/authelia
+      resources:
+        requests:
+          cpu: 20m
+          memory: 96Mi
+        limits:
+          memory: 250Mi

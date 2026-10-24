@@ -52,10 +52,14 @@ just kube routes      # every Gateway and HTTPRoute accepted
 Secrets go in first, so Flux never reconciles without `cluster-settings`.
 The operator installs Flux, which syncs `kubernetes/flux/cluster`. Order is
 enforced by `dependsOn`: gateway-api, then traefik; cloudnative-pg, then
-postgres, then miniflux and authelia (which also waits for lldap);
+postgres, then miniflux and authelia (which also waits for lldap); crowdsec,
+then its web UI;
 cert-manager, then its ClusterIssuers, then the wildcard certificate (Secret
 `wildcard-tls` in `traefik`). A rebuild issues a new certificate: Let's
 Encrypt allows 5 for the same names per week.
+
+The CrowdSec web UI runs as 1000:1000 on a hostPath, like slskd and LLDAP:
+before its first start, `ssh <node> sudo install -d -o 1000 -g 1000 /opt/crowdsec-web-ui`.
 
 ### 4. Data not in git
 
@@ -65,7 +69,9 @@ nightly backup (04:00, `apps/backup/restic`): restic, encrypted with
 authelia databases, `/opt/slskd` without `downloads/` and `incomplete/`, and
 `/opt/lldap` (LLDAP's users and groups); 7 daily, 4 weekly and 6 monthly
 snapshots. The media folders slskd shares are not backed up. A failed run is
-reported on Telegram.
+reported on Telegram. CrowdSec is not backed up: its bans and alerts (LAPI's
+PVCs in `crowdsec`) rebuild themselves, and the web UI's settings
+(`/opt/crowdsec-web-ui`) start over.
 
 ```sh
 just kube restic snapshots                 # restic comes from `mise install`
@@ -161,7 +167,8 @@ kubectl -n flux-system get fluxinstance flux
   `just kube secrets`.
 - Pods read Secrets at start. Reloader restarts those annotated
   `reloader.stakater.com/auto: "true"` (miniflux, slskd, rathole-client, lldap,
-  authelia; authelia also on its ConfigMap)
+  authelia, crowdsec-web-ui; authelia also on its ConfigMap), and CrowdSec's
+  LAPI and Traefik on their CrowdSec Secrets
   when `just kube secrets` changes a Secret they use; any other pod needs
   `kubectl -n <ns> rollout restart deploy/<app>`.
 - The certificate isn't Ready: `kubectl -n traefik describe certificate wildcard`,
@@ -170,3 +177,11 @@ kubectl -n flux-system get fluxinstance flux
   after replacing it in pass, `just kube secrets cert-manager`. To test
   without Let's Encrypt's production limits, point the Certificate's
   `issuerRef` at `letsencrypt-staging`.
+- A site answers 403 to one address: CrowdSec banned it. See why on
+  `crowdsec.<domain>` or with
+  `kubectl -n crowdsec exec deploy/crowdsec-lapi -- cscli decisions list`;
+  lift it with `cscli decisions delete --ip <ip>`. Traefik's bouncer pulls
+  the ban list every minute; when LAPI is down it keeps the last list and
+  blocks nothing else. Traefik fetches the bouncer plugin from GitHub at
+  every start: if its `fetch-crowdsec-bouncer` init container fails, the new
+  pod doesn't start (`kubectl -n traefik logs deploy/traefik -c fetch-crowdsec-bouncer`).

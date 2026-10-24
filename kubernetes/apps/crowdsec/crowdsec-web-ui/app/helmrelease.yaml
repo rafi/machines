@@ -1,0 +1,101 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+# https://github.com/TheDuffman85/crowdsec-web-ui
+# Its password comes from Secret crowdsec-env (../../crowdsec/secrets). It
+# logs in to LAPI as the watcher `crowdsec-web-ui`, which LAPI's init
+# container creates with that password.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: crowdsec-web-ui
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: crowdsec-web-ui
+  interval: 1h
+  values:
+    controllers:
+      crowdsec-web-ui:
+        annotations:
+          reloader.stakater.com/auto: "true"
+        # One instance: its SQLite database is on a hostPath.
+        strategy: Recreate
+        # Runs as node (1000:1000); /opt/crowdsec-web-ui on the node must be
+        # owned by it (fsGroup doesn't chown a hostPath).
+        pod:
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+        containers:
+          app:
+            image:
+              repository: ghcr.io/theduffman85/crowdsec-web-ui
+              tag: 2026.10.10
+            env:
+              CONFIG_INSTANCE_LAPI_URL: http://crowdsec-service.crowdsec.svc.cluster.local:8080
+              CONFIG_INSTANCE_LAPI_AUTH_USERNAME: crowdsec-web-ui
+              CONFIG_INSTANCE_LAPI_AUTH_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: crowdsec-env
+                    key: WEB_UI_PASSWORD
+              # Authelia guards the route; the UI's own login is off.
+              CONFIG_AUTH_ENABLED: "false"
+              # Renovate brings new versions.
+              CONFIG_UPDATES_ENABLED: "false"
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/health
+                    port: &port 3000
+              readiness: *probe
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"] }
+            resources:
+              requests:
+                cpu: 10m
+                memory: 128Mi
+              limits:
+                memory: 512Mi
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+    route:
+      app:
+        hostnames:
+          - crowdsec.${SECRET_DOMAIN}
+        parentRefs:
+          - name: traefik-gateway
+            namespace: traefik
+            sectionName: websecure
+        rules:
+          - filters:
+              - type: ExtensionRef
+                extensionRef:
+                  group: traefik.io
+                  kind: Middleware
+                  name: authelia
+            backendRefs:
+              - identifier: app
+                port: *port
+    persistence:
+      # Its settings, cached alerts and session secret; not backed up.
+      data:
+        type: hostPath
+        hostPath: /opt/crowdsec-web-ui
+        hostPathType: DirectoryOrCreate
+        globalMounts:
+          - path: /app/data
+      # SQLite's temporary files, on a read-only root.
+      tmp:
+        type: emptyDir
+        globalMounts:
+          - path: /tmp

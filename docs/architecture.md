@@ -48,6 +48,9 @@ flowchart LR
   subgraph home["The cluster"]
     rc["rathole client"] -- ":443 TLS + PROXY" --> gw["Traefik<br/>Gateway (websecure)"] --> route["HTTPRoute"] --> svc["Service"]
     gw -. "ForwardAuth" .-> authelia["Authelia"] -. "LDAP" .-> lldap["LLDAP"]
+    gw -. "ban list (stream)" .-> lapi["CrowdSec LAPI"]
+    agent["CrowdSec agent"] -. "logs (Kubernetes API)" .-> gw & authelia
+    agent --> lapi
     rc --> sshd["node sshd"]
   end
   rs == "tunnel (client-initiated)" === rc
@@ -69,6 +72,12 @@ flowchart LR
    `auth.<domain>`.
 4. **Routing happens in the cluster.** Each app attaches an `HTTPRoute` to
    `websecure`; `init.` and `req.` are redirect routes.
+5. **Abusive addresses are blocked at the Gateway.** [CrowdSec]'s agent
+   reads Traefik's access log and Authelia's login attempts and bans the
+   addresses behind scans, CVE probes and brute force; LAPI adds CrowdSec's
+   community blocklist. A bouncer plugin on `websecure` (`crowdsec@file`)
+   answers 403 to banned addresses on every host. It keeps the last ban list
+   in memory and lets everything else through when LAPI is down.
 
 ### Soulseek
 
@@ -93,7 +102,8 @@ shared by the server and the cluster; see
 | Ingress | [Traefik] implementing the [Gateway API]; its `websecure` listener terminates TLS for every host with the wildcard certificate |
 | Certificates | [cert-manager]: `<domain>` + `*.<domain>` from Let's Encrypt, DNS-01 on Cloudflare with a token limited to the zone's DNS |
 | Database | [CloudNativePG] operator and one Postgres cluster |
-| Apps | [app-template] HelmReleases: miniflux, slskd, rathole client, [LLDAP], [Authelia] (storage in Postgres); echo from its own chart |
+| Apps | [app-template] HelmReleases: miniflux, slskd, rathole client, [LLDAP], [Authelia] (storage in Postgres), [CrowdSec web UI] (`crowdsec.<domain>`); echo from its own chart |
+| Security | [CrowdSec] agent and LAPI from CrowdSec's chart; Traefik's [bouncer plugin][crowdsec-bouncer], fetched from GitHub at its pinned tag when Traefik starts |
 | Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just kube check`; Flux errors go to Telegram |
 | Backups | Nightly [restic] CronJob: `pg_dump`s of miniflux and authelia, `/opt/slskd` and `/opt/lldap`, encrypted on the node, to Backblaze B2 |
 
@@ -116,7 +126,8 @@ Dependencies are explicit `dependsOn` edges:
 
 ```mermaid
 flowchart LR
-  gw["gateway-api"] --> traefik --> fa["forward-auth"] --> echo & slskd & miniflux & lldap
+  gw["gateway-api"] --> traefik --> fa["forward-auth"] --> echo & slskd & miniflux & lldap & webui["crowdsec-web-ui"]
+  crowdsec --> webui
   traefik --> redirects
   cnpg["cloudnative-pg"] --> postgres --> miniflux & authelia
   lldap --> authelia
@@ -211,12 +222,13 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 | Edge on a VPS, apps at home | CGNAT; home address stays private | One extra hop; the tunnel is a single point of failure |
 | TLS ends in the cluster | Certificates, routes and auth live under Flux and Renovate; the server holds no certificate | The server can't serve anything when the tunnel is down |
 | Auth at the Gateway | One login for every site (Traefik ForwardAuth to Authelia) | Cluster-internal traffic is not authenticated |
+| CrowdSec's bouncer fails open | A LAPI outage never takes the sites down | Bans made during an outage, or before a Traefik restart, wait for LAPI |
 | slskd's outbound through shadowsocks | Peers see the server's address; the link is encrypted and the port answers only the key | One more service on the server; its version is pinned twice (installer and image) |
 | Pinned versions | Upgrades only after reading release notes | Manual bumps for the server's apps (Renovate ignores `server/`) |
 
 ## References
 
-- [k3s] · [Flux] · [Gateway API] · [Traefik] · [cert-manager] · [CloudNativePG] · [app-template] · [Reloader] · [Renovate] · [restic]
+- [k3s] · [Flux] · [Gateway API] · [Traefik] · [cert-manager] · [CloudNativePG] · [app-template] · [Reloader] · [Renovate] · [restic] · [CrowdSec]
 - [rathole] · [nginx `ssl_preread`][ssl_preread] · [Authelia] · [LLDAP] · [shadowsocks-rust]
 - [pass] · [secretspec] · [just] · [envsubst] · [Flux post-build substitution][flux-subst]
 - [onedr0p/home-ops], whose cluster layout this follows
@@ -225,6 +237,9 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 [Authelia]: https://www.authelia.com/integration/proxies/traefik/
 [cert-manager]: https://cert-manager.io
 [CloudNativePG]: https://cloudnative-pg.io
+[CrowdSec]: https://docs.crowdsec.net
+[CrowdSec web UI]: https://github.com/TheDuffman85/crowdsec-web-ui
+[crowdsec-bouncer]: https://github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
 [envsubst]: https://www.gnu.org/software/gettext/manual/html_node/envsubst-Invocation.html
 [Flux]: https://fluxcd.io
 [Flux Operator]: https://fluxoperator.dev

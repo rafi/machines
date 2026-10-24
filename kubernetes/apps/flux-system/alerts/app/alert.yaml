@@ -18,6 +18,7 @@ spec:
     - { kind: Kustomization, name: "*", namespace: backup }
     - { kind: Kustomization, name: "*", namespace: cert-manager }
     - { kind: Kustomization, name: "*", namespace: cnpg-system }
+    - { kind: Kustomization, name: "*", namespace: crowdsec }
     - { kind: Kustomization, name: "*", namespace: db }
     - { kind: Kustomization, name: "*", namespace: default }
     - { kind: Kustomization, name: "*", namespace: flux-system }
@@ -28,6 +29,7 @@ spec:
     - { kind: HelmRelease, name: "*", namespace: backup }
     - { kind: HelmRelease, name: "*", namespace: cert-manager }
     - { kind: HelmRelease, name: "*", namespace: cnpg-system }
+    - { kind: HelmRelease, name: "*", namespace: crowdsec }
     - { kind: HelmRelease, name: "*", namespace: db }
     - { kind: HelmRelease, name: "*", namespace: default }
     - { kind: HelmRelease, name: "*", namespace: flux-system }
@@ -38,6 +40,7 @@ spec:
     - { kind: OCIRepository, name: "*", namespace: backup }
     - { kind: OCIRepository, name: "*", namespace: cert-manager }
     - { kind: OCIRepository, name: "*", namespace: cnpg-system }
+    - { kind: OCIRepository, name: "*", namespace: crowdsec }
     - { kind: OCIRepository, name: "*", namespace: db }
     - { kind: OCIRepository, name: "*", namespace: default }
     - { kind: OCIRepository, name: "*", namespace: flux-system }
