@@ -156,10 +156,15 @@ spec:
                 subPath: user
               - path: /bootstrap/group-schemas
                 subPath: group
-      # bootstrap.sh downloads avatars to a mktemp dir.
+      # bootstrap.sh downloads avatars to a mktemp dir. SQLite spills
+      # VACUUM, large sorts and index builds to /tmp: without it lldap's
+      # read-only root fails them with "disk I/O error".
       tmp:
         type: emptyDir
         advancedMounts:
+          lldap:
+            app:
+              - path: /tmp
           bootstrap:
             app:
               - path: /tmp
