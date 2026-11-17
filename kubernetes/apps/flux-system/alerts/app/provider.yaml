@@ -3,7 +3,7 @@
 # Secret telegram-bot (the bot token): `just kube secrets alerts`.
 # The chat ID comes from cluster-settings, already quoted (a bare number would
 # not be a string after substitution).
-apiVersion: notification.toolkit.fluxcd.io/v1beta3
+apiVersion: notification.toolkit.fluxcd.io/v1
 kind: Provider
 metadata:
   name: telegram
