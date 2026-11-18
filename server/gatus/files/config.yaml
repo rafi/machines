@@ -10,6 +10,10 @@ web:
 storage:
   type: sqlite
   path: /var/lib/gatus/data.db
+  # A day of results per check (one a minute) and its last 200 state
+  # changes; defaults are 100 and 50.
+  maximum-number-of-results: 1440
+  maximum-number-of-events: 200
 
 alerting:
   telegram:
