@@ -7,6 +7,10 @@ tls-san:
   - ${CLUSTER_NODE_IP}
 node-label:
   - node.${SECRET_DOMAIN}/name=${CLUSTER_NODE_NAME}
+# k3s defaults, pinned: Traefik trusts the pod CIDR, and an IPv6 service CIDR
+# leaves k3s's own kubeconfigs pointing at [::1].
+cluster-cidr: 10.42.0.0/16
+service-cidr: 10.43.0.0/16
 # Packaged addons we don't use. Flux installs Traefik and the Gateway API
 # CRDs (gateway-api-crd is a HelmChart, which can't apply with the helm
 # controller disabled below); nothing is a LoadBalancer (servicelb, and with
