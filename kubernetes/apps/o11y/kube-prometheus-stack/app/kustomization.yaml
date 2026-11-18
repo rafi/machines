@@ -11,5 +11,8 @@ configMapGenerator:
       - flux-metrics.yaml=./resources/flux-metrics.yaml
 generatorOptions:
   disableNameSuffixHash: true
+  # helm-controller upgrades the release as soon as the ConfigMap changes.
+  labels:
+    reconcile.fluxcd.io/watch: Enabled
   annotations:
     kustomize.toolkit.fluxcd.io/substitute: disabled
