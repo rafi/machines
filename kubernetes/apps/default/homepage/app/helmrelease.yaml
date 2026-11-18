@@ -118,8 +118,10 @@ spec:
             title: Home
             # Renovate bumps the image.
             disableUpdateCheck: true
-            # Order of the groups named by gethomepage.dev/group.
+            # Order of the groups: Cluster from services.yaml, the others
+            # named by gethomepage.dev/group.
             layout:
+              Cluster:
               Apps:
               Monitoring:
               Admin:
@@ -133,8 +135,30 @@ spec:
                   show: true
                   cpu: true
                   memory: true
-          # Every service is discovered from its route.
-          services.yaml: "[]"
+          # The apps are discovered from their routes; only the health tile,
+          # which belongs to no app, is listed here. Each query reads 0 when
+          # all is well; Last backup is restic's last successful run.
+          services.yaml: |
+            - Cluster:
+                - Health:
+                    icon: mdi-heart-pulse
+                    href: https://alertmanager.${SECRET_DOMAIN}
+                    widget:
+                      type: prometheusmetric
+                      url: http://kube-prometheus-stack-prometheus.o11y.svc.cluster.local:9090
+                      refreshInterval: 60000
+                      metrics:
+                        - label: Firing alerts
+                          query: count(ALERTS{alertstate="firing", alertname!~"Watchdog|InfoInhibitor"}) or vector(0)
+                        - label: Flux not ready
+                          query: count(gotk_resource_info{ready!="True"}) or vector(0)
+                        - label: Probes down
+                          query: count(probe_success == 0) or vector(0)
+                        - label: Last backup
+                          query: kube_cronjob_status_last_successful_time{cronjob="restic"}
+                          format:
+                            type: relativeDate
+                            scale: 1000
           bookmarks.yaml: "[]"
     persistence:
       # Homepage copies a sample of each config file it doesn't find into
