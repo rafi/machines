@@ -51,8 +51,8 @@ itself from a `FluxInstance`.
 - **Apps:** [bjw-s app-template](https://bjw-s-labs.github.io/helm-charts/docs/app-template/)
   HelmReleases; upstream charts for infrastructure.
 - **Secrets:** created by `just kube secrets` from pass. Flux only
-  substitutes the domain, the Seerr host, the server's hostname, the
-  Soulseek port and the alert chat ID; [Reloader](https://github.com/stakater/Reloader) restarts pods
+  substitutes the domain, the Seerr host, the server's hostname and the
+  Soulseek port; [Reloader](https://github.com/stakater/Reloader) restarts pods
   when their Secrets change.
 - **Updates:** [Renovate](https://docs.renovatebot.com) opens PRs for charts,
   images and Flux; a GitHub workflow builds every push and PR.

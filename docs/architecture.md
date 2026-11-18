@@ -119,8 +119,8 @@ shared by the server and the cluster; see
 | Database | [CloudNativePG] operator and one Postgres cluster |
 | Apps | [app-template] HelmReleases: miniflux, slskd, [Atuin] sync server (`atuin.<domain>`, its own accounts, no Authelia), rathole client, [LLDAP], [Authelia] (storage in Postgres), [CrowdSec web UI] (`crowdsec.<domain>`); echo from its own chart |
 | Security | [CrowdSec] agent and LAPI from CrowdSec's chart; Traefik's [bouncer plugin][crowdsec-bouncer], fetched from GitHub at its pinned tag when Traefik starts |
-| Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just kube check`; Flux errors go to Telegram |
-| Monitoring | [kube-prometheus-stack] in `o11y`: Prometheus (14 days, 10Gi `local-path`), Alertmanager, kube-state-metrics, node-exporter, Grafana (default dashboards, no persistence); `grafana.`, `prometheus.` and `alertmanager.<domain>` behind Authelia, Grafana logging in Authelia's user (auth proxy) and only for `lldap_admin`; the k3s-embedded control plane (API server, scheduler, controller-manager, proxy) is not scraped, and there is no etcd (SQLite) |
+| Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just kube check`; Flux errors go to Alertmanager, which sends them to Telegram |
+| Monitoring | [kube-prometheus-stack] in `o11y`: Prometheus (14 days, 10Gi `local-path`), Alertmanager (to Telegram), kube-state-metrics, node-exporter, Grafana (default dashboards, no persistence); `grafana.`, `prometheus.` and `alertmanager.<domain>` behind Authelia, Grafana logging in Authelia's user (auth proxy) and only for `lldap_admin`; the k3s-embedded control plane (API server, scheduler, controller-manager, proxy) is not scraped, and there is no etcd (SQLite). Flux readiness rules in `kube-prometheus-stack-rules`; [blackbox-exporter] probes the server from home; [Gatus] on the server watches the cluster from outside |
 | Backups | Nightly [restic] CronJob: `pg_dump`s of miniflux and authelia, `/opt/slskd`, `/opt/lldap` and `/opt/atuin`, encrypted on the node, to Backblaze B2 |
 
 The FluxInstance makes Flux sync [`kubernetes/flux/cluster`](../kubernetes/flux/cluster), whose `cluster-apps`
@@ -143,6 +143,7 @@ Dependencies are explicit `dependsOn` edges:
 ```mermaid
 flowchart LR
   gw["gateway-api"] --> traefik --> fa["forward-auth"] --> echo & slskd & miniflux & lldap & webui["crowdsec-web-ui"] & kps["kube-prometheus-stack"]
+  kps --> rules["kube-prometheus-stack-rules"] & bbe["blackbox-exporter"]
   crowdsec --> webui
   traefik --> redirects & atuin
   cnpg["cloudnative-pg"] --> postgres --> miniflux & authelia
@@ -169,8 +170,8 @@ flowchart LR
   `secretspec.toml` naming its keys; values live in `pass` under
   `secretspec/machines/default/<KEY>`.
 - **Flux substitutes non-secret settings only**: `SECRET_DOMAIN`,
-  `SEERR_HOSTNAME`, `SERVER_HOSTNAME` (the server blackbox-exporter probes),
-  `FLUX_TELEGRAM_CHAT_ID` (the alert chat) and slskd's
+  `SEERR_HOSTNAME`, `SERVER_HOSTNAME` (the server blackbox-exporter probes)
+  and slskd's
   Soulseek port (`RATHOLE_SERVER_SERVICES_SLSKD_PORT`), from the
   `cluster-settings` Secret in each namespace
   ([post-build substitution][flux-subst]). Strict substitution fails a
@@ -261,6 +262,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 [CrowdSec web UI]: https://github.com/TheDuffman85/crowdsec-web-ui
 [crowdsec-bouncer]: https://github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
 [envsubst]: https://www.gnu.org/software/gettext/manual/html_node/envsubst-Invocation.html
+[blackbox-exporter]: https://github.com/prometheus/blackbox_exporter
 [Flux]: https://fluxcd.io
 [Flux Operator]: https://fluxoperator.dev
 [flux-subst]: https://fluxcd.io/flux/components/kustomize/kustomizations/#post-build-variable-substitution

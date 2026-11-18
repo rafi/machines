@@ -8,7 +8,7 @@ hold come from `pass` (`secretspec/machines/default/<KEY>`):
 |---|---|
 | `K3S_TOKEN`, `CLUSTER_NODE_IP`, `CLUSTER_NODE_NAME`, `SECRET_DOMAIN` | `just kube k3s-install` ([k3s/config.yaml](k3s/config.yaml)) |
 | `K3S_KUBECONFIG` | `just kube kubeconfig`, `just kube kubeconfig-save` |
-| `SECRET_DOMAIN`, `SEERR_HOSTNAME`, `SERVER_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID`, `RATHOLE_SERVER_SERVICES_SLSKD_PORT` | Secret `cluster-settings` in every namespace (Flux substitutes them) |
+| `SECRET_DOMAIN`, `SEERR_HOSTNAME`, `SERVER_HOSTNAME`, `RATHOLE_SERVER_SERVICES_SLSKD_PORT` | Secret `cluster-settings` in every namespace (Flux substitutes them) |
 | the keys in `apps/<ns>/<app>/secrets/secretspec.toml` | `just kube secrets`; the backup's (B2, restic) also `just kube restic` |
 | `CLOUDFLARE_DNS_TOKEN` | cert-manager's DNS-01 (`apps/cert-manager/cert-manager/secrets`): a Cloudflare token with Zone.DNS:Edit and Zone:Read on the domain's zone only |
 
@@ -203,8 +203,8 @@ kubectl -n flux-system get fluxinstance flux
   blocks nothing else. Traefik fetches the bouncer plugin from GitHub at
   every start: if its `fetch-crowdsec-bouncer` init container fails, the new
   pod doesn't start (`kubectl -n traefik logs deploy/traefik -c fetch-crowdsec-bouncer`).
-- Telegram reports the `crowdsec` Kustomization's health check failing for
-  `crowdsec-agent`, after a node reboot: the pod kept its name, and its init
+- Alertmanager reports `KubeDeploymentReplicasMismatch` or `KubePodNotReady`
+  for `crowdsec-agent`, after a node reboot: the pod kept its name, and its init
   container can't register that name again ("user already exist",
   [helm-charts#252](https://github.com/crowdsecurity/helm-charts/issues/252),
   fixed by the chart's 2.0). Delete its machine, then the pod: the new pod
