@@ -7,7 +7,7 @@ and alerts on Telegram (the cluster's bot and chat) when the cluster can't:
   (`127.0.0.1:32093`), has its always-firing `Watchdog` alert active and not
   silenced. Down when the tunnel, Prometheus or Alertmanager is.
 - One endpoint per public app (`auth`, `ldap`, `crowdsec`, `atuin`, `grafana`,
-  `home/miniflux`, `home/slskd`): status 200 or 302 (Authelia's login,
+  `home/miniflux`, `home/slsk`): status 200 or 302 (Authelia's login,
   redirects not followed), certificate valid for more than 7 days.
 
 An alert fires after 3 failed checks (1 minute apart) and resolves after 2

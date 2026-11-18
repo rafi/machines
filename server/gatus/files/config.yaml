@@ -39,13 +39,16 @@ endpoints:
       - type: telegram
 
   # One public site per app backend, through the server's own port 443 and
-  # the tunnel to Traefik. Sites behind Authelia answer 302 (to its login).
+  # the tunnel to Traefik. Sites behind Authelia answer 302 (to its login)
+  # only to a browser: without Accept: text/html, Authelia answers 401.
   - name: auth
     group: sites
     url: "https://auth.${SECRET_DOMAIN}"
     interval: 1m
     client: &site-client
       ignore-redirect: true
+    headers: &site-headers
+      Accept: text/html
     conditions: &site-conditions
       - "[STATUS] == any(200, 302)"
       - "[CERTIFICATE_EXPIRATION] > 168h"
@@ -57,6 +60,7 @@ endpoints:
     url: "https://ldap.${SECRET_DOMAIN}"
     interval: 1m
     client: *site-client
+    headers: *site-headers
     conditions: *site-conditions
     alerts: *site-alerts
 
@@ -65,6 +69,7 @@ endpoints:
     url: "https://crowdsec.${SECRET_DOMAIN}"
     interval: 1m
     client: *site-client
+    headers: *site-headers
     conditions: *site-conditions
     alerts: *site-alerts
 
@@ -73,6 +78,7 @@ endpoints:
     url: "https://atuin.${SECRET_DOMAIN}"
     interval: 1m
     client: *site-client
+    headers: *site-headers
     conditions: *site-conditions
     alerts: *site-alerts
 
@@ -82,6 +88,7 @@ endpoints:
     url: "https://grafana.${SECRET_DOMAIN}"
     interval: 1m
     client: *site-client
+    headers: *site-headers
     conditions: *site-conditions
     alerts: *site-alerts
 
@@ -91,6 +98,7 @@ endpoints:
     url: "https://home.${SECRET_DOMAIN}/miniflux"
     interval: 1m
     client: *site-client
+    headers: *site-headers
     conditions: *site-conditions
     alerts: *site-alerts
 
@@ -99,5 +107,6 @@ endpoints:
     url: "https://home.${SECRET_DOMAIN}/slsk"
     interval: 1m
     client: *site-client
+    headers: *site-headers
     conditions: *site-conditions
     alerts: *site-alerts

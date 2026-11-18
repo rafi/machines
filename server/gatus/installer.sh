@@ -14,7 +14,7 @@ TEMP_DIR=/tmp/gatus
 intro
 
 id -u $APP_NAME >/dev/null 2>&1 \
-	|| sudo useradd --system --no-create-home --home-dir "$DATA_DIR" \
+	|| sudo useradd --system --user-group --no-create-home --home-dir "$DATA_DIR" \
 		--shell /usr/sbin/nologin $APP_NAME
 sudo install -d -m 750 -o $APP_NAME -g $APP_NAME "$DATA_DIR"
 
