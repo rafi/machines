@@ -1,0 +1,159 @@
+---
+# yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
+# https://gethomepage.dev/configs/
+# Start page at home.<domain>/, behind Authelia. Its services are the
+# HTTPRoutes annotated `gethomepage.dev/enabled: "true"` (name, group, icon
+# and widget in more gethomepage.dev/ annotations); each one's status, CPU
+# and memory come from the pods labelled app.kubernetes.io/name=<the route's
+# name, or its gethomepage.dev/app>. The ClusterRole lets it read routes,
+# pods, nodes and their metrics (k3s' metrics-server).
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: homepage
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: homepage
+  interval: 1h
+  values:
+    controllers:
+      homepage:
+        pod:
+          # The chart's default is false; Homepage talks to the API server.
+          automountServiceAccountToken: true
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            runAsNonRoot: true
+        containers:
+          app:
+            image:
+              repository: ghcr.io/gethomepage/homepage
+              tag: v2.8.0
+            env:
+              # Next.js listens on $HOSTNAME; the pod network is IPv4 only.
+              HOSTNAME: 0.0.0.0
+              # Any other Host header gets a 400 (localhost:3000 is always allowed).
+              HOMEPAGE_ALLOWED_HOSTS: home.${SECRET_DOMAIN}
+              # Not also to a file under /app/config/logs.
+              LOG_TARGETS: stdout
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  httpGet:
+                    path: /api/healthcheck
+                    port: &port 3000
+                    httpHeaders:
+                      - name: Host
+                        value: localhost:3000
+              readiness: *probe
+            resources:
+              requests:
+                cpu: 10m
+              limits:
+                memory: 256Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities: { drop: ["ALL"] }
+    service:
+      app:
+        ports:
+          http:
+            port: *port
+    # More specific paths on home.<domain> (/miniflux, /slsk) stay with
+    # their own routes.
+    route:
+      app:
+        hostnames:
+          - home.${SECRET_DOMAIN}
+        parentRefs:
+          - name: traefik-gateway
+            namespace: traefik
+            sectionName: websecure
+        rules:
+          - filters:
+              - type: ExtensionRef
+                extensionRef:
+                  group: traefik.io
+                  kind: Middleware
+                  name: authelia
+            backendRefs:
+              - identifier: app
+                port: *port
+    # Read-only, cluster-wide: discovery (httproutes; gateways for the
+    # listener's scheme), pod status and the cluster and node widgets.
+    rbac:
+      roles:
+        homepage:
+          type: ClusterRole
+          rules:
+            - apiGroups: [""]
+              resources: [namespaces, pods, nodes]
+              verbs: [get, list]
+            - apiGroups: [gateway.networking.k8s.io]
+              resources: [httproutes, gateways]
+              verbs: [get, list]
+            - apiGroups: [metrics.k8s.io]
+              resources: [nodes, pods]
+              verbs: [get, list]
+      bindings:
+        homepage:
+          type: ClusterRoleBinding
+          roleRef:
+            identifier: homepage
+          subjects:
+            - identifier: homepage
+    configMaps:
+      config:
+        data:
+          kubernetes.yaml: |
+            mode: cluster
+            ingress: false
+            gateway: true
+          settings.yaml: |
+            title: Home
+            # Renovate bumps the image.
+            disableUpdateCheck: true
+            # Order of the groups named by gethomepage.dev/group.
+            layout:
+              Apps:
+              Monitoring:
+              Admin:
+          widgets.yaml: |
+            - kubernetes:
+                cluster:
+                  show: true
+                  cpu: true
+                  memory: true
+                nodes:
+                  show: true
+                  cpu: true
+                  memory: true
+          # Every service is discovered from its route.
+          services.yaml: "[]"
+          bookmarks.yaml: "[]"
+    persistence:
+      # Homepage copies a sample of each config file it doesn't find into
+      # /app/config; the root filesystem is read-only.
+      config:
+        type: emptyDir
+        globalMounts:
+          - path: /app/config
+      config-files:
+        type: configMap
+        identifier: config
+        globalMounts:
+          - path: /app/config/kubernetes.yaml
+            subPath: kubernetes.yaml
+          - path: /app/config/settings.yaml
+            subPath: settings.yaml
+          - path: /app/config/widgets.yaml
+            subPath: widgets.yaml
+          - path: /app/config/services.yaml
+            subPath: services.yaml
+          - path: /app/config/bookmarks.yaml
+            subPath: bookmarks.yaml

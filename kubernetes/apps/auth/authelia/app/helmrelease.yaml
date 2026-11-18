@@ -58,6 +58,13 @@ spec:
             port: *port
     route:
       app:
+        # A tile on Homepage (default/homepage).
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/group: Admin
+          gethomepage.dev/name: Authelia
+          gethomepage.dev/description: Login, password, 2FA
+          gethomepage.dev/icon: authelia.png
         hostnames:
           - auth.${SECRET_DOMAIN}
         parentRefs:

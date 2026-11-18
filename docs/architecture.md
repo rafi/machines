@@ -117,7 +117,7 @@ shared by the server and the cluster; see
 | Ingress | [Traefik] implementing the [Gateway API]; its `websecure` listener terminates TLS for every host with the wildcard certificate |
 | Certificates | [cert-manager]: `<domain>` + `*.<domain>` from Let's Encrypt, DNS-01 on Cloudflare with a token limited to the zone's DNS |
 | Database | [CloudNativePG] operator and one Postgres cluster |
-| Apps | [app-template] HelmReleases: miniflux, slskd, [Atuin] sync server (`atuin.<domain>`, its own accounts, no Authelia), rathole client, [LLDAP], [Authelia] (storage in Postgres), [CrowdSec web UI] (`crowdsec.<domain>`); echo from its own chart |
+| Apps | [app-template] HelmReleases: miniflux, slskd, [Atuin] sync server (`atuin.<domain>`, its own accounts, no Authelia), rathole client, [LLDAP], [Authelia] (storage in Postgres), [CrowdSec web UI] (`crowdsec.<domain>`), [Homepage] (`home.<domain>/`, behind Authelia: a tile per HTTPRoute annotated `gethomepage.dev/enabled`, with its pods' status, through a read-only ClusterRole); echo from its own chart |
 | Security | [CrowdSec] agent and LAPI from CrowdSec's chart; Traefik's [bouncer plugin][crowdsec-bouncer], fetched from GitHub at its pinned tag when Traefik starts |
 | Operations | [Reloader] restarts pods when their Secrets change; [Renovate] opens update PRs; CI runs `just kube check`; Flux errors go to Alertmanager, which sends them to Telegram |
 | Monitoring | [kube-prometheus-stack] in `o11y`: Prometheus (14 days, 10Gi `local-path`), Alertmanager (to Telegram), kube-state-metrics, node-exporter, Grafana (default dashboards, no persistence); `grafana.`, `prometheus.` and `alertmanager.<domain>` behind Authelia, Grafana logging in Authelia's user (auth proxy) and only for `lldap_admin`; the k3s-embedded control plane (API server, scheduler, controller-manager, proxy) is not scraped, and there is no etcd (SQLite). Flux readiness rules in `kube-prometheus-stack-rules`; [blackbox-exporter] probes the server from home; [Gatus] on the server watches the cluster from outside |
@@ -142,7 +142,7 @@ Dependencies are explicit `dependsOn` edges:
 
 ```mermaid
 flowchart LR
-  gw["gateway-api"] --> traefik --> fa["forward-auth"] --> echo & slskd & miniflux & lldap & webui["crowdsec-web-ui"] & kps["kube-prometheus-stack"]
+  gw["gateway-api"] --> traefik --> fa["forward-auth"] --> echo & slskd & miniflux & lldap & webui["crowdsec-web-ui"] & kps["kube-prometheus-stack"] & homepage
   kps --> rules["kube-prometheus-stack-rules"] & bbe["blackbox-exporter"]
   crowdsec --> webui
   traefik --> redirects & atuin
@@ -268,6 +268,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 [flux-subst]: https://fluxcd.io/flux/components/kustomize/kustomizations/#post-build-variable-substitution
 [Gatus]: https://github.com/TwiN/gatus
 [Gateway API]: https://gateway-api.sigs.k8s.io
+[Homepage]: https://gethomepage.dev
 [just]: https://just.systems
 [k3s]: https://k3s.io
 [LLDAP]: https://github.com/lldap/lldap

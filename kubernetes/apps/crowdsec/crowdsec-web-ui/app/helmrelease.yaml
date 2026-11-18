@@ -70,6 +70,13 @@ spec:
             port: *port
     route:
       app:
+        # A tile on Homepage (default/homepage).
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/group: Admin
+          gethomepage.dev/name: CrowdSec
+          gethomepage.dev/description: Alerts and bans
+          gethomepage.dev/icon: crowdsec.png
         hostnames:
           - crowdsec.${SECRET_DOMAIN}
         parentRefs:

@@ -51,6 +51,13 @@ spec:
             port: *port
     route:
       app:
+        # A tile on Homepage (default/homepage).
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/group: Apps
+          gethomepage.dev/name: Miniflux
+          gethomepage.dev/description: Feeds
+          gethomepage.dev/icon: miniflux.png
         hostnames:
           - home.${SECRET_DOMAIN}
         parentRefs:

@@ -105,6 +105,14 @@ spec:
       route:
         main:
           enabled: true
+          # Tiles on Homepage (default/homepage); gethomepage.dev/app is the
+          # pods' app.kubernetes.io/name, for their status.
+          annotations:
+            gethomepage.dev/enabled: "true"
+            gethomepage.dev/group: Monitoring
+            gethomepage.dev/name: Grafana
+            gethomepage.dev/icon: grafana.png
+            gethomepage.dev/app: grafana
           hostnames:
             - grafana.${SECRET_DOMAIN}
           parentRefs: &parentRefs
@@ -161,6 +169,15 @@ spec:
       route:
         main:
           enabled: true
+          annotations:
+            gethomepage.dev/enabled: "true"
+            gethomepage.dev/group: Monitoring
+            gethomepage.dev/name: Prometheus
+            gethomepage.dev/icon: prometheus.png
+            gethomepage.dev/app: prometheus
+            # Targets up, down and total.
+            gethomepage.dev/widget.type: prometheus
+            gethomepage.dev/widget.url: http://kube-prometheus-stack-prometheus.o11y.svc.cluster.local:9090
           hostnames:
             - prometheus.${SECRET_DOMAIN}
           parentRefs: *parentRefs
@@ -195,6 +212,12 @@ spec:
       route:
         main:
           enabled: true
+          annotations:
+            gethomepage.dev/enabled: "true"
+            gethomepage.dev/group: Monitoring
+            gethomepage.dev/name: Alertmanager
+            gethomepage.dev/icon: alertmanager.png
+            gethomepage.dev/app: alertmanager
           hostnames:
             - alertmanager.${SECRET_DOMAIN}
           parentRefs: *parentRefs

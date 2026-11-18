@@ -92,6 +92,13 @@ spec:
             port: ${RATHOLE_SERVER_SERVICES_SLSKD_PORT}
     route:
       app:
+        # A tile on Homepage (default/homepage).
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/group: Apps
+          gethomepage.dev/name: slskd
+          gethomepage.dev/description: Soulseek
+          gethomepage.dev/icon: slskd.png
         hostnames:
           - home.${SECRET_DOMAIN}
         parentRefs:

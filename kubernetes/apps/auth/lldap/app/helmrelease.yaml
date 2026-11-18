@@ -105,6 +105,13 @@ spec:
             port: 3890
     route:
       app:
+        # A tile on Homepage (default/homepage).
+        annotations:
+          gethomepage.dev/enabled: "true"
+          gethomepage.dev/group: Admin
+          gethomepage.dev/name: LLDAP
+          gethomepage.dev/description: Users and groups
+          gethomepage.dev/icon: lldap.png
         hostnames:
           - ldap.${SECRET_DOMAIN}
         parentRefs:
