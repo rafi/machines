@@ -22,5 +22,9 @@ bind_addr = "127.0.0.1:32022"
 [server.services.ingress-tls]
 bind_addr = "127.0.0.1:32443"
 
+# Alertmanager, for the server's own checks; loopback only.
+[server.services.alertmanager]
+bind_addr = "127.0.0.1:32093"
+
 [server.services.slskd]
 bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_SLSKD_PORT}"

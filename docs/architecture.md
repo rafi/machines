@@ -38,6 +38,10 @@ The cluster has no public address. A [rathole] client inside the cluster
 dials out to the server and holds a TLS tunnel open; the server exposes
 the tunnel's services on local ports.
 
+The tunnel's services: `ingress-tls` and `ssh` (behind nginx on 443),
+`alertmanager` (Alertmanager on the server's loopback `127.0.0.1:32093`,
+for the server's own checks) and slskd's listen port (public).
+
 ```mermaid
 flowchart LR
   user(["Client"]) -- ":443" --> stream
