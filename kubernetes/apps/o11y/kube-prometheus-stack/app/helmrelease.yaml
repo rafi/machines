@@ -130,12 +130,26 @@ spec:
             - receiver: blackhole
               matchers:
                 - alertname =~ "Watchdog|InfoInhibitor"
+        # The chart's defaults: Helm replaces lists, so all are restated.
+        # InfoInhibitor fires to silence lone info alerts in its namespace.
         inhibit_rules:
           - source_matchers:
               - severity = critical
             target_matchers:
-              - severity = warning
+              - severity =~ warning|info
             equal: [alertname, namespace]
+          - source_matchers:
+              - severity = warning
+            target_matchers:
+              - severity = info
+            equal: [alertname, namespace]
+          - source_matchers:
+              - alertname = InfoInhibitor
+            target_matchers:
+              - severity = info
+            equal: [namespace]
+          - target_matchers:
+              - alertname = InfoInhibitor
         receivers:
           - name: blackhole
           - name: telegram
