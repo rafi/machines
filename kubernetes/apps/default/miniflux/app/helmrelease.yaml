@@ -57,7 +57,7 @@ spec:
           gethomepage.dev/group: Apps
           gethomepage.dev/name: Miniflux
           gethomepage.dev/description: Feeds
-          gethomepage.dev/icon: miniflux.png
+          gethomepage.dev/icon: miniflux-light.png
         hostnames:
           - home.${SECRET_DOMAIN}
         parentRefs:

@@ -118,23 +118,51 @@ spec:
             title: Home
             # Renovate bumps the image.
             disableUpdateCheck: true
-            # Order of the groups: Cluster from services.yaml, the others
-            # named by gethomepage.dev/group.
+            theme: dark
+            color: slate
+            headerStyle: boxedWidgets
+            cardStyle: hairline
+            blockStyle: refined
+            # Monospace numbers only, so values line up.
+            font: plexData
+            # A dot for pod status instead of "RUNNING".
+            statusStyle: dot
+            # Typing anywhere on the page filters the tiles, or searches.
+            quicklaunch:
+              searchDescriptions: true
+            # Order of the groups: Cluster from services.yaml, Links from
+            # bookmarks.yaml, the others named by gethomepage.dev/group.
             layout:
               Cluster:
+                style: row
+                columns: 1
               Apps:
               Monitoring:
               Admin:
+              Links:
           widgets.yaml: |
+            # The cluster only: with one node, its node row is the same.
             - kubernetes:
                 cluster:
                   show: true
                   cpu: true
                   memory: true
                 nodes:
-                  show: true
-                  cpu: true
-                  memory: true
+                  show: false
+            - search:
+                provider: google
+                target: _blank
+            # No coordinates: the browser's location (it asks once per
+            # device), so the home address stays out of git.
+            - openmeteo:
+                units: metric
+                cache: 15
+            - datetime:
+                text_size: xl
+                format:
+                  dateStyle: medium
+                  timeStyle: short
+                  hourCycle: h23
           # The apps are discovered from their routes; only the health tile,
           # which belongs to no app, is listed here. Each query reads 0 when
           # all is well; Last backup is restic's last successful run.
@@ -159,7 +187,48 @@ spec:
                           format:
                             type: relativeDate
                             scale: 1000
-          bookmarks.yaml: "[]"
+                      # Red when not 0, or when the nightly backup is a day old.
+                      highlight:
+                        Firing alerts: &nonzero
+                          numeric:
+                            - level: danger
+                              when: gt
+                              value: 0
+                        Flux not ready: *nonzero
+                        Probes down: *nonzero
+                        Last backup:
+                          string:
+                            - level: danger
+                              when: regex
+                              value: day|week|month|year
+          # Descriptions replace the default (the link's host name), which
+          # the narrow column cuts.
+          bookmarks.yaml: |
+            - Links:
+                - machines:
+                    - icon: si-github-#e2e8f0
+                      href: https://github.com/rafi/machines
+                      description: GitHub
+                - Pull requests:
+                    - icon: si-renovate-#e2e8f0
+                      href: https://github.com/rafi/machines/pulls
+                      description: Renovate
+                - Actions:
+                    - icon: si-githubactions-#2088ff
+                      href: https://github.com/rafi/machines/actions
+                      description: CI
+                - Cloudflare:
+                    - icon: si-cloudflare-#f38020
+                      href: https://dash.cloudflare.com
+                      description: DNS
+                - Backblaze:
+                    - icon: si-backblaze-#e21e29
+                      href: https://secure.backblaze.com/b2_buckets.htm
+                      description: B2
+                - DigitalOcean:
+                    - icon: si-digitalocean-#0080ff
+                      href: https://cloud.digitalocean.com/droplets
+                      description: Server
     persistence:
       # Homepage copies a sample of each config file it doesn't find into
       # /app/config; the root filesystem is read-only.
