@@ -22,12 +22,15 @@ spec:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease
       name: crowdsec
+      namespace: crowdsec
     - apiVersion: apps/v1
       kind: Deployment
       name: crowdsec-lapi
+      namespace: crowdsec
     - apiVersion: apps/v1
       kind: Deployment
       name: crowdsec-agent
+      namespace: crowdsec
   timeout: 5m
 ---
 # yaml-language-server: $schema=https://k8s-schemas.home-operations.com/kustomize.toolkit.fluxcd.io/kustomization_v1.json
