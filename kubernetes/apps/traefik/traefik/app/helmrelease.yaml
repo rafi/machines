@@ -30,7 +30,7 @@ spec:
           image: mirror.gcr.io/library/alpine:3.24
           env:
             # renovate: datasource=github-releases depName=maxlerebourg/crowdsec-bouncer-traefik-plugin
-            - { name: PLUGIN_VERSION, value: v1.8.1 }
+            - { name: PLUGIN_VERSION, value: v1.8.2 }
           command:
             - sh
             - -c
