@@ -121,7 +121,7 @@ merging. The labels are defined in `.github/labels.yaml`; the Label Sync
 workflow deletes any other. By hand:
 
 - **Flux:** `distribution.version` in
-  `apps/flux-system/flux-instance/app/helmrelease.yaml` (2.9.x: patches apply
+  `apps/flux-system/flux-instance/app/helmrelease.yaml` (2.10.x: patches apply
   on their own).
 - **Charts:** `ref.tag` in the app's `app/ocirepository.yaml`.
 - **Images:** `image.tag` in the app's `app/helmrelease.yaml`.

@@ -17,7 +17,7 @@ spec:
       helm.sh/resource-policy: keep
     instance:
       distribution:
-        version: 2.9.x
+        version: 2.10.x
         registry: ghcr.io/fluxcd
       components:
         - source-controller
