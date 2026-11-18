@@ -193,3 +193,10 @@ kubectl -n flux-system get fluxinstance flux
   blocks nothing else. Traefik fetches the bouncer plugin from GitHub at
   every start: if its `fetch-crowdsec-bouncer` init container fails, the new
   pod doesn't start (`kubectl -n traefik logs deploy/traefik -c fetch-crowdsec-bouncer`).
+- Telegram reports the `crowdsec` Kustomization's health check failing for
+  `crowdsec-agent`, after a node reboot: the pod kept its name, and its init
+  container can't register that name again ("user already exist",
+  [helm-charts#252](https://github.com/crowdsecurity/helm-charts/issues/252),
+  fixed by the chart's 2.0). Delete the old machine; the init container's
+  next retry registers it again:
+  `kubectl -n crowdsec exec deploy/crowdsec-lapi -- cscli machines delete <agent pod name>`.

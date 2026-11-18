@@ -13,7 +13,22 @@ spec:
     name: flux-system
     namespace: flux-system
   targetNamespace: crowdsec
-  wait: true
+  # Not `wait: true`, which ignores healthChecks: the HelmRelease only goes
+  # Ready once, so a later broken pod went unnoticed. These run at every
+  # reconcile (hourly, and when Flux starts after a reboot) and fail to
+  # Telegram. The agent breaks after a node reboot (helm-charts#252); the fix
+  # is in kubernetes/README.md, Troubleshooting.
+  healthChecks:
+    - apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      name: crowdsec
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: crowdsec-lapi
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: crowdsec-agent
+  timeout: 5m
 ---
 # yaml-language-server: $schema=https://k8s-schemas.home-operations.com/kustomize.toolkit.fluxcd.io/kustomization_v1.json
 # Lets the agent read the logs of the pods it watches, in their own
