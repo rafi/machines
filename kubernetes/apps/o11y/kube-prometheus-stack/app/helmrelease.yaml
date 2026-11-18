@@ -188,7 +188,9 @@ spec:
           filters: *authelia
       # Telegram's HTML parse mode rejects stray <, > and &, so alert text
       # goes through `html`. Flux's events (Provider alertmanager) carry their
-      # text in a `message` annotation and the object in a `name` label.
+      # text in a `message` annotation and the object in a `name` label. They
+      # have no end time, so Alertmanager would mark each one resolved 5
+      # minutes later: they go to telegram-flux, without resolved messages.
       config:
         route:
           receiver: telegram
@@ -198,6 +200,9 @@ spec:
             - receiver: blackhole
               matchers:
                 - alertname =~ "Watchdog|InfoInhibitor"
+            - receiver: telegram-flux
+              matchers:
+                - reportingcontroller =~ ".+"
         # The chart's defaults: Helm replaces lists, so all are restated.
         # InfoInhibitor fires to silence lone info alerts in its namespace.
         inhibit_rules:
@@ -226,12 +231,19 @@ spec:
                 chat_id_file: /etc/alertmanager/secrets/alertmanager-telegram/chat_id
                 parse_mode: HTML
                 send_resolved: true
-                message: |-
+                message: &telegramMessage |-
                   <b>{{ .Status | toUpper }}</b>: {{ .CommonLabels.alertname | html }}
                   {{- range .Alerts }}
                   • {{ with .Annotations.summary }}{{ . | html }}{{ else }}{{ with .Annotations.description }}{{ . | html }}{{ else }}{{ .Annotations.message | html }}{{ end }}{{ end }}
                   {{- if .Labels.namespace }} [{{ .Labels.namespace | html }}{{ with .Labels.pod }}/{{ . | html }}{{ else }}{{ with .Labels.name }}/{{ . | html }}{{ end }}{{ end }}]{{ end }}
                   {{- end }}
+          - name: telegram-flux
+            telegram_configs:
+              - bot_token_file: /etc/alertmanager/secrets/alertmanager-telegram/bot_token
+                chat_id_file: /etc/alertmanager/secrets/alertmanager-telegram/chat_id
+                parse_mode: HTML
+                send_resolved: false
+                message: *telegramMessage
       alertmanagerSpec:
         externalUrl: https://alertmanager.${SECRET_DOMAIN}
         # Mounted at /etc/alertmanager/secrets/alertmanager-telegram/.
