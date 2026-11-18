@@ -73,6 +73,17 @@ spec:
           whitelist: 10.42.0.0/16
         users:
           auto_assign_org_role: Admin
+      # With basic auth off, the sidecars' reload calls (admin user and
+      # password on localhost) get 401. Data sources are written once by an
+      # init container before Grafana starts (LIST, or it watches forever);
+      # dashboards are picked up by the file provider's polling.
+      sidecar:
+        datasources:
+          initDatasources: true
+          watchMethod: LIST
+          skipReload: true
+        dashboards:
+          skipReload: true
       route:
         main:
           enabled: true
