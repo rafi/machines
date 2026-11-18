@@ -75,7 +75,9 @@ backed up. A failed run is reported on Telegram. CrowdSec is not backed up:
 its bans and alerts (LAPI's PVCs in `crowdsec`) rebuild themselves, and the
 web UI's settings (`/opt/crowdsec-web-ui`) start over. Monitoring is not
 backed up either: Prometheus's metrics and Alertmanager's silences
-(`local-path` PVCs in `o11y`) start over.
+(`local-path` PVCs in `o11y`) start over. `grafana.`, `prometheus.` and
+`alertmanager.<domain>` sit behind Authelia; Grafana only for LLDAP's
+`lldap_admin` group, who log in as Admin with no Grafana login page.
 
 ```sh
 just kube restic snapshots                 # restic comes from `mise install`

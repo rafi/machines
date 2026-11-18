@@ -56,6 +56,14 @@ ntp:
 
 access_control:
   default_policy: one_factor
+  # Grafana makes every proxy user Admin (auth.proxy can't map groups to
+  # roles), so only LLDAP admins get through; anyone else is denied.
+  rules:
+    - domain: grafana.${SECRET_DOMAIN}
+      subject: group:lldap_admin
+      policy: one_factor
+    - domain: grafana.${SECRET_DOMAIN}
+      policy: deny
 
 authentication_backend:
   password_reset:

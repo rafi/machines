@@ -49,9 +49,45 @@ spec:
     windowsMonitoring:
       enabled: false
 
-    # Off until its route exists.
+    # Logs in whoever Authelia passes (Remote-User). auth.proxy can't map
+    # Remote-Groups to roles, so every user is Admin and Authelia lets only
+    # lldap_admin through (authelia's access_control). The chart's default
+    # dashboards and its Prometheus and Alertmanager data sources stay on;
+    # no persistence, dashboards come from ConfigMaps.
     grafana:
-      enabled: false
+      enabled: true
+      grafana.ini:
+        server:
+          root_url: https://grafana.${SECRET_DOMAIN}
+        auth:
+          disable_login_form: true
+        auth.basic:
+          enabled: false
+        auth.proxy:
+          enabled: true
+          header_name: Remote-User
+          header_property: username
+          auto_sign_up: true
+          headers: Email:Remote-Email Name:Remote-Name Groups:Remote-Groups
+          # The pod CIDR: Traefik's pods.
+          whitelist: 10.42.0.0/16
+        users:
+          auto_assign_org_role: Admin
+      route:
+        main:
+          enabled: true
+          hostnames:
+            - grafana.${SECRET_DOMAIN}
+          parentRefs: &parentRefs
+            - name: traefik-gateway
+              namespace: traefik
+              sectionName: websecure
+          filters: &authelia
+            - type: ExtensionRef
+              extensionRef:
+                group: traefik.io
+                kind: Middleware
+                name: authelia
 
     prometheusOperator:
       admissionWebhooks:
@@ -93,7 +129,15 @@ spec:
           memory: 128Mi
 
     prometheus:
+      route:
+        main:
+          enabled: true
+          hostnames:
+            - prometheus.${SECRET_DOMAIN}
+          parentRefs: *parentRefs
+          filters: *authelia
       prometheusSpec:
+        externalUrl: https://prometheus.${SECRET_DOMAIN}
         # Every ServiceMonitor, PodMonitor, Probe, PrometheusRule and
         # ScrapeConfig in every namespace, not only this release's.
         podMonitorSelectorNilUsesHelmValues: false
@@ -119,6 +163,13 @@ spec:
                   storage: 10Gi
 
     alertmanager:
+      route:
+        main:
+          enabled: true
+          hostnames:
+            - alertmanager.${SECRET_DOMAIN}
+          parentRefs: *parentRefs
+          filters: *authelia
       # Telegram's HTML parse mode rejects stray <, > and &, so alert text
       # goes through `html`.
       config:
@@ -165,6 +216,7 @@ spec:
                   {{- if .Labels.namespace }} [{{ .Labels.namespace | html }}{{ with .Labels.pod }}/{{ . | html }}{{ end }}]{{ end }}
                   {{- end }}
       alertmanagerSpec:
+        externalUrl: https://alertmanager.${SECRET_DOMAIN}
         # Mounted at /etc/alertmanager/secrets/alertmanager-telegram/.
         secrets: [alertmanager-telegram]
         resources:

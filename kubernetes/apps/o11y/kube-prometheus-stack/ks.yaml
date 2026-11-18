@@ -5,6 +5,10 @@ kind: Kustomization
 metadata:
   name: kube-prometheus-stack
 spec:
+  dependsOn:
+    - name: traefik
+      namespace: traefik
+    - name: forward-auth
   interval: 1h
   path: ./kubernetes/apps/o11y/kube-prometheus-stack/app
   prune: true
