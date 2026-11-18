@@ -155,7 +155,8 @@ flowchart LR
   `secretspec.toml` naming its keys; values live in `pass` under
   `secretspec/machines/default/<KEY>`.
 - **Flux substitutes non-secret settings only**: `SECRET_DOMAIN`,
-  `SEERR_HOSTNAME`, `FLUX_TELEGRAM_CHAT_ID` (the alert chat) and slskd's
+  `SEERR_HOSTNAME`, `SERVER_HOSTNAME` (the server blackbox-exporter probes),
+  `FLUX_TELEGRAM_CHAT_ID` (the alert chat) and slskd's
   Soulseek port (`RATHOLE_SERVER_SERVICES_SLSKD_PORT`), from the
   `cluster-settings` Secret in each namespace
   ([post-build substitution][flux-subst]). Strict substitution fails a
