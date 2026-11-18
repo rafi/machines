@@ -1,0 +1,32 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+# Probes the server and the public path from home (probes.yaml).
+# https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus-blackbox-exporter/values.yaml
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: blackbox-exporter
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: blackbox-exporter
+  interval: 1h
+  values:
+    fullnameOverride: blackbox-exporter
+    config:
+      modules:
+        tcp_connect:
+          prober: tcp
+          timeout: 5s
+          tcp:
+            preferred_ip_protocol: ip4
+        # auth.<domain> answers 302 to the login page when not signed in.
+        http_2xx:
+          prober: http
+          timeout: 5s
+          http:
+            valid_status_codes: [200, 302]
+            no_follow_redirects: true
+            # The chart's default; it would contradict no_follow_redirects.
+            follow_redirects: false
+            preferred_ip_protocol: ip4

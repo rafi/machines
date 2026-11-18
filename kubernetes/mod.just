@@ -127,7 +127,7 @@ restic *args:
 [private]
 [script]
 _settings dir='.' strict='true':
-	export SECRET_DOMAIN=example.com SEERR_HOSTNAME=seerr.example.net \
+	export SECRET_DOMAIN=example.com SEERR_HOSTNAME=seerr.example.net SERVER_HOSTNAME=server.example.net \
 		RATHOLE_SERVER_SERVICES_SLSKD_PORT=50000 FLUX_TELEGRAM_CHAT_ID=0
 	subst='envsubst(nu, ne)'; [[ {{ strict }} == true ]] || subst=envsubst
 	for d in '{{ dir }}'/apps/*/; do

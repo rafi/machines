@@ -1,0 +1,28 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/monitoring.coreos.com/probe_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: server-tcp
+spec:
+  module: tcp_connect
+  prober:
+    url: blackbox-exporter:9115
+  targets:
+    staticConfig:
+      static:
+        - ${SERVER_HOSTNAME}:443
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/monitoring.coreos.com/probe_v1.json
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: public-https
+spec:
+  module: http_2xx
+  prober:
+    url: blackbox-exporter:9115
+  targets:
+    staticConfig:
+      static:
+        - https://auth.${SECRET_DOMAIN}
