@@ -197,6 +197,8 @@ kubectl -n flux-system get fluxinstance flux
   `crowdsec-agent`, after a node reboot: the pod kept its name, and its init
   container can't register that name again ("user already exist",
   [helm-charts#252](https://github.com/crowdsecurity/helm-charts/issues/252),
-  fixed by the chart's 2.0). Delete the old machine; the init container's
-  next retry registers it again:
-  `kubectl -n crowdsec exec deploy/crowdsec-lapi -- cscli machines delete <agent pod name>`.
+  fixed by the chart's 2.0). Delete its machine, then the pod: the new pod
+  registers under a new name at once (the old one's retry can be 5 minutes
+  away):
+  `kubectl -n crowdsec exec deploy/crowdsec-lapi -- cscli machines delete <agent pod name>`,
+  then `kubectl -n crowdsec delete pod <agent pod name>`.
