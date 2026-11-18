@@ -48,6 +48,9 @@ itself from a `FluxInstance`.
   Gateway) with users in [LLDAP](https://github.com/lldap/lldap).
 - **Data:** [CloudNativePG](https://cloudnative-pg.io) runs Postgres;
   nightly [restic](https://restic.net) backups go to Backblaze B2.
+- **Monitoring:** [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack),
+  Alertmanager to Telegram, Grafana behind Authelia; [Gatus](https://github.com/TwiN/gatus)
+  on the server watches the cluster and the public sites from outside.
 - **Apps:** [bjw-s app-template](https://bjw-s-labs.github.io/helm-charts/docs/app-template/)
   HelmReleases; upstream charts for infrastructure.
 - **Secrets:** created by `just kube secrets` from pass. Flux only

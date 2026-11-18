@@ -33,7 +33,6 @@ endpoints:
     interval: 1m
     conditions:
       - "[STATUS] == 200"
-      - "len([BODY]) > 0"
       - "[BODY] == pat(*Watchdog*)"
     alerts:
       - type: telegram

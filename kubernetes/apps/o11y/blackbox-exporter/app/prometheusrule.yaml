@@ -14,7 +14,7 @@ spec:
           labels:
             severity: critical
           annotations:
-            summary: The server doesn't accept connections on port 443
+            summary: The server doesn't accept connections on port 80
         - alert: PublicSiteDown
           expr: probe_success{job="probe/o11y/public-https"} == 0
           for: 5m

@@ -11,7 +11,10 @@ spec:
   targets:
     staticConfig:
       static:
-        - ${SERVER_HOSTNAME}:443
+        # nginx's port 80 (the HTTPS redirect): the server and nginx are up.
+        # Not 443: nginx's stream block may send a bare TCP connection there
+        # to the node's sshd. public-https covers 443.
+        - ${SERVER_HOSTNAME}:80
 ---
 # yaml-language-server: $schema=https://k8s-schemas.home-operations.com/monitoring.coreos.com/probe_v1.json
 apiVersion: monitoring.coreos.com/v1

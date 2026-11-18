@@ -55,7 +55,9 @@ clusters, is unused and can be deleted.
 
 Secrets go in first, so Flux never reconciles without `cluster-settings`.
 The operator installs Flux, which syncs `kubernetes/flux/cluster`. Order is
-enforced by `dependsOn`: gateway-api, then traefik; cloudnative-pg, then
+enforced by `dependsOn`: gateway-api, then traefik; traefik and the `o11y`
+forward-auth, then kube-prometheus-stack, then kube-prometheus-stack-rules,
+blackbox-exporter and `flux-system`'s alerts; cloudnative-pg, then
 postgres, then miniflux and authelia (which also waits for lldap); crowdsec,
 then its web UI;
 cert-manager, then its ClusterIssuers, then the wildcard certificate (Secret
@@ -165,6 +167,12 @@ upgrade is retried twice and rolled back.
   server's `ssserver` (`server/shadowsocks`) and by slskd's `sslocal`
   (Secret `sslocal-config`). After changing either:
   `just server apply <host> shadowsocks`, `just kube secrets slskd`.
+- **The tunnel's `alertmanager` service:** the rathole client's
+  `[client.services.alertmanager]` (`alertmanager-operated.o11y:9093`) and
+  the server's `[server.services.alertmanager]` (`127.0.0.1:32093`), which
+  Gatus on the server queries for the `Watchdog` alert. After changing
+  either: `just kube secrets rathole-client`,
+  `just server apply <host> rathole-server`.
 
 ## Troubleshooting
 
