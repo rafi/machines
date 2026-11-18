@@ -5,10 +5,10 @@
 apiVersion: notification.toolkit.fluxcd.io/v1
 kind: Alert
 metadata:
-  name: telegram
+  name: alertmanager
 spec:
   providerRef:
-    name: telegram
+    name: alertmanager
   eventSeverity: error
   eventSources:
     - { kind: FluxInstance, name: "*", namespace: flux-system }

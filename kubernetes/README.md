@@ -49,6 +49,10 @@ just kube failing     # expect nothing; the first sync takes minutes (Helm chart
 just kube routes      # every Gateway and HTTPRoute accepted
 ```
 
+Flux's errors go through Alertmanager (Provider `alertmanager`), not their
+own Telegram bot: Secret `telegram-bot` in `flux-system`, left by older
+clusters, is unused and can be deleted.
+
 Secrets go in first, so Flux never reconciles without `cluster-settings`.
 The operator installs Flux, which syncs `kubernetes/flux/cluster`. Order is
 enforced by `dependsOn`: gateway-api, then traefik; cloudnative-pg, then

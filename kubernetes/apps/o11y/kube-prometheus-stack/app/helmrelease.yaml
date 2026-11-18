@@ -15,6 +15,11 @@ spec:
     kind: OCIRepository
     name: kube-prometheus-stack
   interval: 1h
+  # kube-state-metrics' Flux metrics (resources/flux-metrics.yaml).
+  valuesFrom:
+    - kind: ConfigMap
+      name: flux-metrics-configmap
+      valuesKey: flux-metrics.yaml
   values:
     fullnameOverride: kube-prometheus-stack
     cleanPrometheusOperatorObjectNames: true
@@ -182,7 +187,8 @@ spec:
           parentRefs: *parentRefs
           filters: *authelia
       # Telegram's HTML parse mode rejects stray <, > and &, so alert text
-      # goes through `html`.
+      # goes through `html`. Flux's events (Provider alertmanager) carry their
+      # text in a `message` annotation and the object in a `name` label.
       config:
         route:
           receiver: telegram
@@ -223,8 +229,8 @@ spec:
                 message: |-
                   <b>{{ .Status | toUpper }}</b>: {{ .CommonLabels.alertname | html }}
                   {{- range .Alerts }}
-                  • {{ with .Annotations.summary }}{{ . | html }}{{ else }}{{ .Annotations.description | html }}{{ end }}
-                  {{- if .Labels.namespace }} [{{ .Labels.namespace | html }}{{ with .Labels.pod }}/{{ . | html }}{{ end }}]{{ end }}
+                  • {{ with .Annotations.summary }}{{ . | html }}{{ else }}{{ with .Annotations.description }}{{ . | html }}{{ else }}{{ .Annotations.message | html }}{{ end }}{{ end }}
+                  {{- if .Labels.namespace }} [{{ .Labels.namespace | html }}{{ with .Labels.pod }}/{{ . | html }}{{ else }}{{ with .Labels.name }}/{{ . | html }}{{ end }}{{ end }}]{{ end }}
                   {{- end }}
       alertmanagerSpec:
         externalUrl: https://alertmanager.${SECRET_DOMAIN}

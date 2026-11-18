@@ -1,0 +1,23 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/monitoring.coreos.com/prometheusrule_v1.json
+# gotk_resource_info comes from kube-state-metrics (resources/flux-metrics.yaml).
+# Flux would substitute $labels away.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: flux
+  annotations:
+    kustomize.toolkit.fluxcd.io/substitute: disabled
+spec:
+  groups:
+    - name: flux
+      rules:
+        - alert: FluxResourceNotReady
+          expr: gotk_resource_info{ready="False"} == 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: >-
+              {{ $labels.customresource_kind }}
+              {{ $labels.exported_namespace }}/{{ $labels.name }} is not ready
