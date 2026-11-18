@@ -1,0 +1,9 @@
+---
+# Name comes from `namespace:` in kustomization.yaml. Never pruned: deleting
+# a namespace deletes everything in it, PVCs included.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: _
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled

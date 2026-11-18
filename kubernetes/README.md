@@ -73,7 +73,9 @@ database, copied live; its clients also keep their whole history); 7 daily,
 4 weekly and 6 monthly snapshots. The media folders slskd shares are not
 backed up. A failed run is reported on Telegram. CrowdSec is not backed up:
 its bans and alerts (LAPI's PVCs in `crowdsec`) rebuild themselves, and the
-web UI's settings (`/opt/crowdsec-web-ui`) start over.
+web UI's settings (`/opt/crowdsec-web-ui`) start over. Monitoring is not
+backed up either: Prometheus's metrics and Alertmanager's silences
+(`local-path` PVCs in `o11y`) start over.
 
 ```sh
 just kube restic snapshots                 # restic comes from `mise install`
