@@ -26,7 +26,7 @@ spec:
     container_runtime: containerd
     image:
       repository: crowdsecurity/crowdsec
-      tag: v1.8.1
+      tag: v1.8.2
     lapi:
       podAnnotations:
         secret.reloader.stakater.com/reload: crowdsec-env
@@ -43,7 +43,7 @@ spec:
       # then adds (or resets) the machine before LAPI starts.
       extraInitContainers:
         - name: add-web-ui-machine
-          image: crowdsecurity/crowdsec:v1.8.1
+          image: crowdsecurity/crowdsec:v1.8.2
           command:
             - sh
             - -c
