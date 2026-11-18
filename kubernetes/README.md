@@ -180,7 +180,9 @@ kubectl -n flux-system get fluxinstance flux
   authelia, crowdsec-web-ui; authelia also on its ConfigMap), and CrowdSec's
   LAPI and Traefik on their CrowdSec Secrets
   when `just kube secrets` changes a Secret they use; any other pod needs
-  `kubectl -n <ns> rollout restart deploy/<app>`.
+  `kubectl -n <ns> rollout restart deploy/<app>`. Alertmanager's Telegram
+  Secret (`alertmanager-telegram`, from `just kube secrets kube-prometheus-stack`)
+  needs `kubectl -n o11y rollout restart statefulset/alertmanager-kube-prometheus-stack`.
 - The certificate isn't Ready: `kubectl -n traefik describe certificate wildcard`,
   then the `challenges` it lists (`kubectl get challenges -A`). A Cloudflare
   error there is usually the token (expired, or missing Zone.DNS:Edit);

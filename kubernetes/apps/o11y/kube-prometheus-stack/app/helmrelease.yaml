@@ -119,7 +119,40 @@ spec:
                   storage: 10Gi
 
     alertmanager:
+      # Telegram's HTML parse mode rejects stray <, > and &, so alert text
+      # goes through `html`.
+      config:
+        route:
+          receiver: telegram
+          group_by: [alertname, namespace]
+          repeat_interval: 12h
+          routes:
+            - receiver: blackhole
+              matchers:
+                - alertname =~ "Watchdog|InfoInhibitor"
+        inhibit_rules:
+          - source_matchers:
+              - severity = critical
+            target_matchers:
+              - severity = warning
+            equal: [alertname, namespace]
+        receivers:
+          - name: blackhole
+          - name: telegram
+            telegram_configs:
+              - bot_token_file: /etc/alertmanager/secrets/alertmanager-telegram/bot_token
+                chat_id_file: /etc/alertmanager/secrets/alertmanager-telegram/chat_id
+                parse_mode: HTML
+                send_resolved: true
+                message: |-
+                  <b>{{ .Status | toUpper }}</b>: {{ .CommonLabels.alertname | html }}
+                  {{- range .Alerts }}
+                  • {{ with .Annotations.summary }}{{ . | html }}{{ else }}{{ .Annotations.description | html }}{{ end }}
+                  {{- if .Labels.namespace }} [{{ .Labels.namespace | html }}{{ with .Labels.pod }}/{{ . | html }}{{ end }}]{{ end }}
+                  {{- end }}
       alertmanagerSpec:
+        # Mounted at /etc/alertmanager/secrets/alertmanager-telegram/.
+        secrets: [alertmanager-telegram]
         resources:
           requests:
             cpu: 10m
