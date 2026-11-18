@@ -15,6 +15,9 @@ spec:
     address: http://authelia.auth.svc.cluster.local:9091/api/authz/forward-auth
     # The entrypoint has already replaced any client-sent X-Forwarded-*.
     trustForwardHeader: true
+    # Authelia answers with a redirect or a short error. Traefik allocates
+    # this much per request; a bigger body becomes a 401.
+    maxResponseBodySize: 65536
     authResponseHeaders:
       - Remote-User
       - Remote-Groups
