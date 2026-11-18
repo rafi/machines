@@ -49,11 +49,19 @@ spec:
     windowsMonitoring:
       enabled: false
 
-    # Task 3 turns it on, with its route.
+    # Off until its route exists.
     grafana:
       enabled: false
 
     prometheusOperator:
+      admissionWebhooks:
+        patch:
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 64Mi
       resources:
         requests:
           cpu: 10m
