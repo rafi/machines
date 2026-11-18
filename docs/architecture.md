@@ -3,8 +3,9 @@
 Two machines, one repository, no secrets in git.
 
 - **The server** is a small public VPS. It forwards traffic into the
-  cluster without decrypting it and proxies slskd's outgoing connections.
-  Its services run under systemd and are deployed over SSH.
+  cluster without decrypting it, proxies slskd's outgoing connections and
+  checks the cluster from outside ([Gatus]). Its services run under systemd
+  and are deployed over SSH.
 - **The cluster** is a single-node [k3s] cluster at home, behind CGNAT. It
   runs the applications. [Flux] reconciles it from this repository.
 - **[pass]** holds every secret and every private value (domain, host names,
@@ -19,6 +20,7 @@ flowchart LR
     nginx["nginx"]
     rs["rathole server"]
     ss["shadowsocks"]
+    gatus["Gatus"]
   end
   subgraph home["The cluster (home, CGNAT)"]
     flux["Flux"] --> apps["apps"]
@@ -40,7 +42,15 @@ the tunnel's services on local ports.
 
 The tunnel's services: `ingress-tls` and `ssh` (behind nginx on 443),
 `alertmanager` (Alertmanager on the server's loopback `127.0.0.1:32093`,
-for the server's own checks) and slskd's listen port (public).
+for Gatus) and slskd's listen port (public).
+
+[Gatus] on the server checks, every minute, that Alertmanager's
+always-firing `Watchdog` alert is active and not silenced (so the tunnel,
+Prometheus and Alertmanager all work), and that each public app answers 200
+or 302 over HTTPS with a certificate valid for more than 7 days. After 3
+failures it alerts on Telegram, the cluster's chat, on its own: it still
+works when the cluster can't. Its UI is on the server's loopback,
+`127.0.0.1:8080`.
 
 ```mermaid
 flowchart LR
@@ -232,12 +242,13 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 | Wildcard DNS record | A new host is only an `HTTPRoute`; DNS doesn't reveal which hosts exist, as the wildcard certificate keeps them out of CT logs | Every name resolves: typos and scanners reach Traefik and get a 404 |
 | CrowdSec's bouncer fails open | A LAPI outage never takes the sites down | Bans made during an outage, or before a Traefik restart, wait for LAPI |
 | slskd's outbound through shadowsocks | Peers see the server's address; the link is encrypted and the port answers only the key | One more service on the server; its version is pinned twice (installer and image) |
+| Gatus on the server | A watcher outside the cluster: it reports a dead tunnel, cluster or Alertmanager, which can't report themselves | One more service on the server; no release binary, so a deploy pulls it from upstream's image with `crane` |
 | Pinned versions | Upgrades only after reading release notes | Manual bumps for the server's apps (Renovate ignores `server/`) |
 
 ## References
 
 - [k3s] · [Flux] · [Gateway API] · [Traefik] · [cert-manager] · [CloudNativePG] · [app-template] · [Reloader] · [Renovate] · [restic] · [CrowdSec]
-- [rathole] · [nginx `ssl_preread`][ssl_preread] · [Authelia] · [LLDAP] · [shadowsocks-rust]
+- [rathole] · [nginx `ssl_preread`][ssl_preread] · [Authelia] · [LLDAP] · [shadowsocks-rust] · [Gatus]
 - [pass] · [secretspec] · [just] · [envsubst] · [Flux post-build substitution][flux-subst]
 - [onedr0p/home-ops], whose cluster layout this follows
 
@@ -253,6 +264,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 [Flux]: https://fluxcd.io
 [Flux Operator]: https://fluxoperator.dev
 [flux-subst]: https://fluxcd.io/flux/components/kustomize/kustomizations/#post-build-variable-substitution
+[Gatus]: https://github.com/TwiN/gatus
 [Gateway API]: https://gateway-api.sigs.k8s.io
 [just]: https://just.systems
 [k3s]: https://k3s.io

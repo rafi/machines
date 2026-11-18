@@ -1,0 +1,24 @@
+[Unit]
+Description=Gatus (the server's checks of the cluster and its sites)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=gatus
+Group=gatus
+Environment=GATUS_CONFIG_PATH=/etc/gatus/config.yaml
+ExecStart=/usr/local/bin/gatus
+Restart=on-failure
+RestartSec=5s
+
+# Hardening: read-only system, writes only to its SQLite database.
+ProtectSystem=strict
+ReadWritePaths=/var/lib/gatus
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
+
+# vim: set ft=systemd ts=2 sw=2 tw=80 noet :

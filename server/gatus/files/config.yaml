@@ -1,0 +1,103 @@
+# Gatus: the server's checks of the cluster, from outside it.
+# See https://github.com/TwiN/gatus#configuration
+# Rendered by `just server apply` with the values in ../secretspec.toml.
+
+web:
+  # Loopback only: ssh -L 8080:127.0.0.1:8080 <host>
+  address: 127.0.0.1
+  port: 8080
+
+storage:
+  type: sqlite
+  path: /var/lib/gatus/data.db
+
+alerting:
+  telegram:
+    token: "${FLUX_TELEGRAM_BOT_TOKEN}"
+    id: "${FLUX_TELEGRAM_CHAT_ID}"
+    # 3 failures at 1m: the alert fires after about 3 minutes down, so a
+    # tunnel reconnect stays quiet.
+    default-alert:
+      failure-threshold: 3
+      success-threshold: 2
+      send-on-resolved: true
+
+endpoints:
+  # The cluster's alerting pipeline, end to end: Alertmanager through the
+  # rathole tunnel (127.0.0.1:32093), and its always-firing Watchdog alert
+  # active and not silenced. Down when the tunnel, Prometheus or
+  # Alertmanager is.
+  - name: cluster-alerting
+    group: cluster
+    url: "http://127.0.0.1:32093/api/v2/alerts?filter=alertname%3D%22Watchdog%22&active=true&silenced=false"
+    interval: 1m
+    conditions:
+      - "[STATUS] == 200"
+      - "len([BODY]) > 0"
+      - "[BODY] == pat(*Watchdog*)"
+    alerts:
+      - type: telegram
+
+  # One public site per app backend, through the server's own port 443 and
+  # the tunnel to Traefik. Sites behind Authelia answer 302 (to its login).
+  - name: auth
+    group: sites
+    url: "https://auth.${SECRET_DOMAIN}"
+    interval: 1m
+    client: &site-client
+      ignore-redirect: true
+    conditions: &site-conditions
+      - "[STATUS] == any(200, 302)"
+      - "[CERTIFICATE_EXPIRATION] > 168h"
+    alerts: &site-alerts
+      - type: telegram
+
+  - name: ldap
+    group: sites
+    url: "https://ldap.${SECRET_DOMAIN}"
+    interval: 1m
+    client: *site-client
+    conditions: *site-conditions
+    alerts: *site-alerts
+
+  - name: crowdsec
+    group: sites
+    url: "https://crowdsec.${SECRET_DOMAIN}"
+    interval: 1m
+    client: *site-client
+    conditions: *site-conditions
+    alerts: *site-alerts
+
+  - name: atuin
+    group: sites
+    url: "https://atuin.${SECRET_DOMAIN}"
+    interval: 1m
+    client: *site-client
+    conditions: *site-conditions
+    alerts: *site-alerts
+
+  # Also stands for prometheus. and alertmanager.: the same Authelia path.
+  - name: grafana
+    group: sites
+    url: "https://grafana.${SECRET_DOMAIN}"
+    interval: 1m
+    client: *site-client
+    conditions: *site-conditions
+    alerts: *site-alerts
+
+  # home. has no route at /: one endpoint per app under it.
+  - name: miniflux
+    group: sites
+    url: "https://home.${SECRET_DOMAIN}/miniflux"
+    interval: 1m
+    client: *site-client
+    conditions: *site-conditions
+    alerts: *site-alerts
+
+  - name: slskd
+    group: sites
+    url: "https://home.${SECRET_DOMAIN}/slsk"
+    interval: 1m
+    client: *site-client
+    conditions: *site-conditions
+    alerts: *site-alerts

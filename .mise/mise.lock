@@ -2,6 +2,23 @@
 
 lockfile_version = 3
 
+[[tools."aqua:google/go-containerregistry"]]
+version = "0.22.1"
+backend = "aqua:google/go-containerregistry"
+specifiers = ["0.22.1"]
+
+[tools."aqua:google/go-containerregistry"."platforms.linux-x64"]
+checksum = "sha256:0ab7a1d6932a213aed964ce97666c3077fe691c8606413674a8b3e0b9ec4cda0"
+checksum_source = "mise-versions"
+url = "https://github.com/google/go-containerregistry/releases/download/v0.22.1/go-containerregistry_Linux_x86_64.tar.gz"
+url_api = "https://api.github.com/repos/google/go-containerregistry/releases/assets/543544389"
+
+[tools."aqua:google/go-containerregistry"."platforms.macos-arm64"]
+checksum = "sha256:2231fc8df8806d20d680ff1225db44e095a55dd6ac1ae8eced4faf4b278b78fb"
+checksum_source = "mise-versions"
+url = "https://github.com/google/go-containerregistry/releases/download/v0.22.1/go-containerregistry_Darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/google/go-containerregistry/releases/assets/543544436"
+
 [[tools.flux2]]
 version = "2.10.0"
 backend = "aqua:fluxcd/flux2"

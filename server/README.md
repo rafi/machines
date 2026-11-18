@@ -1,8 +1,8 @@
 # The server
 
 The public server in front of the cluster: nginx (port 443 forwarding, port
-80 redirect), the rathole server and shadowsocks (slskd's outgoing
-connections). Values come from
+80 redirect), the rathole server, shadowsocks (slskd's outgoing
+connections) and Gatus (checks of the cluster from outside). Values come from
 `pass` (`secretspec/machines/default/<KEY>`); nothing secret is in this repo.
 Authelia and LLDAP run in the cluster (`kubernetes/apps/auth`). nginx only
 forwards: TLS untouched to the cluster, SSH to the node.
@@ -28,9 +28,22 @@ options.
 
 | App | Config (`server/<app>/files/`) |
 |---|---|
+| gatus | `config.yaml` (`SECRET_DOMAIN`, `FLUX_TELEGRAM_BOT_TOKEN`, `FLUX_TELEGRAM_CHAT_ID`); the binary from upstream's image at `GATUS_VERSION` |
 | ingress | `nginx.conf` (port 80 → HTTPS), `snippets/stream.nginx` (443: SSH and TLS passthrough to the cluster) |
 | rathole-server | `server.toml`, `identity.pfx` (decoded from `RATHOLE_IDENTITY_PFX_B64`) |
 | shadowsocks | `config.json` (`SHADOWSOCKS_PORT`, `SHADOWSOCKS_PASSWORD`) |
+
+### gatus
+
+Checks, every minute, the cluster's alerting (Alertmanager's `Watchdog`
+through the tunnel) and each public app over HTTPS; Telegram after 3
+failures. The UI listens on the server's loopback only:
+
+```sh
+ssh -L 8080:127.0.0.1:8080 <host>   # then http://localhost:8080
+```
+
+Details: [gatus/README.md](gatus/README.md).
 
 ### shadowsocks
 

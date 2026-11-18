@@ -1,5 +1,5 @@
-# The server: nginx, rathole and shadowsocks (server/<app>/), deployed over
-# SSH, and provisioning (etc/). Values come from pass.
+# The server: nginx, rathole, shadowsocks and Gatus (server/<app>/), deployed
+# over SSH, and provisioning (etc/). Values come from pass.
 
 set shell := ['bash', '-euo', 'pipefail', '-c']
 set script-interpreter := ['bash', '-euo', 'pipefail']
@@ -24,12 +24,20 @@ apply host *apps:
 		stage "$app" "$tmp" "$tmp/.env.sh"
 		env_systemd "$tmp/.env.sh" > "$tmp/.env"
 		[ ! -d "$app/units" ] || cp -R "$app/units/." "$tmp/"
+		# Gatus has no release binary: take it from upstream's image, at the
+		# deploy line's GATUS_VERSION (Renovate ignores server/: bump by hand).
+		if [ "$app" = gatus ]; then
+			export "${@:2}"
+			crane export --platform linux/amd64 "ghcr.io/twin/gatus:$GATUS_VERSION" - \
+				| tar -x -C "$tmp" gatus
+		fi
 		rsync -hlrtWxz "$tmp/" "{{ host }}:/tmp/$app/"
 		cat "{{ root }}/server/functions.sh" "$app/installer.sh" | ssh {{ host }} "${*:2}" sh -s
 	)
 	deploy rathole-server
 	deploy ingress    USE_PACKAGE_MANAGER=1
 	deploy shadowsocks
+	deploy gatus      GATUS_VERSION=v5.38.0
 
 # Provision a fresh server; `target` is its first login, e.g. root@<ip>.
 [doc('Provision a new server with server/etc: just server setup root@<ip>')]
