@@ -31,6 +31,7 @@ sudo ufw show added
 
 sudo install -d -m 700 "$CONFIG_DIR"
 sudo install -m 600 -o root -g root "$TEMP_DIR"/config.json "$CONFIG_DIR"/config.json
+sudo install -m 600 -o root -g root "$TEMP_DIR"/server.acl "$CONFIG_DIR"/server.acl
 sudo mv -vf "$TEMP_DIR"/shadowsocks.service /etc/systemd/system/
 sudo rm -rf "$TEMP_DIR"
 

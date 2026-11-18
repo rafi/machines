@@ -1,0 +1,23 @@
+# ssserver's outbound ACL: slskd needs the internet only. Blocks the
+# server's own loopback (rathole's tunnel ports, Gatus) and private
+# networks, also when a domain resolves to them (ssserver checks resolved
+# addresses too). The unit's IPAddressDeny= enforces the same in the kernel.
+# Never list ::ffff:0:0/96: ssserver also matches every IPv4 address
+# against the IPv6 rules in that form, so it would block all IPv4.
+# IPv4-mapped targets (::ffff:127.0.0.1) are matched by the IPv4 rules.
+# See https://github.com/shadowsocks/shadowsocks-rust#acl
+[outbound_allow_all]
+
+[outbound_block_list]
+||localhost
+0.0.0.0/8
+127.0.0.0/8
+10.0.0.0/8
+100.64.0.0/10
+169.254.0.0/16
+172.16.0.0/12
+192.168.0.0/16
+::/128
+::1/128
+fc00::/7
+fe80::/10

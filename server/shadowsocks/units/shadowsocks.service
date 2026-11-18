@@ -10,15 +10,22 @@ RestartSec=5s
 LimitNOFILE=1048576
 
 # The config holds the key: root-only on disk, handed to the unprivileged
-# service through a systemd credential.
+# service through a systemd credential, as is the outbound ACL.
 LoadCredential=config.json:/etc/shadowsocks/config.json
-ExecStart=/usr/local/bin/ssserver --log-without-time -c %d/config.json
+LoadCredential=server.acl:/etc/shadowsocks/server.acl
+ExecStart=/usr/local/bin/ssserver --log-without-time -c %d/config.json --acl %d/server.acl
 
 DynamicUser=yes
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
 PrivateTmp=yes
+
+# slskd needs the internet only: the kernel drops traffic to and from the
+# server's loopback (rathole's tunnel ports, Gatus), link-local and private
+# networks, whatever name a client asked for. The local resolver
+# (127.0.0.53) is blocked too, so the config sends DNS to Cloudflare.
+IPAddressDeny=localhost link-local multicast 0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 172.16.0.0/12 192.168.0.0/16 fc00::/7
 
 [Install]
 WantedBy=multi-user.target

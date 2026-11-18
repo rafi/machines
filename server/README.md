@@ -31,7 +31,7 @@ options.
 | gatus | `config.yaml` (`SECRET_DOMAIN`, `FLUX_TELEGRAM_BOT_TOKEN`, `FLUX_TELEGRAM_CHAT_ID`); the binary from upstream's image at `GATUS_VERSION` |
 | ingress | `nginx.conf` (port 80 → HTTPS), `snippets/stream.nginx` (443: SSH and TLS passthrough to the cluster) |
 | rathole-server | `server.toml`, `identity.pfx` (decoded from `RATHOLE_IDENTITY_PFX_B64`) |
-| shadowsocks | `config.json` (`SHADOWSOCKS_PORT`, `SHADOWSOCKS_PASSWORD`) |
+| shadowsocks | `config.json` (`SHADOWSOCKS_PORT`, `SHADOWSOCKS_PASSWORD`), `server.acl` (outbound blocks) |
 
 ### gatus
 
@@ -50,7 +50,8 @@ Details: [gatus/README.md](gatus/README.md).
 slskd's outgoing connections. Behind CGNAT the Soulseek server would
 advertise the home IP; slskd's connections leave from here instead (an
 `sslocal` container in its pod carries them, encrypted), so it advertises
-the server's, where rathole forwards the listen port back. Details:
+the server's, where rathole forwards the listen port back. It reaches the
+internet only, never the server's loopback or private networks. Details:
 [shadowsocks/README.md](shadowsocks/README.md).
 
 ### Authelia and LLDAP

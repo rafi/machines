@@ -3,5 +3,6 @@
   "server_port": ${SHADOWSOCKS_PORT},
   "password": "${SHADOWSOCKS_PASSWORD}",
   "method": "2022-blake3-aes-256-gcm",
-  "mode": "tcp_only"
+  "mode": "tcp_only",
+  "dns": "cloudflare"
 }
