@@ -11,16 +11,14 @@ and alerts on Telegram (the cluster's bot and chat) when the cluster can't:
   redirects not followed), certificate valid for more than 7 days.
 
 An alert fires after 3 failed checks (1 minute apart) and resolves after 2
-good ones. The UI and API listen on loopback only, `127.0.0.1:8080`; history
-is in `/var/lib/gatus/data.db` (SQLite).
-
-Gatus has no release binary: `just server apply` takes `/gatus` from
-upstream's image `ghcr.io/twin/gatus` (with `crane`) at the `GATUS_VERSION`
-of its deploy line in [`../mod.just`](../mod.just). Bump it by hand.
-
-Deploy: `just server apply <host> gatus`. Keys are in
-[`secretspec.toml`](secretspec.toml); values come from pass. UI:
+good ones. History (a day of results, 200 events per check) is in
+`/var/lib/gatus/data.db`. The UI listens on the server's loopback only:
 
 ```sh
-ssh -L 8080:127.0.0.1:8080 <host>   # then http://localhost:8080
+ssh -N -L 8080:127.0.0.1:8080 <host>   # then http://localhost:8080
 ```
+
+Deploy: `just server apply <host> gatus`. Gatus has no release binary: the
+deploy takes `/gatus` from upstream's image `ghcr.io/twin/gatus` (with
+`crane`) at the `GATUS_VERSION` of its line in [`../mod.just`](../mod.just);
+bump it by hand.

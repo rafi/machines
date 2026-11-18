@@ -1,11 +1,8 @@
 # The server
 
-The public server in front of the cluster: nginx (port 443 forwarding, port
-80 redirect), the rathole server, shadowsocks (slskd's outgoing
-connections) and Gatus (checks of the cluster from outside). Values come from
-`pass` (`secretspec/machines/default/<KEY>`); nothing secret is in this repo.
-Authelia and LLDAP run in the cluster (`kubernetes/apps/auth`). nginx only
-forwards: TLS untouched to the cluster, SSH to the node.
+The public server in front of the cluster. It runs no containers: each app
+is a binary under systemd. Values come from `pass`
+(`secretspec/machines/default/<KEY>`); nothing secret is in this repo.
 
 ## Create and set up
 
@@ -26,38 +23,14 @@ Each app is `server/<app>/`: its config in `files/` (rendered with
 `installer.sh`. `mod.just` lists which apps run here and with which installer
 options.
 
-| App | Config (`server/<app>/files/`) |
-|---|---|
-| gatus | `config.yaml` (`SECRET_DOMAIN`, `FLUX_TELEGRAM_BOT_TOKEN`, `FLUX_TELEGRAM_CHAT_ID`); the binary from upstream's image at `GATUS_VERSION` |
-| ingress | `nginx.conf` (port 80 → HTTPS), `snippets/stream.nginx` (443: SSH and TLS passthrough to the cluster) |
-| rathole-server | `server.toml`, `identity.pfx` (decoded from `RATHOLE_IDENTITY_PFX_B64`) |
-| shadowsocks | `config.json` (`SHADOWSOCKS_PORT`, `SHADOWSOCKS_PASSWORD`), `server.acl` (outbound blocks) |
+| App | What | Config (`files/`) |
+|---|---|---|
+| [ingress](ingress/README.md) | nginx: 443 passes SSH and TLS untouched to the cluster, 80 redirects to HTTPS | `nginx.conf`, `snippets/stream.nginx` |
+| [rathole-server](rathole-server/README.md) | the server end of the cluster's tunnel | `server.toml`, `identity.pfx` (from `RATHOLE_IDENTITY_PFX_B64`) |
+| [shadowsocks](shadowsocks/README.md) | slskd's outgoing connections, so peers see the server's address | `config.json`, `server.acl` |
+| [gatus](gatus/README.md) | checks the cluster and the public sites from outside; UI on loopback | `config.yaml` |
 
-### gatus
-
-Checks, every minute, the cluster's alerting (Alertmanager's `Watchdog`
-through the tunnel) and each public app over HTTPS; Telegram after 3
-failures. The UI listens on the server's loopback only:
-
-```sh
-ssh -L 8080:127.0.0.1:8080 <host>   # then http://localhost:8080
-```
-
-Details: [gatus/README.md](gatus/README.md).
-
-### shadowsocks
-
-slskd's outgoing connections. Behind CGNAT the Soulseek server would
-advertise the home IP; slskd's connections leave from here instead (an
-`sslocal` container in its pod carries them, encrypted), so it advertises
-the server's, where rathole forwards the listen port back. It reaches the
-internet only, never the server's loopback or private networks. Details:
-[shadowsocks/README.md](shadowsocks/README.md).
-
-### Authelia and LLDAP
-
-Run in the cluster (`kubernetes/apps/auth`). LLDAP's users and groups, and
-how to add one, are in `kubernetes/apps/auth/lldap/secrets/lldap-bootstrap.yaml`.
+Authelia and LLDAP run in the cluster (`kubernetes/apps/auth`).
 
 ## Rathole TLS
 

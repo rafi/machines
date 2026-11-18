@@ -1,8 +1,8 @@
 # Kubernetes cluster
 
-A single k3s node (Arch Linux, amd64, k3s `v1.37.1+k3s1`), managed by Flux
-from this repo. Pushing to `master` is the deploy. Values that git doesn't
-hold come from `pass` (`secretspec/machines/default/<KEY>`):
+A single k3s node (Arch Linux, amd64), managed by Flux from this repo.
+Pushing to `master` is the deploy. Values that git doesn't hold come from
+`pass` (`secretspec/machines/default/<KEY>`):
 
 | Key | Used by |
 |---|---|
@@ -10,7 +10,7 @@ hold come from `pass` (`secretspec/machines/default/<KEY>`):
 | `K3S_KUBECONFIG` | `just kube kubeconfig`, `just kube kubeconfig-save` |
 | `SECRET_DOMAIN`, `SEERR_HOSTNAME`, `SERVER_HOSTNAME`, `RATHOLE_SERVER_SERVICES_SLSKD_PORT` | Secret `cluster-settings` in every namespace (Flux substitutes them) |
 | the keys in `apps/<ns>/<app>/secrets/secretspec.toml` | `just kube secrets`; the backup's (B2, restic) also `just kube restic` |
-| `CLOUDFLARE_DNS_TOKEN` | cert-manager's DNS-01 (`apps/cert-manager/cert-manager/secrets`): a Cloudflare token with Zone.DNS:Edit and Zone:Read on the domain's zone only |
+| `CLOUDFLARE_DNS_TOKEN` | cert-manager's DNS-01: a Cloudflare token with Zone.DNS:Edit and Zone:Read on the domain's zone only |
 
 ## Rebuild from scratch
 
@@ -31,7 +31,7 @@ nothing is a LoadBalancer (Traefik is reached through rathole only).
 
 ### 2. Kubeconfig, on the workstation
 
-A new install has new certificates. Store its kubeconfig, then use it:
+A new install has new certificates:
 
 ```sh
 just kube kubeconfig-save <node>     # <node>: the node's SSH destination
@@ -42,6 +42,10 @@ kubectl get nodes
 
 ### 3. Secrets and Flux
 
+Before the first start, create the hostPath directories of the apps that
+run as 1000:1000 (slskd, LLDAP, Atuin, the CrowdSec web UI):
+`ssh <node> sudo install -d -o 1000 -g 1000 /opt/slskd /opt/lldap /opt/atuin /opt/crowdsec-web-ui`.
+
 ```sh
 just kube bootstrap   # just kube secrets, then Flux Operator + FluxInstance (helm)
 just kube sync
@@ -49,44 +53,39 @@ just kube failing     # expect nothing; the first sync takes minutes (Helm chart
 just kube routes      # every Gateway and HTTPRoute accepted
 ```
 
-Flux's errors go through Alertmanager (Provider `alertmanager`), not their
-own Telegram bot: Secret `telegram-bot` in `flux-system`, left by older
-clusters, is unused and can be deleted.
-
 Secrets go in first, so Flux never reconciles without `cluster-settings`.
 The operator installs Flux, which syncs `kubernetes/flux/cluster`. Order is
-enforced by `dependsOn`: gateway-api, then traefik; traefik and the `o11y`
-forward-auth, then kube-prometheus-stack, then kube-prometheus-stack-rules,
-blackbox-exporter and `flux-system`'s alerts; cloudnative-pg, then
-postgres, then miniflux and authelia (which also waits for lldap); crowdsec,
-then its web UI;
-cert-manager, then its ClusterIssuers, then the wildcard certificate (Secret
-`wildcard-tls` in `traefik`). A rebuild issues a new certificate: Let's
-Encrypt allows 5 for the same names per week.
+enforced by `dependsOn`:
 
-The CrowdSec web UI and Atuin run as 1000:1000 on a hostPath, like slskd and
-LLDAP: before their first start,
-`ssh <node> sudo install -d -o 1000 -g 1000 /opt/crowdsec-web-ui /opt/atuin`.
+- gateway-api → traefik;
+- traefik and the `o11y` forward-auth → kube-prometheus-stack →
+  kube-prometheus-stack-rules, blackbox-exporter and `flux-system`'s alerts;
+- cloudnative-pg → postgres → miniflux and authelia (which also waits for
+  lldap);
+- crowdsec → its web UI;
+- cert-manager → its ClusterIssuers → the wildcard certificate (Secret
+  `wildcard-tls` in `traefik`). A rebuild issues a new certificate: Let's
+  Encrypt allows 5 for the same names per week.
 
 ### 4. Data not in git
 
-Flux restores manifests; Secrets come from `pass`. The rest comes from the
-nightly backup (04:00, `apps/backup/restic`): restic, encrypted with
-`RESTIC_PASSWORD`, to a B2 bucket. It holds `pg_dump`s of the miniflux and
-authelia databases, `/opt/slskd` without `downloads/` and `incomplete/`,
-`/opt/lldap` (LLDAP's users and groups) and `/opt/atuin` (Atuin's SQLite
-database, copied live; its clients also keep their whole history); 7 daily,
-4 weekly and 6 monthly snapshots. The media folders slskd shares are not
-backed up. A failed run is reported on Telegram. CrowdSec is not backed up:
-its bans and alerts (LAPI's PVCs in `crowdsec`) rebuild themselves, and the
-web UI's settings (`/opt/crowdsec-web-ui`) start over. Monitoring is not
-backed up either: Prometheus's metrics and Alertmanager's silences
-(`local-path` PVCs in `o11y`) start over. `grafana.`, `prometheus.` and
-`alertmanager.<domain>` sit behind Authelia; Grafana only for LLDAP's
-`lldap_admin` group, who log in as Admin with no Grafana login page.
+The nightly backup (04:00, `apps/backup/restic`) sends restic snapshots,
+encrypted with `RESTIC_PASSWORD`, to a B2 bucket, keeping 7 daily, 4 weekly
+and 6 monthly; a failed run is reported on Telegram. It holds:
+
+- `pg_dump`s of the miniflux and authelia databases;
+- `/opt/slskd` without `downloads/` and `incomplete/`;
+- `/opt/lldap` (LLDAP's users and groups);
+- `/opt/atuin` (Atuin's SQLite database, copied live; its clients also keep
+  their whole history).
+
+Not backed up, and started over on a rebuild: slskd's shared media,
+CrowdSec (its bans rebuild themselves; the web UI's settings), Prometheus's
+metrics and Alertmanager's silences.
 
 ```sh
 just kube restic snapshots                 # restic comes from `mise install`
+kubectl -n backup create job --from=cronjob/restic restic-manual   # back up now
 
 # miniflux, once postgres runs again
 just kube restic dump latest /dump/miniflux.dump > /tmp/miniflux.dump
@@ -100,35 +99,20 @@ kubectl -n db exec -i postgres-1 -c postgres -- \
   pg_restore --clean --if-exists --no-owner --role=authelia -d authelia < /tmp/authelia.dump
 kubectl -n auth rollout restart deploy/authelia
 
-# slskd's state (slskd runs as 1000:1000)
-kubectl -n default scale deploy/slskd --replicas=0
-just kube restic restore latest --include /data/slskd --target /tmp/restore
-rsync -a --chown=1000:1000 --rsync-path='sudo rsync' /tmp/restore/data/slskd/ <node>:/opt/slskd/
-kubectl -n default scale deploy/slskd --replicas=1
-
-# LLDAP (runs as 1000:1000; its key_seed in pass must be the one the backup was made with)
-kubectl -n auth scale deploy/lldap --replicas=0
-just kube restic restore latest --include /data/lldap --target /tmp/restore
-rsync -a --chown=1000:1000 --rsync-path='sudo rsync' /tmp/restore/data/lldap/ <node>:/opt/lldap/
-kubectl -n auth scale deploy/lldap --replicas=1
-
-# Atuin (runs as 1000:1000)
-kubectl -n default scale deploy/atuin --replicas=0
-just kube restic restore latest --include /data/atuin --target /tmp/restore
-rsync -a --chown=1000:1000 --rsync-path='sudo rsync' /tmp/restore/data/atuin/ <node>:/opt/atuin/
-kubectl -n default scale deploy/atuin --replicas=1
+# A hostPath app: app=slskd ns=default, app=atuin ns=default or
+# app=lldap ns=auth (LLDAP's key_seed in pass must be the backup's).
+kubectl -n $ns scale deploy/$app --replicas=0
+just kube restic restore latest --include /data/$app --target /tmp/restore
+rsync -a --chown=1000:1000 --rsync-path='sudo rsync' /tmp/restore/data/$app/ <node>:/opt/$app/
+kubectl -n $ns scale deploy/$app --replicas=1
 ```
-
-Run a backup now: `kubectl -n backup create job --from=cronjob/restic restic-manual`.
 
 ## Upgrades
 
-Renovate (`.renovaterc.json5`) opens a PR for each new version of the items
-below, labelled `type/major`, `type/minor`, `type/patch` or `type/digest`, and
-the Check workflow renders and validates it; the run's summary shows the
-rendered diff against the base branch. Read the release notes before
-merging. The labels are defined in `.github/labels.yaml`; the Label Sync
-workflow deletes any other. By hand:
+Renovate (`.renovaterc.json5`) opens a labelled PR for each new version;
+the Check workflow renders and validates it and shows the rendered diff
+against the base branch. Read the release notes before merging. Where
+versions live:
 
 - **Flux:** `distribution.version` in
   `apps/flux-system/flux-instance/app/helmrelease.yaml` (2.10.x: patches apply
@@ -139,39 +123,29 @@ workflow deletes any other. By hand:
   `apps/kube-system/gateway-api/app/gitrepository.yaml`.
 - **Postgres:** `version.postgresql` in `apps/db/postgres/app/helmrelease.yaml`
   (held to 16.x, like the backup's `pg_dump`); a change restarts the instance
-  (about a minute: `smartShutdownTimeout` is 15s, set by a post-renderer).
-- **k3s:** not tracked by Renovate. Bump `k3s_version` in `mod.just` and the
-  version above, then `just kube k3s-install <node>`, one minor at a time.
+  for about a minute. Avoid 04:00 (the backup).
+- **k3s:** not tracked by Renovate. Bump `k3s_version` in `mod.just`, then
+  `just kube k3s-install <node>`, one minor at a time.
 
-`just kube check` renders everything locally with flate, charts checked
-against their schema and `kubeVersion` at `k3s_version`, then validates the
-render against the Kubernetes and CRD schemas with kubeconform; `just kube
-render hr <name>` prints one release, `just kube diff [base]` the change
-against a revision. Every HelmRelease gets the same install, upgrade and
-rollback settings from `cluster-apps` (`flux/cluster/ks.yaml`): a failed
-upgrade is retried twice and rolled back.
+Before pushing: `just kube check` (renders and validates everything
+offline), `just kube render hr <name>`, `just kube diff [base]`. A failed
+upgrade is retried twice and rolled back (`cluster-apps`,
+`flux/cluster/ks.yaml`).
 
 ## Values shared with the server
 
-- **The Soulseek port** is one pass key, `RATHOLE_SERVER_SERVICES_SLSKD_PORT`:
-  the server's rathole and `ufw`, the rathole client's
-  `[client.services.slskd]`, and slskd's Service and `listen_port` all read it.
-  After changing it: `just server apply <host> rathole-server`,
-  `just kube secrets`, `just kube sync`, then `bin/check-soulseek-port.py`.
-  slskd is at home behind CGNAT, so peers must be sent to the server: the
-  script checks the address Soulseek gives peers (the server's, not the
-  home one), Soulseek's port test through slskd's sslocal, a peer handshake
-  with slskd through the server's port, and the slskd and rathole-client pods.
-- **shadowsocks:** `SHADOWSOCKS_PORT` and `SHADOWSOCKS_PASSWORD` (the
-  `2022-blake3-aes-256-gcm` key, `openssl rand -base64 32`) are read by the
-  server's `ssserver` (`server/shadowsocks`) and by slskd's `sslocal`
-  (Secret `sslocal-config`). After changing either:
+- **The Soulseek port** (`RATHOLE_SERVER_SERVICES_SLSKD_PORT`): the server's
+  rathole and `ufw`, the rathole client, and slskd's Service and
+  `listen_port`. After changing it: `just server apply <host> rathole-server`,
+  `just kube secrets`, `just kube sync`, then `bin/check-soulseek-port.py`
+  (checks the whole path from Soulseek's peers to slskd).
+- **shadowsocks** (`SHADOWSOCKS_PORT`, `SHADOWSOCKS_PASSWORD`, a
+  `2022-blake3-aes-256-gcm` key from `openssl rand -base64 32`): the server's
+  `ssserver` and slskd's `sslocal`. After changing either:
   `just server apply <host> shadowsocks`, `just kube secrets slskd`.
-- **The tunnel's `alertmanager` service:** the rathole client's
-  `[client.services.alertmanager]` (`alertmanager-operated.o11y:9093`) and
-  the server's `[server.services.alertmanager]` (`127.0.0.1:32093`), which
-  Gatus on the server queries for the `Watchdog` alert. After changing
-  either: `just kube secrets rathole-client`,
+- **The tunnel's `alertmanager` service:** the rathole client forwards
+  `alertmanager-operated.o11y:9093` to the server's `127.0.0.1:32093`, which
+  Gatus queries. After changing either end: `just kube secrets rathole-client`,
   `just server apply <host> rathole-server`.
 
 ## Troubleshooting
@@ -186,37 +160,33 @@ just kube ui          # Flux web UI on http://localhost:9080, read-only
 kubectl -n flux-system get fluxinstance flux
 ```
 
-- A Kustomization fails with an unset variable: `cluster-settings` is
-  missing in its namespace, or a literal `${` needs to be `$${`. Run
-  `just kube secrets`.
-- Pods read Secrets at start. Reloader restarts those annotated
-  `reloader.stakater.com/auto: "true"` (miniflux, slskd, rathole-client, lldap,
-  authelia, crowdsec-web-ui; authelia also on its ConfigMap), and CrowdSec's
-  LAPI and Traefik on their CrowdSec Secrets
-  when `just kube secrets` changes a Secret they use; any other pod needs
-  `kubectl -n <ns> rollout restart deploy/<app>`. Alertmanager's Telegram
-  Secret (`alertmanager-telegram`, from `just kube secrets kube-prometheus-stack`)
-  needs `kubectl -n o11y rollout restart statefulset/alertmanager-kube-prometheus-stack`.
-- The certificate isn't Ready: `kubectl -n traefik describe certificate wildcard`,
-  then the `challenges` it lists (`kubectl get challenges -A`). A Cloudflare
-  error there is usually the token (expired, or missing Zone.DNS:Edit);
-  after replacing it in pass, `just kube secrets cert-manager`. To test
-  without Let's Encrypt's production limits, point the Certificate's
-  `issuerRef` at `letsencrypt-staging`.
-- A site answers 403 to one address: CrowdSec banned it. See why on
+- **A Kustomization fails with an unset variable:** `cluster-settings` is
+  missing in its namespace (run `just kube secrets`), or a literal `${` needs
+  to be `$${`.
+- **A changed Secret isn't picked up:** pods read Secrets at start. Reloader
+  restarts those annotated `reloader.stakater.com/auto: "true"` (miniflux,
+  slskd, rathole-client, lldap, authelia, crowdsec-web-ui; authelia also on
+  its ConfigMap), and CrowdSec's LAPI and Traefik on their CrowdSec Secrets.
+  Alertmanager reads its Telegram Secret at each send. Anything else:
+  `kubectl -n <ns> rollout restart deploy/<app>`.
+- **The certificate isn't Ready:** `kubectl -n traefik describe certificate wildcard`,
+  then the challenges it lists (`kubectl get challenges -A`). A Cloudflare
+  error is usually the token (expired, or missing Zone.DNS:Edit); after
+  replacing it in pass, `just kube secrets cert-manager`. To test without
+  Let's Encrypt's production limits, point the Certificate's `issuerRef` at
+  `letsencrypt-staging`.
+- **A site answers 403 to one address:** CrowdSec banned it. See why on
   `crowdsec.<domain>` or with
   `kubectl -n crowdsec exec deploy/crowdsec-lapi -- cscli decisions list`;
   lift it with `cscli decisions delete --ip <ip>`. Traefik's bouncer pulls
-  the ban list every minute; when LAPI is down it keeps the last list and
-  blocks nothing else. Traefik fetches the bouncer plugin from GitHub at
-  every start: if its `fetch-crowdsec-bouncer` init container fails, the new
-  pod doesn't start (`kubectl -n traefik logs deploy/traefik -c fetch-crowdsec-bouncer`).
-- Alertmanager reports `KubeDeploymentReplicasMismatch` or `KubePodNotReady`
-  for `crowdsec-agent`, after a node reboot: the pod kept its name, and its init
-  container can't register that name again ("user already exist",
+  the ban list every minute and blocks nothing new while LAPI is down.
+  Traefik fetches the bouncer plugin from GitHub at every start: if that
+  fails, the new pod doesn't start
+  (`kubectl -n traefik logs deploy/traefik -c fetch-crowdsec-bouncer`).
+- **`KubeDeploymentReplicasMismatch` or `KubePodNotReady` for
+  `crowdsec-agent` after a node reboot:** the pod kept its name and can't
+  register it again ("user already exist",
   [helm-charts#252](https://github.com/crowdsecurity/helm-charts/issues/252),
-  fixed by the chart's 2.0). Delete its machine, then the pod: the new pod
-  registers under a new name at once (the old one's retry can be 5 minutes
-  away):
+  fixed by the chart's 2.0). Delete its machine, then the pod:
   `kubectl -n crowdsec exec deploy/crowdsec-lapi -- cscli machines delete <agent pod name>`,
   then `kubectl -n crowdsec delete pod <agent pod name>`.

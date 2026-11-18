@@ -24,7 +24,7 @@ readable `just` recipes and shell installers, plus Flux for the cluster.
 
 | | Runs on | Deployed by |
 |---|---|---|
-| **The server** | a public VPS: nginx (443 passthrough, 80 redirect), rathole, shadowsocks | `just server apply` over SSH, systemd |
+| **The server** | a public VPS: nginx (443 passthrough, 80 redirect), rathole, shadowsocks, Gatus | `just server apply` over SSH, systemd |
 | **The cluster** | k3s at home, behind CGNAT, reached through a rathole tunnel | Flux, on every push |
 | **Secrets** | [pass](https://www.passwordstore.org), read by [secretspec](https://secretspec.dev) | at deploy time; never committed, not even encrypted |
 
@@ -64,21 +64,15 @@ The layout follows [onedr0p/home-ops](https://github.com/onedr0p/home-ops):
 each namespace lists its apps' Flux Kustomizations (`ks.yaml`), and each
 `ks.yaml` points at an `app/` directory with the HelmRelease.
 
-```mermaid
-flowchart LR
-  push["git push"] --> flux["Flux"] --> ks["Kustomization<br/>per app"] --> hr["HelmRelease"]
-  ks -. "dependsOn" .-> other["e.g. postgres, traefik"]
-```
-
 Rebuilding the cluster from scratch: [kubernetes/README.md](./kubernetes/README.md).
 
 ## 🛡️ The server
 
-The public edge: port 443 forwarded into the cluster without decrypting it,
-the tunnel's far end and shadowsocks for slskd's outgoing connections. Each service lives in
-[`server/<app>/`](./server/) (config in `files/`, rendered from pass, and a
-shell installer) and is deployed over SSH with `just server apply`.
-Details: [server/README.md](./server/README.md).
+The public edge: nginx passes port 443 to the cluster without decrypting
+it; the server also runs the tunnel's far end, shadowsocks for slskd's
+outgoing connections and Gatus. Each app lives in
+[`server/<app>/`](./server/) and is deployed over SSH with
+`just server apply`. Details: [server/README.md](./server/README.md).
 
 ---
 
