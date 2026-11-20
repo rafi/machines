@@ -21,14 +21,19 @@ _port mode:
 		*) echo >&2 "mode: local or tunnel, not '{{ mode }}'"; exit 2 ;;
 	esac
 
-[doc('Install osewa (auto-updating) and moshi-hook where missing')]
+[doc('Install osewa (auto-updating) and moshi-hook where missing; usage and metrics off')]
 [script]
 install:
 	export PATH="$HOME/.local/bin:$PATH"
 	command -v osewa >/dev/null || curl -fsSL https://osewa.dev/install.sh | sh
-	# Moshi needs the host's build to match the app's: follow releases.
+	# Moshi needs the host's build to match the app's: follow releases. osewa
+	# has no telemetry; its only outbound call is this release check.
 	osewa set auto-update auto
 	command -v moshi-hook >/dev/null || curl -fsSL https://getmoshi.app/install.sh | sh
+	# Nothing about this machine goes to Moshi beyond what a session needs:
+	# no agent usage pulled from account APIs, no CPU/memory/process stream.
+	moshi-hook set usage-collection off >/dev/null
+	moshi-hook set host-metrics off >/dev/null
 
 # osewa's user service listens on the mode's port, TCP and UDP, and
 # moshi-hook tells Moshi the same port. Re-running reinstalls both on it.
@@ -97,16 +102,20 @@ status mode='':
 # Enroll this machine on the node through the server: ssh on the server's
 # 443 reaches the node's sshd, osewa then dials the server's public osewa
 # port. --no-install keeps the node's osewa build, which Moshi must match.
+# `name`: the host's name here (default the node's hostname, from pass);
 # `target`: any other ssh target for the node (default ssh://$USER@s.<domain>:443).
 [doc('Enroll this machine on the node: just moshi enroll [name] [ssh-target]')]
 [script]
-enroll name='node' target='':
+enroll name='' target='':
 	export PATH="$HOME/.local/bin:$PATH"
 	pv() { pass show "secretspec/machines/default/$1" | head -1; }
 	port=$("{{ just_executable() }}" -f "{{ source_file() }}" _port tunnel)
 	# Plain assignments, so set -e stops on a pass failure.
 	domain=$(pv SECRET_DOMAIN)
 	server=$(pv SERVER_HOSTNAME)
+	node=$(pv CLUSTER_NODE_NAME)
+	given="{{ name }}"
+	name=${given:-$node}
 	target="{{ target }}"
 	[ -n "$target" ] || target="ssh://$USER@s.$domain:443"
 	# osewa prints the address and target (pass values) on success and in
@@ -114,9 +123,10 @@ enroll name='node' target='':
 	# show stderr with the values replaced.
 	redact() {
 		while IFS= read -r l; do
-			l=${l//"$server"/<server>}; l=${l//"$domain"/<domain>}; l=${l//"$port"/<port>}
+			l=${l//"$server"/<server>}; l=${l//"$domain"/<domain>}; l=${l//"$port"/<port>}; l=${l//"$node"/<node>}
 			printf '%s\n' "$l"
 		done
 	}
-	{ osewa login "$target" --name "{{ name }}" --no-install --addr "$server:$port" 2>&1 >/dev/null; } | redact >&2
-	echo "enrolled as {{ name }}"
+	{ osewa login "$target" --name "$name" --no-install --addr "$server:$port" 2>&1 >/dev/null; } | redact >&2
+	# The node's hostname is a private value: name it, don't print it.
+	if [ -n "$given" ]; then echo "enrolled as $given"; else echo "enrolled under the node's hostname (CLUSTER_NODE_NAME)"; fi
