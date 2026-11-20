@@ -28,3 +28,13 @@ bind_addr = "127.0.0.1:32093"
 
 [server.services.slskd]
 bind_addr = "0.0.0.0:${RATHOLE_SERVER_SERVICES_SLSKD_PORT}"
+
+# osewa on the node, public on one port for both carriers: its server
+# advertises its own UDP port for QUIC and Moshi dials one port for both,
+# so this port equals the node's osewa port.
+[server.services.osewa]
+bind_addr = "0.0.0.0:${OSEWA_PORT}"
+
+[server.services.osewa-quic]
+type = "udp"
+bind_addr = "0.0.0.0:${OSEWA_PORT}"

@@ -42,7 +42,9 @@ the tunnel's services on local ports.
 
 The tunnel's services: `ingress-tls` and `ssh` (behind nginx on 443),
 `alertmanager` (Alertmanager on the server's loopback `127.0.0.1:32093`,
-for Gatus) and slskd's listen port (public).
+for Gatus), slskd's listen port (public) and [osewa] on the node (public,
+TCP and UDP on one private port, so QUIC reaches it; the UDP leg rides
+the tunnel's TCP from the server home).
 
 [Gatus] on the server checks, every minute, that Alertmanager's
 always-firing `Watchdog` alert is active and not silenced (so the tunnel,
@@ -55,6 +57,7 @@ works when the cluster can't. Its UI is on the server's loopback,
 ```mermaid
 flowchart LR
   user(["Client"]) -- ":443" --> stream
+  user -- "osewa (TCP + UDP)" --> rs
   subgraph vps["The server"]
     stream["nginx stream<br/>ssl_preread, PROXY header"] -- "TLS (untouched)" --> rs["rathole server"]
     stream -- "not TLS (SSH)" --> rs
@@ -66,6 +69,7 @@ flowchart LR
     agent["CrowdSec agent"] -. "logs (Kubernetes API)" .-> gw & authelia
     agent --> lapi
     rc --> sshd["node sshd"]
+    rc --> osewa["node osewa"]
   end
   rs == "tunnel (client-initiated)" === rc
 ```
@@ -249,7 +253,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 ## References
 
 - [k3s] · [Flux] · [Gateway API] · [Traefik] · [cert-manager] · [CloudNativePG] · [app-template] · [Reloader] · [Renovate] · [restic] · [CrowdSec]
-- [rathole] · [nginx `ssl_preread`][ssl_preread] · [Authelia] · [LLDAP] · [shadowsocks-rust] · [Gatus]
+- [rathole] · [nginx `ssl_preread`][ssl_preread] · [Authelia] · [LLDAP] · [shadowsocks-rust] · [Gatus] · [osewa]
 - [pass] · [secretspec] · [just] · [envsubst] · [Flux post-build substitution][flux-subst]
 - [onedr0p/home-ops], whose cluster layout this follows
 
@@ -276,6 +280,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 [sslocal]: https://github.com/shadowsocks/shadowsocks-rust#sslocal
 [onedr0p/home-ops]: https://github.com/onedr0p/home-ops
 [pass]: https://www.passwordstore.org
+[osewa]: https://github.com/rjyo/osewa
 [Reloader]: https://github.com/stakater/Reloader
 [Renovate]: https://docs.renovatebot.com
 [kube-prometheus-stack]: https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack

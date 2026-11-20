@@ -147,6 +147,16 @@ upgrade is retried twice and rolled back (`cluster-apps`,
   `alertmanager-operated.o11y:9093` to the server's `127.0.0.1:32093`, which
   Gatus queries. After changing either end: `just kube secrets rathole-client`,
   `just server apply <host> rathole-server`.
+- **The osewa port** (`OSEWA_PORT`, TCP and UDP): the server's rathole and
+  `ufw`, the rathole client, and on the node both osewa, which must listen
+  on it (its server advertises its own UDP port for QUIC), and moshi-hook,
+  which tells Moshi where to dial. After changing it:
+  `just server apply <host> rathole-server`,
+  `just kube secrets rathole-client`, then on the node
+  `osewa service install --listen :<port>`,
+  `moshi-hook set osewa-port <port>` and `moshi-hook service restart`, and
+  re-enroll CLI clients with
+  `osewa login <ssh-target> --name <name> --addr <server host>:<port>`.
 
 ## Troubleshooting
 

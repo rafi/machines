@@ -11,7 +11,7 @@ CONFIG_DIR=/etc/$APP_NAME
 TEMP_DIR=/tmp/rathole-server
 
 # user variables
-load_env "$TEMP_DIR"/.env.sh  # for APP_VERSION and RATHOLE_SERVER_BIND_PORT
+load_env "$TEMP_DIR"/.env.sh  # for APP_VERSION and the ports ufw opens
 APP_VERSION=${APP_VERSION:-0.5.0}
 
 # pre-install
@@ -40,6 +40,8 @@ fi
 # post-install
 sudo ufw allow "$RATHOLE_SERVER_BIND_PORT"/tcp
 sudo ufw allow "$RATHOLE_SERVER_SERVICES_SLSKD_PORT"/tcp
+sudo ufw allow "$OSEWA_PORT"/tcp
+sudo ufw allow "$OSEWA_PORT"/udp
 sudo ufw show added
 
 sudo mkdir -p "$CONFIG_DIR"/certs

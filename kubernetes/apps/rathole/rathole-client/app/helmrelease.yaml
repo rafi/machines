@@ -1,8 +1,9 @@
 ---
 # yaml-language-server: $schema=https://raw.githubusercontent.com/bjw-s-labs/helm-charts/main/charts/other/app-template/schemas/helmrelease-helm-v2.schema.json
 # https://github.com/rapiz1/rathole
-# Tunnels ingress, ssh, the Soulseek port and Alertmanager (server loopback
-# only, for Gatus) from the server to this cluster.
+# Tunnels ingress, ssh, the Soulseek port, osewa (TCP and UDP) and
+# Alertmanager (server loopback only, for Gatus) from the server to this
+# cluster.
 # Secrets rathole-conf (client.toml) and rathole (rootCA.crt):
 # `just kube secrets rathole-client`.
 apiVersion: helm.toolkit.fluxcd.io/v2
