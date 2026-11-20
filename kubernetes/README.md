@@ -152,11 +152,10 @@ upgrade is retried twice and rolled back (`cluster-apps`,
   on it (its server advertises its own UDP port for QUIC), and moshi-hook,
   which tells Moshi where to dial. After changing it:
   `just server apply <host> rathole-server`,
-  `just kube secrets rathole-client`, then on the node
-  `osewa service install --listen :<port>`,
-  `moshi-hook set osewa-port <port>` and `moshi-hook service restart`, and
-  re-enroll CLI clients with
-  `osewa login <ssh-target> --name <name> --addr <server host>:<port>`.
+  `just kube secrets rathole-client`, `just moshi host tunnel` on the node
+  (then `just moshi status tunnel`), and `just moshi enroll` on each CLI
+  client. A laptop serves Moshi on the LAN or a tailnet with
+  `just moshi host` (osewa's default 7322).
 
 ## Troubleshooting
 

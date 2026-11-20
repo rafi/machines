@@ -16,6 +16,9 @@ mod kube 'kubernetes'
 # The server (systemd over SSH): `just server`
 mod server 'server'
 
+# osewa and Moshi on this machine: `just moshi`
+mod moshi 'moshi.just'
+
 _default:
 	@just --list --unsorted
 
