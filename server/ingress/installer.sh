@@ -35,6 +35,8 @@ echo ':: Post install'
 sudo mv -vf "$TEMP_DIR"/nginx.conf "$CONFIG_DIR"/
 sudo mkdir -p "$CONFIG_DIR"/snippets
 sudo mv -vf "$TEMP_DIR"/snippets/stream.nginx "$CONFIG_DIR"/snippets/
+sudo mkdir -p /etc/systemd/system/nginx.service.d
+sudo install -m 644 "$TEMP_DIR"/hardening.conf /etc/systemd/system/nginx.service.d/
 sudo rm -rf "$TEMP_DIR"
 
 sudo chmod -R o-rwx "$CONFIG_DIR" "$DATA_DIR"
