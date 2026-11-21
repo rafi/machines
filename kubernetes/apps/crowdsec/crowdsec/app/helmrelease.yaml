@@ -65,6 +65,9 @@ spec:
       # the machines and bouncers that every replaced agent or Traefik pod
       # leaves behind. A machine with alerts stays until they age out (7d).
       # A bouncer that never pulled (`traefik`, owner of the key) is kept.
+      # crowdsec_service.enable: false stands in for DISABLE_AGENT, which the
+      # chart's LAPI start script ignores (crowdsecurity/helm-charts#331):
+      # LAPI would also run an idle log processor. Drop it with chart 2.0.
       config.yaml.local: |
         api:
           server:
@@ -82,6 +85,8 @@ spec:
               login_password: 7d
             bouncers_autodelete:
               api_key: 1d
+        crowdsec_service:
+          enable: false
     image:
       repository: crowdsecurity/crowdsec
       tag: v1.8.2
