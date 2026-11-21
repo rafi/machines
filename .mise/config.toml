@@ -14,7 +14,7 @@ locked = true
 # `kubectl config-import` for `just kube kubeconfig`; the release is one
 # script for every platform.
 "github:rafi/kubectl-config-import" = { version = "v0.6.7", asset_pattern = "kubectl-config_import", bin = "kubectl-config_import" }
-flux2 = "2.10.0"
+flux2 = "2.10.1"
 helm = "4.3.2"
 jactionlint = "v2.6.0"
 just = "1.59.0"
