@@ -248,7 +248,7 @@ host is an argument (an SSH alias works), the port comes from `pass`.
 | CrowdSec's bouncer fails open | A LAPI outage never takes the sites down | Bans made during an outage, or before a Traefik restart, wait for LAPI |
 | slskd's outbound through shadowsocks | Peers see the server's address; the link is encrypted and the port answers only the key | One more service on the server; its version is pinned twice (installer and image) |
 | Gatus on the server | A watcher outside the cluster: it reports a dead tunnel, cluster or Alertmanager, which can't report themselves | One more service on the server; no release binary, so a deploy pulls it from upstream's image with `crane` |
-| Pinned versions | Upgrades only after reading release notes | Manual bumps for the server's apps (Renovate ignores `server/`) |
+| Pinned versions | Upgrades only after reading release notes | Manual bumps for the server's apps (Renovate ignores `server/`); nginx is the exception, unattended-upgrades applies Ubuntu's security updates |
 
 ## References
 

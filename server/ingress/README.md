@@ -5,4 +5,5 @@ connection, untouched and with a PROXY header, to the cluster
 (`files/snippets/stream.nginx`); port 80 redirects to HTTPS.
 
 Deploy: `just server apply <host> ingress`. The installer runs `nginx -t`
-before reloading.
+before restarting nginx. nginx is Ubuntu's package, not pinned:
+unattended-upgrades installs its security updates and restarts it.
