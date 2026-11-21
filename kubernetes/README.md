@@ -35,8 +35,7 @@ A new install has new certificates:
 
 ```sh
 just kube kubeconfig-save <node>     # <node>: the node's SSH destination
-just kube kubeconfig                 # writes ~/.kube/cluster.yaml
-set -gx KUBECONFIG ~/.kube/cluster.yaml
+just kube kubeconfig [name]          # merges it into your kubeconfig as <name> (default: CLUSTER_NODE_NAME)
 kubectl get nodes
 ```
 

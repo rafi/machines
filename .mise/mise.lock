@@ -68,6 +68,24 @@ checksum_source = "mise-versions"
 url = "https://github.com/home-operations/flate/releases/download/v0.7.3/flate_0.7.3_darwin_arm64.tar.gz"
 url_api = "https://api.github.com/repos/home-operations/flate/releases/assets/727305351"
 
+[[tools."github:rafi/kubectl-config-import"]]
+version = "0.6.7"
+backend = "github:rafi/kubectl-config-import"
+specifiers = ["v0.6.7"]
+
+[tools."github:rafi/kubectl-config-import".options]
+asset_pattern = "kubectl-config_import"
+
+[tools."github:rafi/kubectl-config-import"."platforms.linux-x64"]
+checksum = "sha256:a8048166ad442cd1c8bb4c98b782af3eeff82abeca1faa4414e4de0757471007"
+url = "https://github.com/rafi/kubectl-config-import/releases/download/v0.6.7/kubectl-config_import"
+url_api = "https://api.github.com/repos/rafi/kubectl-config-import/releases/assets/212166237"
+
+[tools."github:rafi/kubectl-config-import"."platforms.macos-arm64"]
+checksum = "sha256:a8048166ad442cd1c8bb4c98b782af3eeff82abeca1faa4414e4de0757471007"
+url = "https://github.com/rafi/kubectl-config-import/releases/download/v0.6.7/kubectl-config_import"
+url_api = "https://api.github.com/repos/rafi/kubectl-config-import/releases/assets/212166237"
+
 [[tools.helm]]
 version = "4.3.2"
 backend = "aqua:helm/helm"

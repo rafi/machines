@@ -41,11 +41,18 @@ k3s-install host version=k3s_version:
 	rsync -rtz --chmod=D700,F600 "$tmp/" "{{ host }}:/tmp/k3s-install/"
 	ssh -t {{ host }} sh /tmp/k3s-install/install.sh {{ version }}
 
-# Write the kubeconfig from pass to a file.
+# Merge the kubeconfig from pass into the current kubeconfig as `name` (its
+# cluster, user and context; default CLUSTER_NODE_NAME) and switch to it.
 [group('bootstrap')]
-kubeconfig out="~/.kube/cluster.yaml":
-	umask 077; pass show secretspec/machines/default/K3S_KUBECONFIG > {{ out }}
-	@echo "export KUBECONFIG={{ out }}"
+[script]
+kubeconfig name='':
+	export name='{{ name }}'
+	[ -n "$name" ] || name=$(pass show secretspec/machines/default/CLUSTER_NODE_NAME)
+	pass show secretspec/machines/default/K3S_KUBECONFIG \
+		| yq '(.clusters[], .users[]).name = strenv(name)
+			| .contexts[].name = strenv(name) | .contexts[].context.cluster = strenv(name)
+			| .contexts[].context.user = strenv(name) | .current-context = strenv(name)' \
+		| kubectl config-import
 
 # Store a (re)installed node's kubeconfig in pass, pointed at the node's
 # address instead of 127.0.0.1. `host` is the node's SSH destination.
