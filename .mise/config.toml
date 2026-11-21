@@ -10,7 +10,7 @@ locked = true
 [tools]
 "aqua:google/go-containerregistry" = "0.22.1"
 "github:cachix/secretspec" = "0.21.1"
-"github:home-operations/flate" = "v0.7.3"
+"github:home-operations/flate" = "v0.8.0"
 # `kubectl config-import` for `just kube kubeconfig`; the release is one
 # script for every platform.
 "github:rafi/kubectl-config-import" = { version = "v0.6.7", asset_pattern = "kubectl-config_import", bin = "kubectl-config_import" }
