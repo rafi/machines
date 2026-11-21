@@ -1,0 +1,6 @@
+// Reboot when an unattended upgrade needs it.
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+Unattended-Upgrade::Automatic-Reboot-Time "03:00";
+
+# vim: set ft=aptconf :

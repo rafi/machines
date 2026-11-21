@@ -140,6 +140,8 @@ function _setup() {
 		-i /etc/apt/apt.conf.d/50unattended-upgrades
 	echo -e 'APT::Periodic::Update-Package-Lists "1";\nAPT::Periodic::Unattended-Upgrade "1";\nAPT::Periodic::AutocleanInterval "7";' \
 		> /etc/apt/apt.conf.d/20auto-upgrades
+	# Reboot when an upgrade needs it (server/etc/apt)
+	install -m 644 .setup/etc/apt/51unattended-upgrades-reboot /etc/apt/apt.conf.d/
 
 	# Service accounts
 	if [ ! "$(getent group remote)" ]; then
