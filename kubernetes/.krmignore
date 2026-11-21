@@ -1,0 +1,4 @@
+# flate reads every manifest under kubernetes/ as repository data, which
+# wins over --supply: the Secret templates in secrets/ would fill
+# cluster-settings with literal ${VAR}s. Flux never applies them.
+secrets/

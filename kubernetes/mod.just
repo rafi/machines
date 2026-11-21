@@ -13,9 +13,10 @@ set script-interpreter := ['bash', '-euo', 'pipefail']
 # The node's k3s release; `check` renders and validates against it.
 k3s_version := 'v1.37.1+k3s1'
 
-# flate as the cluster sees it: its Kubernetes version, and the Gateway API
-# (offline, app-template would render HTTPRoutes as v1alpha2).
-flate_flags := '--path . --kube-version ' + k3s_version + ' --api-versions gateway.networking.k8s.io/v1/HTTPRoute --no-progress'
+# flate as the cluster sees it: its Kubernetes version, the Gateway API
+# (offline, app-template would render HTTPRoutes as v1alpha2), and the
+# placeholder cluster-settings from _settings.
+flate_flags := '--path . --kube-version ' + k3s_version + ' --api-versions gateway.networking.k8s.io/v1/HTTPRoute --no-progress --supply flate-cluster-settings.yaml'
 
 # Core kinds from kubeconform's default; CRDs from the schemas the manifests'
 # headers use (home-operations, then datreeio's catalog for traefik.io).
@@ -120,8 +121,8 @@ restic *args:
 	secretspec run -f apps/backup/restic/secrets/secretspec.toml -- \
 		sh -c 'AWS_ACCESS_KEY_ID="$B2_KEY_ID" AWS_SECRET_ACCESS_KEY="$B2_APPLICATION_KEY" exec restic "$@"' restic "$@"
 
-# flate reads Secrets from any file under --path: write a placeholder
-# cluster-settings for every namespace of the tree in `dir` (gitignored).
+# flate takes these through --supply: write a placeholder cluster-settings
+# for every namespace of the tree in `dir` (gitignored).
 # A key without a placeholder here fails, unless `strict` is false (a diff's
 # base may hold keys since removed).
 [private]
@@ -176,6 +177,8 @@ diff base='origin/master' *flags: _settings
 	trap 'git worktree remove --force "$tmp"' EXIT
 	git worktree add -q --detach "$tmp" '{{ base }}'
 	'{{ just_executable() }}' -f '{{ source_file() }}' _settings "$tmp/kubernetes" false
+	# A base older than .krmignore would read its secrets/ templates.
+	cp .krmignore "$tmp/kubernetes/.krmignore"
 	flate diff all --path-orig "$tmp/kubernetes" {{ flate_flags }} {{ flags }}
 
 # Force Flux to pull and apply now.
