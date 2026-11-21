@@ -129,19 +129,16 @@ restic *args:
 		sh -c 'AWS_ACCESS_KEY_ID="$B2_KEY_ID" AWS_SECRET_ACCESS_KEY="$B2_APPLICATION_KEY" exec restic "$@"' restic "$@"
 
 # flate takes these through --supply: write a placeholder cluster-settings
-# for every namespace of the tree in `dir` (gitignored).
-# A key without a placeholder here fails, unless `strict` is false (a diff's
-# base may hold keys since removed).
+# for every namespace (gitignored); a key without a placeholder here fails.
 [private]
 [script]
-_settings dir='.' strict='true':
+_settings:
 	export SECRET_DOMAIN=example.com SEERR_HOSTNAME=seerr.example.net SERVER_HOSTNAME=server.example.net \
 		RATHOLE_SERVER_SERVICES_SLSKD_PORT=50000
-	subst='envsubst(nu, ne)'; [[ {{ strict }} == true ]] || subst=envsubst
-	for d in '{{ dir }}'/apps/*/; do
-		ns=$(basename "$d") yq "(.. | select(tag == \"!!str\")) |= $subst | .metadata.namespace = strenv(ns)" \
-			'{{ dir }}/secrets/cluster-settings.yaml'
-	done > '{{ dir }}/flate-cluster-settings.yaml'
+	for d in apps/*/; do
+		ns=$(basename "$d") yq '(.. | select(tag == "!!str")) |= envsubst(nu, ne) | .metadata.namespace = strenv(ns)' \
+			secrets/cluster-settings.yaml
+	done > flate-cluster-settings.yaml
 
 # Render every Kustomization and HelmRelease offline, as Flux would: charts
 # pulled and their values checked against the chart's schema and kubeVersion.
@@ -183,7 +180,6 @@ diff base='origin/master' *flags: _settings
 	tmp=$(mktemp -d)
 	trap 'git worktree remove --force "$tmp"' EXIT
 	git worktree add -q --detach "$tmp" '{{ base }}'
-	'{{ just_executable() }}' -f '{{ source_file() }}' _settings "$tmp/kubernetes" false
 	# A base older than .krmignore would read its secrets/ templates.
 	cp .krmignore "$tmp/kubernetes/.krmignore"
 	flate diff all --path-orig "$tmp/kubernetes" {{ flate_flags }} {{ flags }}
