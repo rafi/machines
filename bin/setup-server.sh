@@ -192,6 +192,9 @@ EOF
 	install -m 644 .setup/etc/sysctl/11-network-security.conf /etc/sysctl.d/
 	sysctl --system >/dev/null
 
+	# Kernel modules the server must never load (server/etc/modprobe)
+	install -m 644 .setup/etc/modprobe/blacklist-sctp.conf /etc/modprobe.d/
+
 	# Fail2ban
 	apt-get -yq install fail2ban
 	cp .setup/etc/fail2ban/jail.local /etc/fail2ban/
