@@ -76,7 +76,7 @@ function main() {
 		fi
 
 		echo ":: [${host}] start setup on remote…"
-		if ! ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$host" \
+		if ! ssh -o StrictHostKeyChecking=accept-new "$host" \
 			bash -s -- --run-here --user "$ADMIN_USER" --ssh-port "$SSH_PORT" \
 				--pub-key "$PUB_KEY" < "$0"
 		then
@@ -104,18 +104,13 @@ function _setup() {
 	# Update and upgrade
 	export DEBIAN_FRONTEND=noninteractive
 
-	# Add the stable version of NeoVim PPA (recommended)
-	add-apt-repository ppa:neovim-ppa/stable -y
-	# Add the unstable version of NeoVim PPA
-	# add-apt-repository ppa:neovim-ppa/unstable -y
-
 	apt-get -y update
 	apt-get -y upgrade
 	apt-get -y autoremove
 
 	# Install packages
 	apt-get -y install sudo apt-transport-https software-properties-common wget \
-		dnsutils openssl locales tzdata iptables iproute2 gawk grep sed net-tools \
+		dnsutils openssl locales tzdata iptables iproute2 gawk grep sed \
 		cron curl rsync ufw bash bash-completion netcat-openbsd nmap ccze grc \
 		colordiff htop iotop dstat tree tcpdump unattended-upgrades unzip \
 		ca-certificates git sqlite3

@@ -17,9 +17,6 @@ PermitUserEnvironment no
 # Allow client to pass locale environment variables
 # AcceptEnv LANG LC_*
 
-# Only use the newer more secure protocol.
-Protocol 2
-
 # Forwarding to X11 is considered insecure.
 X11Forwarding no
 
