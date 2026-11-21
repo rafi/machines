@@ -63,8 +63,8 @@ function main() {
 
 	if [ -z "$PUB_KEY" ]; then
 		PUB_KEY="$(printf %q "$(select_pubkey)")"
-	elif [ -f "" ]; then
-		PUB_KEY="$(cat "$PUB_KEY")"
+	elif [ -f "$PUB_KEY" ]; then
+		PUB_KEY="$(printf %q "$(cat "$PUB_KEY")")"
 	fi
 
 	for host
