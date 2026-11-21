@@ -35,7 +35,7 @@ apply host *apps:
 		cat "{{ root }}/server/functions.sh" "$app/installer.sh" | ssh {{ host }} "${*:2}" sh -s
 	)
 	deploy rathole-server
-	deploy ingress    USE_PACKAGE_MANAGER=1
+	deploy ingress
 	deploy shadowsocks
 	deploy gatus      GATUS_VERSION=v5.38.0
 

@@ -17,25 +17,14 @@ APP_VERSION=${APP_VERSION:-0.5.0}
 # pre-install
 intro
 
-if test -n "${USE_PACKAGE_MANAGER:-}"
-then
-	case "$(get_distro)" in
-		arch)
-			sudo pacman -S --noconfirm rathole
-			;;
-		*)
-			echo >&2 'ERROR: Unsupported OS.' && exit 1
-	esac
-else
-	# Download and install release from GitHub.
-	RATHOLE_URL="https://github.com/rapiz1/rathole/releases/download/v${APP_VERSION}/rathole-x86_64-unknown-linux-gnu.zip"
-	wget -qO /tmp/rathole.zip "${RATHOLE_URL}"
-	unzip /tmp/rathole.zip -d /tmp/
-	rm -f /tmp/rathole.zip
-	sudo mv /tmp/rathole /usr/local/bin/
-	sudo chown root:root /usr/local/bin/rathole
-	sudo chmod 755 /usr/local/bin/rathole
-fi
+# Download and install release from GitHub.
+RATHOLE_URL="https://github.com/rapiz1/rathole/releases/download/v${APP_VERSION}/rathole-x86_64-unknown-linux-gnu.zip"
+wget -qO /tmp/rathole.zip "${RATHOLE_URL}"
+unzip /tmp/rathole.zip -d /tmp/
+rm -f /tmp/rathole.zip
+sudo mv /tmp/rathole /usr/local/bin/
+sudo chown root:root /usr/local/bin/rathole
+sudo chmod 755 /usr/local/bin/rathole
 
 # post-install
 sudo ufw allow "$RATHOLE_SERVER_BIND_PORT"/tcp

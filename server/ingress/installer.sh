@@ -13,21 +13,15 @@ TEMP_DIR=/tmp/ingress
 intro
 
 # install
-if test -n "${USE_PACKAGE_MANAGER:-}"
-then
-	case "$(get_distro)" in
-		ubuntu|debian)
-			apt_get install -y nginx libnginx-mod-stream
-			sudo ufw allow 80/tcp
-			sudo ufw allow 443/tcp
-			;;
-		*)
-			echo >&2 'ERROR: Unsupported OS.' && exit 1
-	esac
-else
-	echo "ERROR: Unimplemented."
-	exit 2
-fi
+case "$(get_distro)" in
+	ubuntu|debian)
+		apt_get install -y nginx libnginx-mod-stream
+		sudo ufw allow 80/tcp
+		sudo ufw allow 443/tcp
+		;;
+	*)
+		echo >&2 'ERROR: Unsupported OS.' && exit 1
+esac
 
 # post-install
 echo ':: Post install'
