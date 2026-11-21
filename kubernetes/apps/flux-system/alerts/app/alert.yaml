@@ -50,9 +50,11 @@ spec:
     - { kind: OCIRepository, name: "*", namespace: o11y }
     - { kind: OCIRepository, name: "*", namespace: rathole }
     - { kind: OCIRepository, name: "*", namespace: traefik }
-  # Short network outages: Flux retries on its own.
+  # Short network outages: Flux retries on its own. Downloads canceled when
+  # a controller restarts (a Flux upgrade) are retried by the new pod.
   exclusionList:
     - error.*lookup.*github
     - dial.*tcp.*timeout
     - dial.*tcp.*unreachable
     - waiting.*socket
+    - download archive.*context canceled
