@@ -21,6 +21,42 @@ spec:
   interval: 1h
   upgrade:
     disableSchemaValidation: true
+  # The chart's agent init container registers the pod's name as a LAPI
+  # machine every time it runs. A node reboot reruns it in the same pod,
+  # LAPI answers 403 "user already exist" and the agent never starts
+  # (crowdsecurity/helm-charts#252). The first run's credentials are still
+  # in the pod's emptyDir: reuse them while LAPI accepts them, register
+  # only otherwise.
+  postRenderers:
+    - kustomize:
+        patches:
+          - target:
+              kind: Deployment
+              name: crowdsec-agent
+            patch: |
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: crowdsec-agent
+              spec:
+                template:
+                  spec:
+                    initContainers:
+                      - name: wait-for-lapi-and-register
+                        command:
+                          - sh
+                          - -c
+                          - |
+                            set -e
+                            until nc "$LAPI_HOST" "$LAPI_PORT" -z; do echo waiting for lapi to start; sleep 5; done
+                            ln -s /staging/etc/crowdsec /etc/crowdsec
+                            creds=local_api_credentials.yaml
+                            if [ -f "/tmp_config/$creds" ]; then
+                              cp "/tmp_config/$creds" "/etc/crowdsec/$creds"
+                              cscli lapi status && exit 0
+                            fi
+                            cscli lapi register --machine "$USERNAME" -u "$LAPI_URL" --token "$REGISTRATION_TOKEN"
+                            cp "/etc/crowdsec/$creds" "/tmp_config/$creds"
   values:
     # The default (docker) expects /var/lib/docker/containers.
     container_runtime: containerd
