@@ -60,6 +60,28 @@ spec:
   values:
     # The default (docker) expects /var/lib/docker/containers.
     container_runtime: containerd
+    config:
+      # The chart's own value (agent auto-registration), plus auto-delete of
+      # the machines and bouncers that every replaced agent or Traefik pod
+      # leaves behind. A machine with alerts stays until they age out (7d).
+      # A bouncer that never pulled (`traefik`, owner of the key) is kept.
+      config.yaml.local: |
+        api:
+          server:
+            auto_registration:
+              enabled: true
+              token: "$${REGISTRATION_TOKEN}"
+              allowed_ranges:
+                - "127.0.0.1/32"
+                - "192.168.0.0/16"
+                - "10.0.0.0/8"
+                - "172.16.0.0/12"
+        db_config:
+          flush:
+            agents_autodelete:
+              login_password: 7d
+            bouncers_autodelete:
+              api_key: 1d
     image:
       repository: crowdsecurity/crowdsec
       tag: v1.8.2
