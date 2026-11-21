@@ -26,7 +26,6 @@ _default:
 	@just --list kube --unsorted
 
 # Render k3s/config.yaml from pass and run k3s/install.sh on the node.
-# Keep `k3s_version` equal to the one in kubernetes/README.md.
 [doc('Install k3s on the node over SSH, config from pass: just kube k3s-install <host> [version]')]
 [group('bootstrap')]
 [script]
