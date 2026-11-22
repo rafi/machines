@@ -1,9 +1,8 @@
-# osewa and Moshi on this machine: install them, run osewa's server where
-# Moshi expects it, enroll this machine on the node, check a host.
-#
-# mode: `local` (osewa's default 7322, for a LAN or tailnet) or `tunnel`
-# (OSEWA_PORT from pass: the node, public through the server's rathole).
-# Values from pass are only captured or passed on, never printed.
+# osewa and Moshi on this machine.
+# serve: lets the Moshi app in. The node uses OSEWA_PORT (public via the
+# server), everything else uses 7322 on the LAN or a tailnet.
+# login: lets a laptop's terminal into the node.
+# Values from pass are never printed.
 
 set shell := ['bash', '-euo', 'pipefail', '-c']
 set script-interpreter := ['bash', '-euo', 'pipefail']
@@ -11,61 +10,76 @@ set script-interpreter := ['bash', '-euo', 'pipefail']
 _default:
 	@just --list moshi --unsorted
 
-# Print a mode's port; only ever captured by the recipes below.
+# Prints `node` if this machine is the node, else `lan`.
+[private]
+[script]
+_mode:
+	# Plain assignment, so a pass failure stops the script.
+	node=$(pass show secretspec/machines/default/CLUSTER_NODE_NAME | head -1)
+	if [ "$(hostname -s)" = "${node%%.*}" ]; then echo node; else echo lan; fi
+
+# Prints a mode's port. Only ever captured, never shown.
 [private]
 [script]
 _port mode:
 	case "{{ mode }}" in
-		local) echo 7322 ;;
-		tunnel) pass show secretspec/machines/default/OSEWA_PORT | head -1 ;;
-		*) echo >&2 "mode: local or tunnel, not '{{ mode }}'"; exit 2 ;;
+		lan) echo 7322 ;;
+		node) pass show secretspec/machines/default/OSEWA_PORT | head -1 ;;
+		*) echo >&2 "mode: lan or node, not '{{ mode }}'"; exit 2 ;;
 	esac
 
-[doc('Install osewa (auto-updating) and moshi-hook where missing; usage and metrics off')]
+[doc('Install osewa and moshi-hook if missing, and hook up the AI agents found here')]
 [script]
 install:
 	export PATH="$HOME/.local/bin:$PATH"
 	command -v osewa >/dev/null || curl -fsSL https://osewa.dev/install.sh | sh
-	# Moshi needs the host's build to match the app's: follow releases. osewa
-	# has no telemetry; its only outbound call is this release check.
+	# Moshi needs osewa to match the app's build. This update check is the
+	# only call osewa makes home.
 	osewa set auto-update auto
-	command -v moshi-hook >/dev/null || curl -fsSL https://getmoshi.app/install.sh | sh
-	# Nothing about this machine goes to Moshi beyond what a session needs:
-	# no agent usage pulled from account APIs, no CPU/memory/process stream.
-	moshi-hook set usage-collection off >/dev/null
-	moshi-hook set host-metrics off >/dev/null
+	# Fresh installs start with usage and host metrics off. Re-runs keep
+	# whatever you've changed since.
+	if ! command -v moshi-hook >/dev/null; then
+		curl -fsSL https://getmoshi.app/install.sh | sh
+		moshi-hook set usage-collection off >/dev/null
+		moshi-hook set host-metrics off >/dev/null
+	fi
+	# Hooks every agent CLI it finds, so approvals reach the phone. Re-run
+	# after installing a new agent.
+	moshi-hook install
 
-# osewa's user service listens on the mode's port, TCP and UDP, and
-# moshi-hook tells Moshi the same port. Re-running reinstalls both on it.
-[doc('Serve osewa for Moshi on this host: just moshi host [local|tunnel]')]
+# Points osewa and moshi-hook at this machine's port. Safe to re-run.
+[doc('Let the Moshi app open sessions on this machine')]
 [script]
-host mode='local': install
+serve: install
 	export PATH="$HOME/.local/bin:$PATH"
-	port=$("{{ just_executable() }}" -f "{{ source_file() }}" _port "{{ mode }}")
-	# Its output has no port, and on Linux the linger hint the node needs.
+	mode=$("{{ just_executable() }}" -f "{{ source_file() }}" _mode)
+	port=$("{{ just_executable() }}" -f "{{ source_file() }}" _port "$mode")
+	# Let it print. There's no port in it, and the node needs its linger hint.
 	osewa service install --listen ":$port"
 	moshi-hook set osewa-port "$port" >/dev/null
 	moshi-hook service restart
+	case "$mode" in
+		node) echo "Serving as the node on OSEWA_PORT, public through the server." ;;
+		lan) echo "Serving on 7322, for the LAN or a tailnet." ;;
+	esac
 	if ! moshi-hook status | grep -E '^status:[[:space:]]+paired' >/dev/null; then
-		echo "Pair this host from the Moshi app (Hooks), then run just moshi host {{ mode }} again."
+		echo "Pair this host from the Moshi app (Hooks), then run just moshi serve again."
 	fi
 
-# Prints yes/no per check, never the port; fails when any is no. Without a
-# mode it checks the port moshi-hook is set to (no pass read); with one,
-# also that moshi-hook is set to that mode's port.
-[doc('Check osewa and moshi-hook on this host: just moshi status [local|tunnel]')]
+# yes/no per check, never the port. Fails if any check says no.
+[doc('Check osewa and moshi-hook on this machine')]
 [script]
-status mode='':
+status:
 	export PATH="$HOME/.local/bin:$PATH"
 	status=$(moshi-hook osewa status 2>/dev/null || true)
 	field() { printf '%s' "$status" | yq -p json ".$1" 2>/dev/null || true; }
-	mode="{{ mode }}"
-	if [ -n "$mode" ]; then
-		port=$("{{ just_executable() }}" -f "{{ source_file() }}" _port "$mode")
-	else
-		port=$(field port)
-	fi
-	# Is osewa listening on the port? proto: tcp or udp. Called through check.
+	mode=$("{{ just_executable() }}" -f "{{ source_file() }}" _mode)
+	port=$("{{ just_executable() }}" -f "{{ source_file() }}" _port "$mode")
+	case "$mode" in
+		node) printf '%-27s %s\n' 'serves as:' 'the node (OSEWA_PORT)' ;;
+		lan) printf '%-27s %s\n' 'serves as:' 'LAN or tailnet (7322)' ;;
+	esac
+	# Is osewa on the port over $1 (tcp or udp)? Only called via check.
 	# shellcheck disable=SC2329
 	listens() {
 		case "$(uname -s)" in
@@ -84,7 +98,7 @@ status mode='':
 		esac
 	}
 	failed=0
-	# Print "<label> yes|no" for a command, in this shell so `failed` sticks.
+	# Runs in this shell so `failed` sticks.
 	check() {
 		local label=$1 r=yes
 		shift
@@ -94,23 +108,23 @@ status mode='':
 	daemon=$(moshi-hook probe --json 2>/dev/null || true)
 	check 'moshi-hook daemon running' test "$(printf '%s' "$daemon" | yq -p json .running 2>/dev/null)" = true
 	check 'osewa server running' test "$(field running)" = true
-	[ -z "$mode" ] || check 'moshi-hook on the port' test "$(field port)" = "$port"
+	check 'moshi-hook on the port' test "$(field port)" = "$port"
 	check 'osewa on the port, TCP' listens tcp
 	check 'osewa on the port, UDP' listens udp
 	exit "$failed"
 
-# Enroll this machine on the node through the server: ssh on the server's
-# 443 reaches the node's sshd, osewa then dials the server's public osewa
-# port. --no-install keeps the node's osewa build, which Moshi must match.
-# `name`: the host's name here (default the node's hostname, from pass);
-# `target`: any other ssh target for the node (default ssh://$USER@s.<domain>:443).
-[doc('Enroll this machine on the node: just moshi enroll [name] [ssh-target]')]
+# Run once per laptop, and again if OSEWA_PORT or the node's osewa keys
+# change. Always goes through the server, even at home.
+# --no-install keeps the node's osewa build, which has to match Moshi's.
+# name: what to call the node here (default: its hostname).
+# target: another ssh target for the node (default: ssh://$USER@s.<domain>:443).
+[doc("Let this laptop's terminal open sessions on the node")]
 [script]
-enroll name='' target='':
+login name='' target='': install
 	export PATH="$HOME/.local/bin:$PATH"
 	pv() { pass show "secretspec/machines/default/$1" | head -1; }
-	port=$("{{ just_executable() }}" -f "{{ source_file() }}" _port tunnel)
-	# Plain assignments, so set -e stops on a pass failure.
+	port=$("{{ just_executable() }}" -f "{{ source_file() }}" _port node)
+	# Plain assignments, so a pass failure stops the script.
 	domain=$(pv SECRET_DOMAIN)
 	server=$(pv SERVER_HOSTNAME)
 	node=$(pv CLUSTER_NODE_NAME)
@@ -118,9 +132,8 @@ enroll name='' target='':
 	name=${given:-$node}
 	target="{{ target }}"
 	[ -n "$target" ] || target="ssh://$USER@s.$domain:443"
-	# osewa prints the address and target (pass values) on success and in
-	# errors: drop stdout (also its wrong --service advice for the node) and
-	# show stderr with the values replaced.
+	# osewa prints private values. Drop stdout (it also gives the wrong
+	# --service advice here) and redact stderr.
 	redact() {
 		while IFS= read -r l; do
 			l=${l//"$server"/<server>}; l=${l//"$domain"/<domain>}; l=${l//"$port"/<port>}; l=${l//"$node"/<node>}
@@ -128,5 +141,5 @@ enroll name='' target='':
 		done
 	}
 	{ osewa login "$target" --name "$name" --no-install --addr "$server:$port" 2>&1 >/dev/null; } | redact >&2
-	# The node's hostname is a private value: name it, don't print it.
-	if [ -n "$given" ]; then echo "enrolled as $given"; else echo "enrolled under the node's hostname (CLUSTER_NODE_NAME)"; fi
+	# The node's hostname is private, so don't print it.
+	if [ -n "$given" ]; then echo "logged in to the node as $given"; else echo "logged in to the node under its hostname (CLUSTER_NODE_NAME)"; fi
