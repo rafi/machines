@@ -114,8 +114,8 @@ against the base branch. Read the release notes before merging. Where
 versions live:
 
 - **Flux:** `distribution.version` in
-  `apps/flux-system/flux-instance/app/helmrelease.yaml` (2.10.x: patches apply
-  on their own).
+  `apps/flux-system/flux-instance/app/helmrelease.yaml` (a minor range:
+  patches apply on their own, a new minor is a manual bump).
 - **Charts:** `ref.tag` in the app's `app/ocirepository.yaml`.
 - **Images:** `image.tag` in the app's `app/helmrelease.yaml`.
 - **Gateway API CRDs:** `ref.tag` in
