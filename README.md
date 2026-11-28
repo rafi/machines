@@ -113,11 +113,8 @@ just server apply <host>    # deploy the server's apps
 To the [Home Operations](https://discord.gg/home-operations) community and
 [onedr0p/home-ops](https://github.com/onedr0p/home-ops) for the cluster
 layout, [bjw-s](https://github.com/bjw-s-labs/helm-charts) for app-template,
-and [kubesearch.dev](https://kubesearch.dev) for showing how others deploy
-the same apps.
+and [kubesearch.dev](https://kubesearch.dev) for ideas and references.
 
 <div align="center">
-
 <sub>2026 © <a href="https://github.com/rafi">Rafael Bodill</a></sub>
-
 </div>
