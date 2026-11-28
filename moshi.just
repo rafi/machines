@@ -3,7 +3,11 @@
 # server), everything else uses 7322 on the LAN or a tailnet.
 # login: lets a laptop's terminal into the node.
 # Values from pass are never printed.
-
+#
+# - Skill: https://github.com/rjyo/moshi-skill/tree/main
+# - Hooks: https://getmoshi.app/docs/hooks
+# - Osewa: https://getmoshi.app/docs/osewa
+#
 set shell := ['bash', '-euo', 'pipefail', '-c']
 set script-interpreter := ['bash', '-euo', 'pipefail']
 
